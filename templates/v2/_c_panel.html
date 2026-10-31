@@ -1,0 +1,18 @@
+
+
+
+
+
+
+{% import 'v2/_c_icon.html' as ic %}
+{% macro panel(title, tip='', sub='', go_href='', go_label='', count=None, count_tip='', cls='') -%}
+<section class="board-panel {{ cls }}">
+  <header class="board-ph">
+    <h2 class="board-pt"{% if tip %} title="{{ tip }}"{% endif %}>{{ title }}</h2>
+    {%- if count is not none %}<span class="board-pc num"{% if count_tip %} title="{{ count_tip }}"{% endif %}>{{ count }}</span>{% endif %}
+    {%- if sub %}<span class="board-psub pnsub">{{ sub }}</span>{% endif %}
+    {%- if go_href %}<a class="board-pgo pngo" href="{{ go_href }}" aria-label="{{ go_label or title }}" title="{{ go_label or title }}">{{ ic.arrow() }}</a>{% endif %}
+  </header>
+  {{ caller() }}
+</section>
+{%- endmacro %}

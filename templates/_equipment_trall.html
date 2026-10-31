@@ -1,0 +1,17 @@
+
+
+
+
+
+
+
+{% if not configured %}
+<span class="eq-trall-msg"></span>
+{% else %}
+<span class="eq-trall-msg" data-trall-keys="{{ trall_keys }}"
+      data-done="{{ n_done }}" data-fail="{{ n_fail }}" data-skip="{{ n_skip }}"
+  >{%- if none_needed %}{{ t.eq_trall_none }}{% elif n_done == 0 and n_fail > 0 and n_skip == 0
+  %}⚠ {{ t.eq_tr_err }}{% else %}{{ t.eq_trall_done.format(n=n_done)
+  }}{% if n_fail %}{{ t.eq_trall_fail.format(n=n_fail) }}{% endif
+  %}{% if n_skip %}{{ t.eq_trall_skip.format(n=n_skip) }}{% endif %}{% endif %}</span>
+{% endif %}

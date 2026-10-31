@@ -1,0 +1,6 @@
+
+
+
+{% macro scroll(label='', cls='') -%}
+<div class="board-scroll pnb {{ cls }}" tabindex="0" role="region"{% if label %} aria-label="{{ label }}"{% endif %}>{{ caller() }}</div>
+{%- endmacro %}

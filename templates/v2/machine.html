@@ -1,0 +1,52 @@
+{% extends 'v2/_base.html' %}
+
+
+
+
+
+
+
+
+
+{% block page %}machine{% endblock %}
+{% block title %}Tendline Board — {{ t.mc_title }} {{ eid }}{% endblock %}
+{% block nav %}
+
+{% set nav_active = 'util' %}
+{% include 'v2/_nav.html' %}
+{% endblock %}
+{% block main %}
+{% set nav_active = 'util' %}
+  <div class="crumb"><a href="{{ eq_href }}">{{ t.mc_back }}</a></div>
+  <div class="mc-title">{{ t.mc_title }} {{ eid }}{% if seat_unit %}<span class="mc-seat">{{ t.mc_seat }} {{ seat_unit }}</span>{% endif %}</div>
+  <div class="mc-csub">
+    {{ (m.desc if m and m.desc else '—') }}
+    {% if cls %}· {{ pretty_station(cls) }} <span title="{{ cls }}">({{ cls }})</span>{% endif %}
+    
+    {% if parent_eid %}· → {{ parent_eid }}{% endif %}
+    · {% if start or end %}{{ start or '…' }} → {{ end or '…' }}{% else %}{{ t.p_window }} {{ days }}{{ t.p_days }}{% endif %}
+  </div>
+
+  {% if cls %}
+  
+  <div class="mc-how">
+    {{ t.mc_cls_how }}
+    {%- if cls_how == 'param' %} {{ t.mc_how_param }}
+    {%- elif cls_how == 'roster' %} {{ t.mc_how_roster }}
+    {%- else %} {{ t.mc_how_fleet }}{% endif %}
+    {% if cls_cands and cls_cands|length > 1 %}
+    · {{ t.mc_multi_cls.format(n=cls_cands|length, cls=pretty_station(cls)) }}
+      {% for c in cls_cands %}{% if c != cls %}<a href="/machine/{{ eid }}?{{ base_qs }}&lang={{ lang }}&cls={{ c }}">{{ pretty_station(c) }}</a>{% if not loop.last %} · {% endif %}{% endif %}{% endfor %}
+    {% endif %}
+  </div>
+  {% include 'v2/_timeline.html' %}
+  {% else %}
+  
+
+
+  <div class="mc-none">
+    <div class="k">{{ t.mc_no_cls }}</div>
+    <div class="d"><a href="{{ eq_href }}">{{ t.mc_back }}</a></div>
+  </div>
+  {% endif %}
+{% endblock %}

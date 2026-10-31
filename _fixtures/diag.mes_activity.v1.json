@@ -1,0 +1,72 @@
+{
+  "schema_id": "diag.mes_activity.v1",
+  "_status": "FROZEN 雙邊（2026-06-24；Tendline Board CONCEPT §19.4 B5 ↔ remote-diag Diag-ADR-010）",
+  "_producer": "remote-diag-pipeline/adapters/mes_activity.py（Mode 1 排程化採集；非當前批次）",
+  "_consumer": "Tendline Board 融合層（未建；明訂非 runtime 依賴＝coverage frontier + 對帳 + Layer B 關聯補強）",
+  "_dedup_key": "eid + last_seg_ts（Tendline Board 端自去重；CONCEPT §19.4 B5 裁決）",
+  "_boundary": "gap≠fault：segs_in_window==0 是『值』非 label；狀態裂解歸 Tendline Board（B5 紅線）",
+  "provenance": [
+    {"field": "eid", "source": "remote-diag adapters/mes_activity.py REQUIRED_FIELDS + CONCEPT §19.4 B5（=MES EID 機台級；Gen2 取母機 P-1/C6）"},
+    {"field": "window_start", "source": "remote-diag adapters/mes_activity.py build_activity_record（= server_now - window_days，MES server clock）"},
+    {"field": "window_end", "source": "remote-diag adapters/mes_activity.py build_activity_record（= server_now，GETDATE()）"},
+    {"field": "segs_in_window", "source": "remote-diag adapters/mes_activity.py（COUNT(*) 窗內段數；int；0＝gap『值』非 fault label）"},
+    {"field": "last_seg_ts", "source": "remote-diag adapters/mes_activity.py（MAX(stpStartTime)；窗內無段時 null）"},
+    {"field": "last_seg_age_h", "source": "remote-diag adapters/mes_activity.py（(server_now-last_seg_ts) 小時、同一 MES 時鐘；無段時 null）"},
+    {"field": "poll_cadence_min", "source": "CONCEPT §19.4 B5 裁決（Tendline Board 唯一加欄請求＝可偵測 gap 時長下限）+ remote-diag DEFAULT_POLL_CADENCE_MIN=60（對齊 ETL ~hourly）"},
+    {"field": "source", "source": "remote-diag adapters/mes_activity.py SOURCE 常數＝固定字串 'mes_activity'"},
+    {"field": "observed_at", "source": "remote-diag adapters/mes_activity.py（= server_now＝MES server clock；本源走穩定錨、不帶 clock_warning，CONCEPT §19.4 B5）"},
+    {"field": "(FORBIDDEN) fault/state/status/reason/expected_active", "source": "remote-diag adapters/mes_activity.py FORBIDDEN_FIELDS（gap≠fault；expected_active＝Tendline Board 明確否決，B5 裁決）"}
+  ],
+  "golden": [
+    {
+      "eid": "EID-00884",
+      "window_start": "2026-06-25 10:00:00",
+      "window_end": "2026-06-26 10:00:00",
+      "segs_in_window": 42,
+      "last_seg_ts": "2026-06-26 09:30:00",
+      "last_seg_age_h": 0.5,
+      "poll_cadence_min": 60,
+      "source": "mes_activity",
+      "observed_at": "2026-06-26 10:00:00"
+    },
+    {
+      "_note": "gap 情境：窗內 0 段＝值非 label；last_seg_ts / last_seg_age_h 為 null（producer selftest r2 同形）",
+      "eid": "EID-17431",
+      "window_start": "2026-06-25 10:00:00",
+      "window_end": "2026-06-26 10:00:00",
+      "segs_in_window": 0,
+      "last_seg_ts": null,
+      "last_seg_age_h": null,
+      "poll_cadence_min": 60,
+      "source": "mes_activity",
+      "observed_at": "2026-06-26 10:00:00"
+    }
+  ],
+  "invalid": [
+    {
+      "case": "缺必要欄 poll_cadence_min（Tendline Board 唯一加欄請求；缺它會把短空窗過度解讀）",
+      "reject_by": "consumer",
+      "record": {"eid": "EID-00884", "window_start": "2026-06-25 10:00:00", "window_end": "2026-06-26 10:00:00", "segs_in_window": 3, "last_seg_ts": "2026-06-26 08:00:00", "last_seg_age_h": 2.0, "source": "mes_activity", "observed_at": "2026-06-26 10:00:00"}
+    },
+    {
+      "case": "帶 FORBIDDEN 欄 expected_active（Tendline Board 明確否決：expectation 歸融合層+排程源 G1，producer 不得主張）",
+      "reject_by": "consumer",
+      "record": {"eid": "EID-00884", "window_start": "2026-06-25 10:00:00", "window_end": "2026-06-26 10:00:00", "segs_in_window": 0, "last_seg_ts": null, "last_seg_age_h": null, "poll_cadence_min": 60, "source": "mes_activity", "observed_at": "2026-06-26 10:00:00", "expected_active": true}
+    },
+    {
+      "case": "帶 FORBIDDEN 欄 fault（gap≠fault 紅線：進口 fault label＝越界，狀態判定歸 Tendline Board）",
+      "reject_by": "consumer",
+      "record": {"eid": "EID-17431", "window_start": "2026-06-25 10:00:00", "window_end": "2026-06-26 10:00:00", "segs_in_window": 0, "last_seg_ts": null, "last_seg_age_h": null, "poll_cadence_min": 60, "source": "mes_activity", "observed_at": "2026-06-26 10:00:00", "fault": true}
+    },
+    {
+      "case": "source 值錯（非固定 'mes_activity'）＝不明來源，拒讀不冒險解讀",
+      "reject_by": "consumer",
+      "record": {"eid": "EID-00884", "window_start": "2026-06-25 10:00:00", "window_end": "2026-06-26 10:00:00", "segs_in_window": 42, "last_seg_ts": "2026-06-26 09:30:00", "last_seg_age_h": 0.5, "poll_cadence_min": 60, "source": "mes_timeline", "observed_at": "2026-06-26 10:00:00"}
+    }
+  ],
+  "_note": [
+    "沉默點①（時戳線格式）：契約文字未 pin ISO-T vs 空白分隔。producer `_iso()`＝`str(v)[:19]` 對 pyodbc datetime → 實際輸出『YYYY-MM-DD HH:MM:SS』（空白分隔、秒精度、無 tz）。golden 依 producer 實碼採空白分隔；Board consumer 應兩式皆收（比照 board_labels._parse_dt）。對版時建議 pin。",
+    "沉默點②（傳輸 envelope）：B5 契約只凍 record schema；producer CLI `--json` 實際輸出外包一層 `{\"schema_id\": \"diag.mes_activity.v1\", \"records\": [...]}`（mes_activity.py main()）——此 wrapper 形狀不在契約文字內。本 fixture golden＝record 層；wrapper 讀法照 producer 碼、對版時確認。",
+    "沉默點③（last_seg_age_h 精度）：producer round 至 2 位小數；契約文字未講。消費端勿假設更高精度。"
+  ]
+}

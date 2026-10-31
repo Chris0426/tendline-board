@@ -1,0 +1,50 @@
+
+
+
+
+
+
+{% import 'v2/_c_help.html' as HP %}
+
+
+{% macro v1_row(r) -%}
+  {% set lampcls = {'need_help':'need','lend':'lend','down':'down'}.get(r.lamp, ('none' if r.lamp is none else '')) %}
+  {% set glyph = {'need_help':'▲','lend':'▼','down':'■'}.get(r.lamp, ('·' if r.lamp is none else '●')) %}
+  {% set lamptxt = {'need_help':t.dp_lamp_need,'lend':t.dp_lamp_lend,'down':t.dp_lamp_down}.get(r.lamp, ('—' if r.lamp is none else t.dp_lamp_ok)) %}
+  <div class="dsp-r {{ 'pt' if r.passthrough }} {{ 'need' if r.lamp == 'need_help' }}" id="dsp-{{ r.cls }}">
+    <div class="dsp-st"><div class="nm" title="{{ r.ord }}. {{ r.display or r.cls }}">{{ r.ord }}. {{ r.display or r.cls }}</div><div class="id" title="{{ r.cls }}">{{ r.cls }}</div></div>
+    <div><span class="lamp {{ lampcls }}"><span class="g">{{ glyph }}</span>{{ lamptxt }}</span></div>
+    <div class="dsp-num">{% if r.passthrough %}<span class="dsp-mut">—</span>{% else %}{{ r.queue_n if r.queue_n is not none else '—' }}{% endif %}
+      {% if r.stale_n %}<span class="chip">{{ t.dp_stale_chip.format(n=r.stale_n) }}</span>{% endif %}{% if r.fail_hold_n %}<span class="chip">{{ t.dp_fail_hold_chip.format(n=r.fail_hold_n) }}</span>{% endif %}{% if r.down_n %}<span class="chip">{{ t.dp_down_chip.format(n=r.down_n) }}</span>{% endif %}</div>
+    <div class="dsp-num">{% if r.cover_h is not none %}<b>{{ '%.1f'|format(r.cover_h) }}</b><small>h</small>{% else %}<span class="dsp-mut">—</span>{% endif %}</div>
+    <div class="dsp-num">{% if r.rate_uph is not none %}~{{ '%.1f'|format(r.rate_uph) }}<small> PH/h</small><br><small>{{ t.dp_rate_4h.format(h=util_win_h) if r.rate_src == '4h' else t.dp_rate_7d.format(d=base_days) }}</small>{% else %}<span class="dsp-mut">—</span>{% endif %}</div>
+    <div class="dsp-num">{% if r.util_4h is not none %}<b>{{ '%.0f'|format(100*r.util_4h) }}%</b><small>/ {% if r.base_7d is not none %}{{ '%.0f'|format(100*r.base_7d) }}%{% else %}—{% endif %}</small>{% if r.base_7d is none and r.util_note %}<br><small class="dsp-mut">{{ dp_note(r.util_note) }}</small>{% endif %}{% else %}<span class="dsp-mut">—</span>{% if r.util_note %}<br><small class="dsp-mut">{{ dp_note(r.util_note) }}</small>{% endif %}{% if r.util_src == 'proxy' %}<br><small class="dsp-mut">{{ t.dp_proxy_note }}</small>{% endif %}{% endif %}</div>
+    {% set mp = r.mp or {} %}<div class="dsp-num">{% if mp.state == 'count' %}<b class="{{ 'dsp-mut' if not mp.n_now else '' }}">{{ mp.n_now }}</b><small>· {{ t.dp_rate_4h.format(h=opr_ref_h) }} {{ mp.n_4h }}</small>{% else %}<span class="dsp-mut">—</span>{% if mp.state == 'auto' %}<small class="dsp-mut">{{ t.dp_mp_auto_tag }}</small>{% elif mp.state == 'nosig' %}<small class="dsp-mut">{{ t.dp_mp_nosig_tag }}</small>{% endif %}{% endif %}{{ HP.help(dp_mp_tip_of(mp), r=True) }}</div>
+    <div class="dsp-why">{{ dp_reason(r) }}</div>
+  </div>
+{%- endmacro %}
+
+{% if err or not kd_board %}
+  <div class="kd-unavail">{{ t.kd_unavail }}{% if err %}<br><code>{{ err }}</code>{% endif %}</div>
+{% else %}
+  {% if kd_board.mode == 'demo' %}<div class="dsp-banner">⚠ {{ t.kd_demo_banner }}<span class="why">{{ t.kd_demo_why }}</span></div>{% endif %}
+  <div class="kd-meta"><span>{{ t.kd_asof.format(cap=kd_board.as_of or '—') }}</span>{% for h in kd_horizons %}<span class="kd-chip">{{ h }}</span>{% endfor %}{% if kd_layout_status == 'absent' %}<span class="kd-chip warn">{{ t.kd_no_layout }}</span>{% elif kd_board.diag and not kd_board.diag.layout_reviewed %}<span class="kd-chip warn">{{ t.kd_layout_draft }}</span>{% endif %}</div>
+  {% if not kd_wip_ready and kd_board.mode != 'demo' %}<div class="kd-note">⚠ {{ t.kd_no_wip }}</div>{% endif %}
+  {% if board and not board.wo_gate %}<div class="kd-note">⚠ {{ t.dp_wo_gate_off }}</div>{% endif %}
+  {% if board and board.dead_filter and 'SKIPPED' in board.dead_filter|string %}<div class="kd-note">⚠ {{ t.dp_dead_filter_off }}</div>{% endif %}
+  {% if board and board.skipped_n %}<div class="kd-note">⚠ {{ t.dp_skipped_note.format(n=board.skipped_n) }}</div>{% endif %}
+  <section class="kd-pairs"><h2>{{ t.kd_pairs_head }}</h2>{% if kd_pairs %}{% for line in kd_pairs %}<div class="kd-pair">{{ loop.index }}. {{ line }}</div>{% endfor %}{% else %}<div class="kd-pair">{{ t.kd_pair_none }}</div>{% endif %}{% for line in kd_fallback_pairs %}<div class="kd-pair fallback">{{ t.kd_pair_fallback_head }}: {{ line }}</div>{% endfor %}</section>
+  <div class="kd-frame"><div class="kd-scroll"><div class="kd-tbl">
+    <div class="kd-head"><span></span><span>{{ t.kd_col_kun }} · {{ t.kd_col_station }}</span><span class="n">{{ t.kd_col_work }}</span><span class="n">{{ t.kd_col_dry }}</span><span class="n">{{ t.kd_col_staff }}</span><span>{{ t.kd_col_lamp }}</span><span>{{ t.kd_col_reason }}</span><span class="n">{{ t.kd_col_measured }}</span></div>
+    {% for b in kd_blocks %}
+      <div class="kd-row b{{ b.band }} first"><span class="kd-band"></span><span class="station" title="{{ b.bundle_title }}">{{ b.bundle_name }}</span>
+        <span class="n">{{ b.work }}</span><span class="n">{{ b.dry }}</span><span class="n">{% if b.staff is not none %}{{ b.staff }}{% else %}<span class="dsp-mut">—</span>{% endif %}{% if b.staff_note %}<br><small class="dsp-mut">{{ b.staff_note }}</small>{% endif %}</span><span><span class="kd-lamp {{ b.item.lamp }}">{{ b.lamp_text }}</span></span><span class="why">{{ b.reason }}</span><span class="n kd-measured">{% if b.measured is not none %}≥{{ b.measured }}{{ HP.help(t.kd_measured_tip.format(values=b.measured_tip), r=True) }}{% else %}<span class="dsp-mut">—</span>{% endif %}</span></div>
+      {% for row in b.rows %}
+      <div class="kd-row b{{ b.band }}"><span class="kd-band"></span><span class="station">{{ row.name }}{% if row.no %}<small>{{ row.no }}</small>{% endif %}</span><span class="blank" aria-hidden="true"></span><span class="blank" aria-hidden="true"></span><span class="blank" aria-hidden="true"></span><span class="blank" aria-hidden="true"></span><span class="blank" aria-hidden="true"></span><span class="blank" aria-hidden="true"></span></div>
+      {% endfor %}
+      <details class="kd-details"><summary title="{{ b.bundle_title }}">{{ b.bundle_name }} · {{ t.kd_expand }}</summary><div class="kd-v1"><div class="kd-note">{{ t.dp_shift_note }} {{ HP.help(t.q_dp_mp.format(n=opr_now_min)) }}</div>{% set ns = namespace(grp='') %}{% for r in b.v1_rows %}{% if r.mcl != ns.grp %}{% set ns.grp = r.mcl %}<div class="dsp-r grp">{{ dp_grp(r.mcl) }}</div>{% endif %}{{ v1_row(r) }}{% endfor %}</div></details>
+    {% endfor %}
+    {% if kd_orphans %}<details class="kd-details"><summary>{{ t.kd_v1_orphan }} · {{ t.kd_expand }}</summary><div class="kd-v1">{% for r in kd_orphans %}{{ v1_row(r) }}{% endfor %}</div></details>{% endif %}
+  </div></div></div>
+  <footer class="kd-foot"><p>{{ t.kd_foot_advice }}</p><p>{{ t.kd_foot_skill }}</p>{% if kd_nominal %}<p>{{ t.kd_foot_nominal_src.format(source=kd_nominal.source or '—', as_of=kd_nominal.as_of or '—') }}</p>{% else %}<p>{{ t.kd_no_staff }}</p>{% endif %}<p>{{ t.kd_foot_measured }}</p>{% if board and board.opr and board.opr.ok %}{% if board.opr.line_now is not none %}<p>{{ t.dp_mp_line.format(n=board.opr.line_now, m=board.opr.line_4h if board.opr.line_4h is not none else '—', mins=opr_now_min, h=opr_ref_h) }} {{ t.dp_mp_line_note }}</p>{% endif %}{% elif board %}<p>{{ t.dp_mp_off }}</p>{% endif %}{% if kd_offshift %}<p>{{ t.kd_foot_offshift.format(h=kd_board.horizon.hours_left or '—') }}</p>{% endif %}{% if not kd_wo_gate %}<p>⚠ {{ t.kd_no_wo }}</p>{% endif %}</footer>
+{% endif %}

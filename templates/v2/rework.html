@@ -1,0 +1,55 @@
+{% extends 'v2/_base.html' %}
+
+
+
+
+
+
+
+{% block page %}rework{% endblock %}
+{% block title %}Tendline Board — {{ t.rw_title }}{% endblock %}
+{% block nav %}
+{% set nav_active = 'rework' %}
+{% include 'v2/_nav.html' %}
+{% endblock %}
+{% block main %}
+{% set nav_active = 'rework' %}
+  <h1>{{ t.rw_title }}{% if source == 'demo' %}<span class="demotag">DEMO</span>{% endif %}</h1>
+  <div class="sub">{{ t.rw_sub }}</div>
+
+  <div class="note">
+    {{ t.rw_caliber }}
+    {% if source != 'demo' %} · {{ t.rw_cov.format(n=cov_days, m=win_days) }}{% else %} · {{ t.rw_demo_note }}{% endif %}
+  </div>
+
+  <div class="card">
+    <table>
+      <tr>
+        <th class="cls">{{ t.rw_col_station }}</th>
+        <th>{{ t.rw_col_attempts }}</th>
+        <th>{{ t.rw_col_first }}</th>
+        <th>{{ t.rw_col_rework }}</th>
+        <th style="min-width:170px">{{ t.rw_col_rate }}</th>
+        {% if source != 'demo' %}<th>{{ t.rw_col_days }}</th>{% endif %}
+      </tr>
+      {% for r in rows %}
+      <tr>
+        <td class="cls">{{ r.display or r.cls }} <small>{{ r.cls }}</small></td>
+        {% if r.attempts is not none %}
+        <td>{{ r.attempts }}</td>
+        <td>{{ r.first }}</td>
+        <td>{{ r.rework }}</td>
+        <td>{% if r.rate is not none %}<span class="bar" style="width:{{ '%.0f'|format([r.rate, 100]|min) }}px"></span>{{ '%.1f'|format(r.rate) }}%{% else %}<span class="mut">—</span>{% endif %}</td>
+        {% if source != 'demo' %}<td class="mut">{{ r.n_days }}</td>{% endif %}
+        {% else %}
+        <td class="mut">—</td><td class="mut">—</td><td class="mut">—</td><td class="mut">—</td>
+        {% if source != 'demo' %}<td class="mut">0</td>{% endif %}
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% if source != 'demo' and not cov_days %}
+  <div class="note">{{ t.rw_empty }}</div>
+  {% endif %}
+{% endblock %}

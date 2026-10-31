@@ -1,0 +1,555 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{% set STC = {'維修':'var(--st-repair)','計畫保養':'var(--st-pm)','調機':'var(--st-setup)','其他維護':'var(--st-maint)','其他維護(子類待定)':'var(--st-maint)','等料(停機)':'var(--st-parts)','等外包(停機)':'var(--st-vendor)','暫停·等機台空檔':'var(--st-hwait)','暫停·試跑':'var(--st-htest)'} %}
+{% set SNAME = {'維修':t.eq_s_repair,'計畫保養':t.eq_s_pm,'調機':t.eq_s_setup,'其他維護':t.eq_s_maint,'其他維護(子類待定)':t.eq_s_maint,'等料(停機)':t.eq_s_parts,'等外包(停機)':t.eq_s_vendor,'暫停·等機台空檔':t.eq_s_hold_wait,'暫停·試跑':t.eq_s_hold_test} %}
+{% set STINK = {'維修':'var(--sti-repair)','計畫保養':'var(--sti-pm)','調機':'var(--sti-setup)','其他維護':'var(--sti-maint)','其他維護(子類待定)':'var(--sti-maint)','等料(停機)':'var(--sti-parts)','等外包(停機)':'var(--sti-vendor)','暫停·等機台空檔':'var(--sti-hwait)','暫停·試跑':'var(--sti-htest)'} %}
+
+{% if err or not board or not board.areas %}
+  <div class="eq-unavail">{{ t.eq_empty }}</div>
+  {% if err %}<div class="eq-unavail-hint">{{ t.sx_err_lead }} <code>{{ err }}</code></div>{% endif %}
+{% else %}
+{% set H = board.headline %}
+{% set cols = board.day_cols %}
+
+
+
+
+
+{% set NCOL = cols|length + 3 %}
+
+
+
+
+{% set wo_live = board.wo_status in ('live', 'live_stale') or board.mode == 'demo' %}
+
+
+
+{% if board.mode == 'demo' %}
+<div class="eq-srcbanner"><span class="pin">⚠ {{ t.eq_demo_all }}</span><span>{{ t.eq_demo_all_why }}</span></div>
+{% elif board.mode == 'snapshot' %}
+<div class="eq-srcbanner"><span class="pin">{{ t.eq_snap_banner }}</span></div>
+{% elif not wo_live %}
+<div class="eq-srcbanner"><span class="pin">{{ t.eq_live_wo_off }}</span></div>
+{% endif %}
+
+
+
+
+
+<div class="eq-strip">
+  <div class="eq-strip-l">
+    {% if wo_live and H.n_with_downtime %}
+      {{ t.eq_scope.format(n=H.n_with_downtime, tot=H.n_total, d=board.n_days) }}
+    {% elif wo_live %}
+      <span class="mut">{{ t.eq_scope_none.format(d=board.n_days) }}</span>
+    {% else %}
+      <span class="mut">{{ t.eq_live_wo_off }}</span>
+    {% endif %}
+  </div>
+  <div class="eq-strip-r">
+    {% if wo_live %}
+      {% if H.n_down %}
+      <a class="eq-strip-down hot" href="#" onclick="return eqToggleDown(this)" title="{{ t.eq_downfocus }}">
+        <span class="dot" style="background:var(--bad)"></span>{{ t.eq_down_now.format(n=H.n_down) }}</a>
+      {% else %}
+      <span class="eq-strip-down"><span class="dot" style="background:var(--good)"></span>{{ t.eq_up_now }}</span>
+      {% endif %}
+    {% endif %}
+    {% if H.n_stale %}<span class="eq-strip-stale" title="{{ t.eq_now_stale_tip.format(d=board.quiet_h / 24) }}">· ⚠ {{ t.eq_stale_now.format(n=H.n_stale, d=board.quiet_h / 24) }}</span>{% endif %}
+    
+    {% if H.n_dormant %}<span class="eq-strip-dorm" title="{{ t.eq_av_dormant_tip }}">· ◌ {{ t.eq_strip_dormant.format(n=H.n_dormant) }}</span>{% endif %}
+    
+
+    {% if a11_note %}<span class="eq-strip-dorm">· {{ a11_note }}</span>{% endif %}
+    
+
+    {% if board.cmms_unlisted_longstops %}<span class="eq-strip-dorm" title="{% for x in board.cmms_unlisted_longstops %}{% if not loop.first %} · {% endif %}{{ x.eid }} ({{ x.since }}){% endfor %}">· {{ t.eq_cmms_unlisted_longstop.format(n=board.cmms_unlisted_longstops|length) }}</span>{% endif %}
+    {% if board.mode == 'live' and board.wo_status == 'live' %}<span class="eq-strip-ok" title="{{ t.eq_live_wo.format(n=H.open_wo) }}">✓ cmms</span>{% endif %}
+    
+
+    {% if board.built_hm and board.mode != 'snapshot' %}<span class="eq-strip-dorm" title="{{ t.eq_asof_tip.format(hm=board.built_hm) }}">· {{ t.eq_asof.format(hm=board.built_hm) }}</span>{% endif %}
+    
+
+
+    {% if board.mes_asof_hm %}<span class="eq-strip-dorm" title="{{ t.eq_mes_asof_tip.format(hm=board.mes_asof_hm) }}">· {{ t.eq_mes_asof.format(hm=board.mes_asof_hm) }}</span>{% endif %}
+    
+
+
+    {% if wo_stale_note %}<span class="eq-strip-dorm" title="{{ t.wo_stale_tip.format(hm=board.wo_asof.strftime('%H:%M')) }}">· {{ wo_stale_note }}</span>{% endif %}
+  </div>
+</div>
+{% if not board.mes_available and board.mode != 'demo' %}
+<div class="eq-strip-caveat">⚠ {{ t.eq_now_caveat }}</div>
+{% endif %}
+
+
+
+{% if board.scope_detail_errs %}
+<div class="eq-strip-caveat">⚠ {{ t.eq_scope_degraded.format(n=board.scope_detail_errs) }}</div>
+{% endif %}
+
+
+
+
+
+
+
+
+
+
+
+{% if board.conflicts %}
+<div class="eq-strip-conf" title="{{ t.eq_conf_tip }}">◦ {{ t.eq_conf_hdr }}
+  {% for c in board.conflicts %}{% if not loop.first %} · {% endif %}{{ c.eid }}<small> (WO {{ c.wo_no }}{% if c.desig %} · {{ c.desig }}{% endif %})</small>{% endfor %}
+  <span class="q">?</span></div>
+{% endif %}
+
+
+
+
+
+
+{% if board.dormant_conflicts %}
+<div class="eq-strip-conf" title="{{ t.eq_dconf_tip }}">◦ {{ t.eq_dconf_hdr }}
+  {% for c in board.dormant_conflicts %}{% if not loop.first %} · {% endif %}{{ c.eid }}<small> ({{ c.since }})</small>{% endfor %}
+  <span class="q">?</span></div>
+{% endif %}
+
+
+
+
+
+
+
+{% if board.dormant_drops %}
+<div class="eq-strip-conf" title="{{ t.eq_dorm_drop_tip_synth if is_synth else t.eq_dorm_drop_tip }}">◦
+  
+
+  {{ t.eq_dorm_drop.format(n=(board.dormant_drops|map(attribute='wo_nos')|sum(start=[])
+                              |unique|list|length),
+                           h='%.1fh'|format(board.dormant_drops|sum(attribute='h'))) }}
+  {% for d in board.dormant_drops %}{% if not loop.first %} · {% endif %}{{ d.eid }}<small>
+    ({{ '%.1f'|format(d.h) }}h{% if d.wo_nos %} · WO {{ d.wo_nos|join(', ') }}{% endif %})</small>{% endfor %}
+  <span class="q">?</span></div>
+{% endif %}
+
+
+
+
+
+
+
+
+
+
+
+{% if board.cal_gap_years %}
+<div class="eq-strip-caveat">⚠ {{ t.eq_cal_gap.format(y=board.cal_gap_years|join('/')) }}</div>
+{% endif %}
+{% if board.sched_unknown %}
+<div class="eq-strip-caveat">⚠ {{ t.eq_sched_unknown.format(n=board.sched_unknown|length) }}
+  {% for e in board.sched_unknown %}{% if not loop.first %} · {% endif %}{{ e }}{% endfor %}</div>
+{% endif %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="eq-legend">
+  <span class="lg-t">{{ t.eq_legend }}</span>
+  {% for st in ['維修','計畫保養','等料(停機)','等外包(停機)'] %}
+  <span class="lg-i"><span class="d" style="background-color:{{ STC[st] }}"></span>{{ SNAME[st] }}</span>
+  {% endfor %}
+  <span class="lg-i"><b>▲</b> {{ t.eq_lg_ongoing }}</span>
+  
+
+
+
+
+  
+  <span class="lg-div"></span>
+  <span class="lg-i"><span class="d lg-hold" style="background-color:{{ STC['暫停·等機台空檔'] }}"></span>{{ t.eq_s_hold_any }}</span>
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  {% if board.erw %}
+  <span class="lg-div"></span>
+  <span class="lg-sub">{{ t.eq_lg_rwgrp }}</span>
+  <span class="lg-i" title="{{ t.eq_lg_rwon_tip }}"><span class="d lg-rwon"></span>{{ t.u_erw_hdr }}</span>
+  <span class="lg-i" title="{{ t.u_rw_off_tip }}"><span class="d lg-rwoff"></span>{{ t.u_rw_off }}</span>
+  <span class="lg-i" title="{{ t.u_rw_uncov_tip }}"><span class="d lg-rwunc"></span>{{ t.u_rw_uncov }}</span>
+  {% endif %}
+</div>
+
+
+
+
+
+
+
+
+
+
+{% if board.erw %}
+{% set _cov_gap = board.erw.n_days < board.erw.n_days_total %}
+{% if board.erw.switch or _cov_gap or board.erw.degraded %}
+<div class="eq-erwline" title="{{ t.eq_erw_tip }}">{% if board.erw.switch %}{{ t.eq_erw_switch }}{% endif %}{% if _cov_gap %}{% if board.erw.switch %} · {% endif %}{{ t.eq_erw_cov.format(n=board.erw.n_days, m=board.erw.n_days_total) }}{% endif %}{% if board.erw.degraded %}{% if board.erw.switch or _cov_gap %} · {% endif %}<span class="deg">{{ t.eq_erw_degraded }}</span>{% endif %}</div>
+{% endif %}
+{% else %}
+<div class="eq-erwline inert">⚠ {{ t.eq_erw_inert }}</div>
+{% endif %}
+
+
+
+
+
+
+
+{% if tag_filter is defined and tag_filter.active %}<div class="eq-erwline">{{ t.tag_notice_head.format(n=tag_filter.n, families=tag_filter.label) }} ({% for x in tag_filter.also %}{{ t.tag_notice_also.format(n=x.n, family=x.family) }}; {% endfor %}{{ t.tag_notice_scope_eq }})</div>{% endif %}
+<div class="eq-tblwrap">
+<table class="eq-grid">
+  <thead><tr>
+    
+    <th class="eq-mname">{{ t.eq_th_machine }}</th>
+    
+
+
+
+
+    
+
+    {% for d in cols %}{% set thcls = (['pt'] if d.partial else []) + (['eq-off'] if d.off else []) %}<th class="{{ thcls|join(' ') }}" title="{{ d.date_str }}{% if d.off %} · {{ t.eq_off_tip.format(what=d.off_label or t.eq_off_weekend) }}{% endif %}">{{ d.date_str[5:] if d.date_str|length > 5 else d.date_str }}{% if d.partial %}*{% endif %}</th>{% endfor %}
+    <th class="eq-now-h">{{ t.eq_col_now }}</th>
+    <th class="eq-av-h" title="{{ t.q_eq_avail }}">{{ t.eq_col_avail }}</th>
+  </tr></thead>
+  <tbody>
+  {% for area in board.areas %}
+  <tr class="eq-arearow"><td colspan="{{ NCOL }}"><span class="in">{{ area.label }}<small>· {% if tag_filter is defined and tag_filter.active %}{{ area.rows|rejectattr('is_seat')|list|length }}/{{ area.rows_total }}{% else %}{{ area.rows|rejectattr('is_seat')|list|length }}{% endif %} {{ t.eq_area_units }}{% if not area.rows %} — {{ t.eq_empty }}{% endif %}</small></span></td></tr>
+  {% for row in area.rows %}{% if eq_all or row.vis != 'collapsed' %}{% if row.get('is_seat') %}{% include '_equipment_seatrow.html' %}{% else %}
+  {% set N = row.now %}
+  {% set nb = N.bucket if N else None %}
+  
+
+  <tr class="{{ 'row-down' if nb == 'down' }}" data-eid="{{ row.eid }}">
+    {% set TG = tag_chip(row.eid) %}
+    <td class="eq-mname">{{ row.name }} <span class="ptags">{% for c in TG.chips %}<span class="ptag {{ c.css }}" title="{{ t[c.tip_key].format(**c.tip_args) }}">{{ c.letter }}</span>{% endfor %}</span>
+      <small>{{ row.eid }}{% if row.dup %}<span class="eq-dupbadge">⚠ {{ t.eq_dup }}</span>{% endif %}</small></td>
+
+    
+    {% for d in cols %}
+    {% set c = row.cells.get(d.date_str) %}
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    {% set rd = (row.erw.days.get(d.date_str) if row.erw else None) %}
+    {% set rwmode = none %}
+    {% if row.erw %}
+      {% if rd is none %}{% if c and c.stop_h %}{% set rwmode = 'uncov' %}{% endif %}
+      {% elif rd.h <= 0 %}{% set rwmode = 'zero' %}
+      {% elif rd.stop_h >= 0.05 %}{% set rwmode = 'in' %}
+      {% elif c and c.stop_h %}{% set rwmode = 'out' %}
+      {% endif %}
+    {% endif %}
+    <td class="eq-cellwrap{{ ' eq-off' if d.off }}">
+      {% if rwmode == 'in' %}
+        
+        {% set mix = rd.by_state|dictsort(by='value', reverse=true) %}
+        {% set col = STC.get(mix[0][0], '#9ca3af') %}
+        {% set fluid = STINK.get(mix[0][0], '#ffffff') %}
+        {% set upt = (c.by_uptime|dictsort(by='value', reverse=true)) if (c and c.by_uptime) else [] %}
+        {% set tot2 = (rd.by_state.values()|sum) + (c.by_uptime.values()|sum if (c and c.by_uptime) else 0) %}
+        {% set outh = (c.stop_h - rd.stop_h) if c else 0 %}
+        <a class="eq-cell" data-cellkey="{{ row.eid }}|{{ d.date_str }}"
+           style="background-color:{{ col }};color:{{ fluid }}"
+           title="{% for st, h in mix %}{{ SNAME.get(st, st) }} {{ '%.1f'|format(h) }}h{% if not loop.last %} · {% endif %}{% endfor %}{% for st, h in upt %} · {{ SNAME.get(st, st) }} {{ '%.1f'|format(h) }}h{{ t.eq_upt_sfx }}{% endfor %}{% if outh >= 0.05 %} · {{ t.eq_cell_out_extra.format(h='%.1f'|format(outh)) }}{% endif %}{% if c and c.wo_nos %} · WO {{ c.wo_nos|join(', ') }}{% endif %}"
+           hx-get="/equipment/cell?eid={{ row.eid }}&date={{ d.date_str }}&source={{ source }}&days={{ days }}&stop_min={{ stop_min }}&lang={{ lang }}{% if tag_param %}&tag={{ tag_param }}{% endif %}"
+           hx-target="#drill-{{ row.eid }}" hx-swap="innerHTML"
+           hx-indicator="#drill-{{ row.eid }}">
+          {{ '%.1f'|format(rd.stop_h) }}{% if c and c.ongoing %}<span class="og">▲</span>{% endif %}
+          
+
+          
+
+          
+          {% if rd.equiv_ph %}<span class="cequiv" title="{{ t.eq_equiv_tip }}{% if rd.get('seat_f') is not none and rd.get('seat_n') and rd.get('seat_f') < 1 %}{{ t.eq_seat_tip.format(k=(rd.get('seat_k') if rd.get('seat_k') is not none else '—'), n=rd.get('seat_n')) }}{% endif %}{% if row.get('rate_kind') == 'seat' %}{{ t.eq_rate_seat_tip }}{% elif row.get('rate_kind') == 'mh_blend' %}{{ t.eq_rate_mh_tip }}{% endif %}">≈{{ rd.equiv_ph }}PH</span>{% endif %}
+          {% if mix|length > 1 or upt %}<span class="eq-mix">{% for st, h in mix %}<span style="flex:{{ '%.4f'|format(h / tot2) }};background-color:{{ STC.get(st, '#9ca3af') }}"></span>{% endfor %}{% for st, h in upt %}<span class="mix-stripe" style="flex:{{ '%.4f'|format(h / tot2) }};background-color:{{ STC.get(st, '#9ca3af') }}"></span>{% endfor %}</span>{% endif %}
+        </a>
+      {% elif rwmode == 'zero' or rwmode == 'uncov' %}
+        
+
+        <a class="eq-cell eq-rwna" data-cellkey="{{ row.eid }}|{{ d.date_str }}"
+           title="{% if rwmode == 'zero' %}{{ t.eq_cell_rw_zero }}{% if c and c.stop_h %} · {% for st, h in c.by_state|dictsort(by='value', reverse=true) %}{{ SNAME.get(st, st) }} {{ '%.1f'|format(h) }}h{% if not loop.last %} · {% endif %}{% endfor %} · {{ t.eq_cell_out_only }}{% endif %}{% else %}{{ t.eq_cell_uncov.format(h='%.1f'|format(c.stop_h)) }}{% endif %}"
+           hx-get="/equipment/cell?eid={{ row.eid }}&date={{ d.date_str }}&source={{ source }}&days={{ days }}&stop_min={{ stop_min }}&lang={{ lang }}{% if tag_param %}&tag={{ tag_param }}{% endif %}"
+           hx-target="#drill-{{ row.eid }}" hx-swap="innerHTML"
+           hx-indicator="#drill-{{ row.eid }}">—</a>
+      {% elif rwmode == 'out' %}
+        
+
+        <a class="eq-cell eq-rwout" data-cellkey="{{ row.eid }}|{{ d.date_str }}"
+           title="{% for st, h in c.by_state|dictsort(by='value', reverse=true) %}{{ SNAME.get(st, st) }} {{ '%.1f'|format(h) }}h{% if not loop.last %} · {% endif %}{% endfor %}{{ t.eq_cell_raw_sfx }} · {{ t.eq_cell_out_only }}{% if c.wo_nos %} · WO {{ c.wo_nos|join(', ') }}{% endif %}"
+           hx-get="/equipment/cell?eid={{ row.eid }}&date={{ d.date_str }}&source={{ source }}&days={{ days }}&stop_min={{ stop_min }}&lang={{ lang }}{% if tag_param %}&tag={{ tag_param }}{% endif %}"
+           hx-target="#drill-{{ row.eid }}" hx-swap="innerHTML"
+           hx-indicator="#drill-{{ row.eid }}">0.0</a>
+      {% elif c and c.stop_h %}
+        
+
+        {% set col = STC.get(c.dominant, '#9ca3af') %}
+        {% set fluid = STINK.get(c.dominant, '#ffffff') %}
+        
+        {% set mix = c.by_state|dictsort(by='value', reverse=true) %}
+        {% set upt = (c.by_uptime|dictsort(by='value', reverse=true)) if c.by_uptime else [] %}
+        {% set tot2 = (c.by_state.values()|sum) + (c.by_uptime.values()|sum if c.by_uptime else 0) %}
+        
+
+        
+
+
+        <a class="eq-cell" data-cellkey="{{ row.eid }}|{{ d.date_str }}"
+           style="background-color:{{ col }};color:{{ fluid }}"
+           title="{% for st, h in mix %}{{ SNAME.get(st, st) }} {{ '%.1f'|format(h) }}h{% if not loop.last %} · {% endif %}{% endfor %}{% for st, h in upt %} · {{ SNAME.get(st, st) }} {{ '%.1f'|format(h) }}h{{ t.eq_upt_sfx }}{% endfor %}{% if c.wo_nos %} · WO {{ c.wo_nos|join(', ') }}{% endif %}"
+           hx-get="/equipment/cell?eid={{ row.eid }}&date={{ d.date_str }}&source={{ source }}&days={{ days }}&stop_min={{ stop_min }}&lang={{ lang }}{% if tag_param %}&tag={{ tag_param }}{% endif %}"
+           hx-target="#drill-{{ row.eid }}" hx-swap="innerHTML"
+           hx-indicator="#drill-{{ row.eid }}">
+          {{ '%.1f'|format(c.stop_h) }}{% if c.ongoing %}<span class="og">▲</span>{% endif %}
+          
+
+
+          {% if mix|length > 1 or c.by_uptime %}<span class="eq-mix">{% for st, h in mix %}<span style="flex:{{ '%.4f'|format(h / tot2) }};background-color:{{ STC.get(st, '#9ca3af') }}"></span>{% endfor %}{% for st, h in upt %}<span class="mix-stripe" style="flex:{{ '%.4f'|format(h / tot2) }};background-color:{{ STC.get(st, '#9ca3af') }}"></span>{% endfor %}</span>{% endif %}
+        </a>
+      {% elif c and c.by_uptime %}
+        
+
+        {% set upt = c.by_uptime|dictsort(by='value', reverse=true) %}
+        {% set utot = c.by_uptime.values()|sum %}
+        <a class="eq-cell eq-uptonly" data-cellkey="{{ row.eid }}|{{ d.date_str }}"
+           title="{% for st, h in upt %}{{ SNAME.get(st, st) }} {{ '%.1f'|format(h) }}h{{ t.eq_upt_sfx }}{% if not loop.last %} · {% endif %}{% endfor %}"
+           hx-get="/equipment/cell?eid={{ row.eid }}&date={{ d.date_str }}&source={{ source }}&days={{ days }}&stop_min={{ stop_min }}&lang={{ lang }}{% if tag_param %}&tag={{ tag_param }}{% endif %}"
+           hx-target="#drill-{{ row.eid }}" hx-swap="innerHTML"
+           hx-indicator="#drill-{{ row.eid }}">
+          ·
+          <span class="eq-mix">{% for st, h in upt %}<span class="mix-stripe" style="flex:{{ '%.4f'|format(h / utot) }};background-color:{{ STC.get(st, '#9ca3af') }}"></span>{% endfor %}</span>
+        </a>
+      {% else %}
+        <span class="eq-blank">·</span>
+      {% endif %}
+    </td>
+    {% endfor %}
+
+    
+
+    <td class="eq-now">
+      
+
+
+
+
+
+      {% set rnd_newer = N.mes_last_designation == 'Engineering (R&D)' and N.mes_last_h is not none and N.mes_any_last_h is not none and N.mes_any_last_h < N.mes_last_h %}
+      {% set rnd_tip = t.eq_mes_rnd_newer.format(age='%.1f'|format(N.mes_any_last_h) ~ 'h') if rnd_newer else '' %}
+      {% if not board.mes_available and not wo_live %}
+        <span class="vchip" style="color:var(--mut)" title="{{ t.eq_live_wo_off }}">—</span>
+      {% elif nb == 'down' %}
+        <span class="vchip"><span class="d" style="background:var(--bad)"></span>{{ t.eq_now_down }}{% if N.state %}<small> · {{ SNAME.get(N.state, N.state) }}{% if N.wo_no %} · WO {{ N.wo_no }}{% endif %}</small>{% endif %}</span>
+      {% elif nb == 'dormant' %}
+        
+
+
+        {% set DZ = row.dormant or {} %}
+        <span class="vchip" style="color:var(--st-dormant)"
+              title="{{ t.eq_now_dormant_tip.format(d=DZ.since or '?', r=(DZ.reason_zh if lang == 'zh' else DZ.reason_en) or '—') }}"><span class="d" style="background:transparent;border:1.5px solid var(--st-dormant)"></span>{{ t.eq_now_dormant }}<small> · {{ DZ.since or '?' }}</small></span>
+      {% elif not board.mes_available %}
+        
+        <span class="vchip" title="{{ t.eq_now_caveat }}"><span class="d" style="background:var(--good)"></span>{{ t.eq_now_up }}</span>
+      {% elif N.verdict == 'up_producing' %}
+        <span class="vchip" title="{{ t.eq_now_producing_tip }}{% if rnd_tip %} · {{ rnd_tip }}{% endif %}"><span class="d" style="background:var(--good)"></span>{{ t.eq_now_producing }}</span>
+      {% else %}
+        
+
+
+
+
+
+        <span class="vchip" title="{{ t.eq_now_idle_tip }}{% if rnd_tip %} · {{ rnd_tip }}{% endif %}"><span class="d" style="background:var(--good)"></span>{{ t.eq_now_idle }}{% if N.stale %}<span class="stale" title="{{ t.eq_now_stale_tip.format(d=board.quiet_h / 24) }}">⚠</span>{% endif %}{% if N.mes_last_h is not none %}<small class="{{ 'stale-age' if N.stale }}"> · {% if N.mes_last_h >= 48 %}{{ t.eq_now_q_age_d.format(d='%.1f'|format(N.mes_last_h / 24)) }}{% else %}{{ t.eq_now_q_age.format(h='%.1f'|format(N.mes_last_h)) }}{% endif %}</small>{% elif N.mes_nosig and board.mes_lookback_d %}<small class="nosig" title="{{ t.eq_now_nosig_tip.format(n=board.mes_lookback_d) }}"> · {{ t.eq_now_nosig.format(n=board.mes_lookback_d) }}</small>{% endif %}</span>
+      {% endif %}
+      
+
+
+
+
+
+
+
+
+
+
+
+      {% if N.mes_age_h is not none and (board.mes_available or wo_live)
+            and N.verdict != 'up_idle' %}<small class="eq-now-age" title="{{ t.eq_now_age_tip }}">{% if N.mes_age_h >= 48 %}{{ t.eq_now_q_age_d.format(d='%.1f'|format(N.mes_age_h / 24)) }}{% else %}{{ t.eq_now_q_age.format(h='%.1f'|format(N.mes_age_h)) }}{% endif %}</small>{% endif %}
+    </td>
+    
+    {% if not wo_live %}
+    <td class="eq-rowsum muted" title="{{ t.eq_live_wo_off }}"><span class="eq-blank">—</span></td>
+    {% else %}
+    
+
+    
+
+
+
+    <td class="eq-rowsum {{ 'hot' if row.avail_pct is not none and row.avail_pct < 90 }}{{ ' muted' if not row.total_stop_h }}"
+        title="{% if nb == 'dormant' %}{{ t.eq_av_dormant_tip }}{% elif row.erw %}Σ {{ '%.1f'|format(row.erw.stop_h or 0) }}h · {{ t.eq_col_stop_tip.format(d=days) }} · {{ t.eq_col_stop_raw_tip.format(h='%.1f'|format(row.total_stop_h or 0)) }}{% elif row.total_stop_h is not none %}Σ {{ '%.1f'|format(row.total_stop_h) }}h · {{ t.eq_col_stop_tip_24h.format(d=days) }}{% endif %}">
+      {% if row.avail_pct is not none %}{{ '%.1f'|format(row.avail_pct) }}%
+        
+
+
+
+
+
+        {% if row.avail_delta_pp is not none %}<small style="color:{{ 'var(--good)' if row.avail_delta_pp >= 0 else 'var(--bad)' }}" title="{{ t.eq_delta_basis.format(d=days) }} · {{ t.eq_delta_basis_tip.format(d=days) }}">{{ '▲' if row.avail_delta_pp >= 0 else '▼' }}{{ '%.1f'|format(row.avail_delta_pp|abs) }}pp</small>{% endif %}
+        
+
+        
+
+
+
+        
+
+        {% set sf = row.get('seat_f') %}{% set sk = row.get('seat_k') %}{% set sn = row.get('seat_n') %}
+        {% set seat_on = sf is not none and sn and sf < 1 %}
+        
+
+        {% set rk = row.get('rate_kind') if row.equiv_ph else none %}
+        {% if row.erw and row.erw.stop_h and row.erw.stop_h >= 0.05 %}<div class="eq-equiv" title="{{ t.eq_equiv_tip }}{% if rk == 'seat' %}{{ t.eq_rate_seat_tip }}{% elif rk == 'mh_blend' %}{{ t.eq_rate_mh_tip }}{% endif %}{% if seat_on %}{{ t.eq_seat_tip.format(k=(sk if sk is not none else '—'), n=sn) }}{% for w in (row.get('seat_wos') or []) %}{{ t.eq_seat_wo.format(no=w.wo_no, units=(w.units|join(', ') if w.units else t.eq_seat_whole), k=w.k, n=sn) }}{% endfor %}{% endif %}">{{ '%.1f'|format(row.erw.stop_h) }}h{% if row.equiv_ph %} <span class="ph">≈{{ row.equiv_ph }}PH</span>{% endif %}{% if seat_on %}<span class="ph">{% if sk is not none %}{{ t.eq_seat_suffix.format(k=sk, n=sn) }}{% else %}{{ t.eq_seat_suffix_f.format(f='%.2f'|format(sf)) }}{% endif %}</span>{% endif %}</div>{% endif %}
+        
+
+
+
+
+
+
+        {% if row.erw and row.erw.bar %}<div class="eq-rwbar" title="{{ t.eq_rwbar_tip.format(n=row.erw.bar.n_days, h='%.1f'|format(row.erw.bar.h)) }}">{% for l, w in row.erw.bar.uncov %}<i class="u" style="left:{{ l }}%;width:{{ w }}%"></i>{% endfor %}{% for l, w in row.erw.bar.win %}<i class="w" style="left:{{ l }}%;width:{{ w }}%"></i>{% endfor %}{% for st, l, w in row.erw.bar.stop %}<i class="s" style="left:{{ l }}%;width:{{ w }}%;background:{{ STC.get(st, 'var(--st-legacy)') }}"></i>{% endfor %}{% for x in row.erw.bar.ticks %}<i class="k" style="left:{{ x }}%"></i>{% endfor %}</div>{% endif %}
+      {% else %}<span class="eq-blank">—</span>{% endif %}
+    </td>
+    {% endif %}
+  </tr>
+  
+  <tr class="eq-drillrow"><td colspan="{{ NCOL }}"><div class="eq-drillslot" id="drill-{{ row.eid }}"></div></td></tr>{% endif %}{% endif %}
+  {% endfor %}{% if area.collapsed %}{% set cp = area.collapsed %}<tr class="eq-collrow"><td colspan="{{ NCOL }}"><span class="in" title="{{ t.eq_coll_tip }}">{% if not eq_all %}<span class="k">▸</span> {{ t.eq_coll_n.format(n=cp.n) }} {% set jn = joiner(' · ') %}{% if cp.mes_prod %}{{ jn() }}{{ t.eq_coll_mesprod.format(n=cp.mes_prod) }}{% endif %}{% if cp.no_mes %}{{ jn() }}{{ t.eq_coll_nomes.format(n=cp.no_mes) }}{% endif %}{% if cp.dormant %}{{ jn() }}{{ t.eq_coll_dormant.format(n=cp.dormant|length, names=cp.dormant|join(t.eq_coll_namesep)) }}{% endif %}{% if cp.unknown %}{{ jn() }}{{ t.eq_coll_unknown.format(n=cp.unknown) }}{% endif %} <a href="{{ eq_all_href }}">[{{ t.eq_coll_expand }}]</a>{% else %}<a href="{{ eq_less_href }}">[{{ t.eq_coll_less }}]</a>{% endif %}</span></td></tr>{% endif %}
+
+
+
+
+
+
+
+
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+
+<div class="eq-foot">
+  {{ t.eq_foot_calib }}<br>
+  {{ t.eq_foot_w8 }}
+  {% if board.truncated %} · <b style="color:var(--warn)">{{ t.eq_truncated }}</b>{% endif %}
+  {% if board.fallback_rate and board.fallback_rate[1] %} · {{ t.eq_fallback.format(fb=board.fallback_rate[0], tot=board.fallback_rate[1]) }}{% endif %}
+  
+</div>
+{% endif %}

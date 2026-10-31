@@ -1,0 +1,24 @@
+{% extends 'v2/_base.html' %}
+
+
+
+
+{% block page %}dispatch{% endblock %}
+{% block title %}Tendline Board — {{ t.kd_title }}{% endblock %}
+{% block nav %}
+{% set nav_active = 'dispatch' %}
+{% include 'v2/_nav.html' %}
+{% endblock %}
+{% block main %}
+{% set nav_active = 'dispatch' %}
+  <div class="dsp-head">
+    <h1>{{ t.kd_title }}</h1>
+  </div>
+
+  
+  <div id="dispatch-body"
+       hx-get="/dispatch/body?{{ frag_qs }}"
+       hx-trigger="load" hx-swap="innerHTML">
+    <div class="loading"><span class="spin"></span>{{ t.kd_loading }}</div>
+  </div>
+{% endblock %}

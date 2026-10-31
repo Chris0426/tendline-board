@@ -1,0 +1,212 @@
+
+
+
+{% import 'v2/_c_icon.html' as ic %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{% set STC = {'維修':'var(--st-repair)','計畫保養':'var(--st-pm)','調機':'var(--st-setup)','其他維護':'var(--st-maint)','其他維護(子類待定)':'var(--st-maint)','等料(停機)':'var(--st-parts)','等外包(停機)':'var(--st-vendor)','暫停·等機台空檔':'var(--st-hwait)','暫停·試跑':'var(--st-htest)'} %}
+{% set SNAME = {'維修':t.eq_s_repair,'計畫保養':t.eq_s_pm,'調機':t.eq_s_setup,'其他維護':t.eq_s_maint,'其他維護(子類待定)':t.eq_s_maint,'等料(停機)':t.eq_s_parts,'等外包(停機)':t.eq_s_vendor,'暫停·等機台空檔':t.eq_s_hold_wait,'暫停·試跑':t.eq_s_hold_test} %}
+
+{% set STOP = ['維修','計畫保養','調機','其他維護','其他維護(子類待定)','等料(停機)','等外包(停機)'] %}
+{% set UPTIME = ['暫停·等機台空檔','暫停·試跑'] %}
+
+
+
+
+
+
+<div class="eq-drill" data-cellkey="{{ day.eid }}|{{ day.date_str }}"
+     data-trkey="{{ trkey }}" data-translated="{{ '1' if translated else '0' }}">
+  <div class="eq-drill-h">
+    <span class="t">{{ day.date_str }} · {{ day.name }} <span style="color:var(--mut);font-weight:600">({{ day.eid }})</span></span>
+    
+
+
+    {% if rw_day %}
+    
+
+
+
+    <span class="stop" title="{{ t.eq_cell_stop_raw.format(h='%.1f'|format(day.stop_h or 0)) }}">{{ t.eq_cell_stop_frac.format(s='%.1f'|format(rw_day.stop_win_h or 0), w='%.1f'|format(rw_day.h or 0)) }}</span>
+    {% else %}
+    <span class="stop">{{ t.eq_cell_stop }} {{ '%.1f'|format(day.stop_h or 0) }}h</span>
+    {% endif %}
+    
+    {% if dx_url %}<a class="eq-dxlink" hx-get="{{ dx_url }}" hx-target="#drill-{{ day.eid }}" hx-swap="innerHTML">{{ ic.search() }}{{ t.eq_dx_cell_link.format(d=days) }}</a>{% endif %}
+    
+    <a class="eq-dxlink" href="/equipment/health?source={{ source }}&lang={{ lang }}&focus={{ day.eid }}">{{ t.mh_drill_link }}</a>
+    
+    <a class="close" onclick="var s=this.closest('.eq-drillslot'); if(s) s.innerHTML='';">{{ t.eq_close }} ✕</a>
+  </div>
+
+  
+
+
+  {% if translated or can_translate or tr_error %}
+  <div class="eq-tr" style="margin:2px 0 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    {% if translated %}
+      <span class="eq-tr-tag" style="font-size:.82em;color:var(--mut)">{{ ic.globe() }}{{ t.eq_tr_tag }}</span>
+      <a class="eq-tr-orig" style="font-size:.85em;cursor:pointer;text-decoration:underline"
+         hx-get="{{ cell_url }}" hx-target="#drill-{{ day.eid }}" hx-swap="innerHTML">{{ t.eq_tr_orig }}</a>
+    {% elif can_translate %}
+      <button class="eq-tr-btn" type="button"
+              hx-post="{{ translate_url }}" hx-target="#drill-{{ day.eid }}" hx-swap="innerHTML"
+              hx-indicator="#eq-tr-ind-{{ day.eid }}"
+              style="font-size:.85em;padding:3px 10px;border:1px solid var(--line);border-radius:3px;background:transparent;cursor:pointer">
+        {{ ic.globe() }}{{ t.eq_tr_btn }}
+        <span id="eq-tr-ind-{{ day.eid }}" class="htmx-indicator" style="color:var(--mut)">· {{ t.eq_tr_busy }}</span>
+      </button>
+    {% endif %}
+    {% if tr_error %}<span class="eq-tr-err" style="font-size:.82em;color:var(--bad)">⚠ {{ t.eq_tr_err }}</span>{% endif %}
+  </div>
+  {% endif %}
+
+  
+  {% set bd = rw_day.by_state_win if rw_day else day.by_state %}
+  {% if bd %}
+  <div class="eq-bd" style="margin:0 0 6px">
+    {% for st, h in bd.items() %}{% if h %}
+    <span class="eq-bdchip"><span class="d" style="background-color:{{ STC.get(st, 'var(--st-legacy)') }}"></span>{{ SNAME.get(st, st) }} <b>{{ '%.1f'|format(h) }}h</b></span>
+    {% endif %}{% endfor %}
+  </div>
+  {% endif %}
+  
+  {% if rw_day and rw_day.out_h and rw_day.out_h >= 0.05 %}
+  <div class="eq-rwout-note" style="font-size:11.5px;color:var(--mut);margin:0 0 10px">{{ t.eq_drill_out_h.format(h='%.1f'|format(rw_day.out_h)) }}</div>
+  {% elif bd %}<div style="margin-bottom:8px"></div>{% endif %}
+
+  
+  <div class="eq-band-lbl">{{ t.eq_band_lbl }}</div>
+  
+
+  {% set nlanes = band_lanes or 1 %}
+  {% set multi = nlanes > 1 %}
+  {% set laneH = 16 %}
+  <div class="eq-band{% if multi %} multi{% endif %}"{% if multi %} style="height:{{ nlanes * laneH }}px"{% endif %}>
+    
+
+
+    {% if rw_day %}
+    <span class="rw-under" style="position:absolute;inset:0;background:var(--rw-off);z-index:0"></span>
+    {% for l, w in rw_day.win %}<span class="rw-under" style="position:absolute;top:0;bottom:0;left:{{ l }}%;width:{{ w }}%;background:var(--rw-on);z-index:0"></span>{% endfor %}
+    {% endif %}
+    
+
+
+
+
+    {% for seg in segments %}
+    {% set is_upt = seg.state in UPTIME %}
+    
+
+    {% set segcls = 'seg' + (' seg-hold' if is_upt else '') + (' faint' if (not is_upt and seg.state not in STOP) else '') %}
+    {% set segsty = ('top:' ~ ((seg.lane or 0) * laneH) ~ 'px; height:' ~ (laneH - 1) ~ 'px;') if multi else '' %}
+    {% set segttl = SNAME.get(seg.state, seg.state) ~ ' · ' ~ seg.start_lbl ~ '→' ~ seg.end_lbl ~ ((' · WO ' ~ seg.work_order_no) if seg.work_order_no else '') ~ ((' · ' ~ t.eq_seg_inherited.format(eid=seg.inherited_from)) if seg.inherited_from else '') %}
+    {% if rw_day and seg.rw_win is not none %}
+      {% for l, h in seg.rw_win %}<span class="{{ segcls }}"
+          style="position:absolute; z-index:2; left:{{ '%.3f'|format(l / 14.40) }}%; width:{{ '%.3f'|format((h - l) / 14.40) }}%;{{ segsty }} background-color:{{ STC.get(seg.state, 'var(--st-legacy)') }}"
+          title="{{ segttl }}"></span>{% endfor %}
+      {% for l, h in seg.rw_out %}<span class="{{ segcls }} rw-outside"
+          style="position:absolute; z-index:2; left:{{ '%.3f'|format(l / 14.40) }}%; width:{{ '%.3f'|format((h - l) / 14.40) }}%;{{ segsty }} background-color:{{ STC.get(seg.state, 'var(--st-legacy)') }}; opacity:.28"
+          title="{{ segttl }} · {{ t.eq_cell_out_only }}"></span>{% endfor %}
+    {% else %}
+    <span class="{{ segcls }}"
+          style="position:absolute; z-index:2; left:{{ '%.3f'|format(seg.start_min / 1440 * 100) }}%; width:{{ '%.3f'|format(seg.dur_min / 1440 * 100) }}%;{{ segsty }} background-color:{{ STC.get(seg.state, 'var(--st-legacy)') }}"
+          title="{{ segttl }}"></span>
+    {% endif %}
+    {% endfor %}
+    
+    {% if rw_day %}{% for m in rw_day.marks %}<span class="rw-tick" style="position:absolute;top:0;bottom:0;left:{{ m }}%;width:0;border-left:1px dashed var(--mut);opacity:.75;z-index:3"></span>{% endfor %}{% endif %}
+  </div>
+  
+  <div class="eq-axis"><span>08:00</span><span>14:00</span><span>20:00</span><span>02:00</span><span>08:00</span></div>
+  
+  {% if rw_day %}<div class="eq-rwlegend" style="font-size:11px;color:var(--mut);margin:1px 0 0">{{ t.eq_drill_rw_legend }}</div>{% endif %}
+  
+  {% if rw_day %}<div class="eq-rwline" style="font-size:11.5px;color:var(--mut);margin:2px 0 10px">{{ t.eq_drill_rw.format(r=rw_day.ranges, h='%.1f'|format(rw_day.h)) }}{% if rw_day.tiers %} · {{ rw_day.tiers }}{% endif %}</div>{% endif %}
+
+  
+
+  <div class="eq-band-lbl">{{ t.eq_seg_lbl }}</div>
+  {% set listsegs = segments | rejectattr('state','equalto','生產') | list %}
+  {% if not listsegs %}
+  <div class="eq-none" style="margin-bottom:14px">{{ t.eq_no_seg }}</div>
+  {% else %}
+  <div class="eq-seglist">
+    {% for seg in listsegs %}
+    {% set is_upt = seg.state in UPTIME %}
+    
+    <div class="eq-seg{% if is_upt %} upt{% endif %}" title="{{ SNAME.get(seg.state, seg.state) }} · {{ seg.start_lbl }}→{{ seg.end_lbl }}{% if seg.work_order_no %} · WO {{ seg.work_order_no }}{% endif %}{% if seg.inherited_from %} · {{ t.eq_seg_inherited.format(eid=seg.inherited_from) }}{% endif %}">
+      <div class="l1">
+        <span class="d{% if is_upt %} d-upt{% endif %}" style="background-color:{{ STC.get(seg.state, 'var(--st-legacy)') }}"></span>
+        <span class="tm">{{ seg.start_lbl }} → {{ seg.end_lbl }}</span>
+        {% if seg.work_order_no %}<span class="wo">· {% if cmms_wo_base %}<a href="{{ cmms_wo_base }}{{ seg.work_order_no }}" target="_blank" rel="noopener">WO {{ seg.work_order_no }}</a>{% else %}WO {{ seg.work_order_no }}{% endif %}</span>{% endif %}
+        
+
+
+        {% if seg.inherited_from %}<span class="seg-inh" style="font-size:.82em;color:var(--mut);border:1px solid var(--line);border-radius:2px;padding:0 5px;margin-left:2px">⊂ {{ t.eq_seg_inherited.format(eid=seg.inherited_from) }}</span>{% endif %}
+        {% if seg.show_desc %}<span class="desc">{{ seg.desc }}</span>{% else %}<span class="sname">{{ SNAME.get(seg.state, seg.state) }}</span>{% endif %}
+      </div>
+      
+
+      
+
+
+
+
+
+
+
+
+
+      {% if seg.notes %}
+        {% for nl in seg.notes %}
+        <div class="l2 nt"><span class="ntm">{{ nl.tm }} · {{ nl.label }}:</span> {{ nl.body_full or nl.body }}</div>
+        {% endfor %}
+        {% if seg.notes_more %}<div class="l2 more">{{ seg.notes_more }}</div>{% endif %}
+      {% elif seg.worklog %}<div class="l2">{{ t.eq_emaint_diag }} {{ seg.worklog_full or seg.worklog }}</div>{% endif %}
+      {% if seg.closeout %}<div class="l2 closeout">{{ t.eq_closeout }} {{ seg.closeout_full or seg.closeout }}</div>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  
+  {% if other_wos %}
+  <div class="eq-otherwo">{{ t.eq_other_wo }}
+    {% for o in other_wos %}{% if not loop.first %} · {% endif %}{% if cmms_wo_base %}<a href="{{ cmms_wo_base }}{{ o.wno }}" target="_blank" rel="noopener">WO-{{ o.wno }}</a>{% else %}WO-{{ o.wno }}{% endif %}({{ SNAME.get(o.state, o.state) or '—' }}{% if o.hold_label %} · {{ o.hold_label }}{% endif %}){% endfor %}
+  </div>
+  {% endif %}
+</div>

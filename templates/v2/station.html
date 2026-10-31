@@ -1,0 +1,79 @@
+{% extends 'v2/_base.html' %}
+
+
+
+{% import 'v2/_c_icon.html' as ic %}
+{% block page %}station{% endblock %}
+{% block title %}Tendline Board — {{ pretty_station(cls) }}{% endblock %}
+{% block nav %}
+{% set lang_href = '/station/' ~ cls ~ '?' ~ ov_qs ~ '&lang=' ~ ('zh' if lang=='en' else 'en') ~ tag_qs %}
+
+
+{% set nav_active = 'capacity' %}
+{% include 'v2/_nav.html' %}
+{% endblock %}
+{% block main %}
+{% set lang_href = '/station/' ~ cls ~ '?' ~ ov_qs ~ '&lang=' ~ ('zh' if lang=='en' else 'en') ~ tag_qs %}
+
+
+{% set nav_active = 'capacity' %}
+  
+
+  <div class="crumb">{% if not is_synth %}<a href="/landing/v1?{{ ov_qs }}&lang={{ lang }}">{{ t.back_ov }}</a> · {% endif %}{{ t.sx_sub }}</div>
+
+  
+  <div class="sx-title">{{ pretty_station(cls) }}</div>
+  
+
+  <div class="sx-csub">{{ cls }} · {% if start or end %}{{ start or '…' }} → {{ end or '…' }}{% else %}{{ t.p_window }} {{ days }}{{ t.p_days }}{% endif %}</div>
+
+  
+
+
+
+
+  <div class="ctl">
+    <span>{{ t.sb_c_station }}</span>
+    <select aria-label="{{ t.sb_c_station }}"
+            onchange="location.href='/station/'+encodeURIComponent(this.value)+location.search">
+      {% for c in stations %}<option value="{{ c }}" {{ 'selected' if c==cls }}>{{ pretty_station(c) }}</option>{% endfor %}
+    </select>
+    <span class="vsep"></span>
+    <form method="get" action="/station/{{ cls }}"
+          class="sx-range">
+      <input type="hidden" name="source" value="{{ source }}">
+      <input type="hidden" name="lang" value="{{ lang }}">
+      <input type="hidden" name="days" value="{{ days }}">
+      {% if tag_param %}<input type="hidden" name="tag" value="{{ tag_param }}">{% endif %}
+      {{ ic.calendar() }}
+      <input type="date" name="start" value="{{ start }}" max="{{ end }}">
+      <span>{{ t.range_to }}</span>
+      <input type="date" name="end" value="{{ end }}">
+      <button type="submit">{{ t.range_apply }}</button>
+      {% if start or end %}<a class="reset" href="/station/{{ cls }}?source={{ source }}&days={{ days }}&lang={{ lang }}{{ tag_qs }}">{{ t.range_reset }}</a>{% endif %}
+    </form>
+    <span class="vsep"></span>
+    <span class="tag-toggle" aria-label="{{ t.tag_toggle_aria }}">{% for x in tag_controls %}<a class="{{ 'on' if x.active }}" href="{{ x.href }}" title="{{ x.family }}">{{ x.letter }}</a>{% endfor %}</span>
+  </div>
+
+
+  
+  <div id="sx-overview"
+       hx-get="/station/{{ cls }}/overview?{{ frag_qs }}"
+       hx-trigger="load" hx-swap="innerHTML">
+    <div class="loading"><span class="spin"></span>{{ t.sx_loading }}</div>
+  </div>
+
+  
+  <h2 class="sec">{{ t.sx_units_hdr }}</h2>
+  <div id="sx-units"
+       hx-get="/station/{{ cls }}/units?{{ frag_qs }}"
+       hx-trigger="load" hx-swap="innerHTML">
+    <div class="loading"><span class="spin"></span>{{ t.sx_loading_units }}</div>
+  </div>
+
+  <div class="footnote">{{ (t.landing_foot_synth if is_synth else t.landing_foot) | safe }}</div>
+{% endblock %}
+{% block foot %}
+
+{% endblock %}

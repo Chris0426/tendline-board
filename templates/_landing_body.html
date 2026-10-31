@@ -1,0 +1,230 @@
+
+
+
+
+
+
+  {% if sb %}<div class="srcline">{{ source|upper }} · MES {{ t.now }} {{ clock(sb.mes_now) }}</div>{% endif %}
+
+  {% if not m %}
+    <div class="hcard"><div class="unavail">{{ t.sb_unavail }}</div>
+      <div class="kpi-sub">{{ t.sb_unavail_hint | safe }}</div>
+      {% if sb_err %}<div class="kpi-sub">{{ t.sx_err_lead }} <code>{{ sb_err }}</code></div>{% endif %}</div>
+  {% else %}
+  {% set L = m.line %}
+
+  
+  {% if source == 'demo' %}
+  <div class="srcbanner">⚠ {{ t.h_demo_all }}<span class="why">{{ t.h_demo_all_why }}</span></div>
+  {% else %}
+  <div class="honesty">
+    <span class="pill real">✓ {{ t.h_real }}</span>
+    {% if m and m.real_split %}<span class="pill real">✓ {{ t.au_real_pill }}</span>{% endif %}
+    <span class="pill">⚠ {{ t.h_demo_target }}</span>
+    
+    <span class="why">{{ t.h_why }}</span>
+  </div>
+  {% endif %}
+
+  
+  <div class="sec-h"><h2>{{ t.l1_title }}</h2><span class="meta">{{ t.l1_sub }} · {{ days }}{{ t.p_days }}</span></div>
+  <section class="hero-card">
+    {% if L.n_targeted %}
+    {% set C = 276.46 %}
+    {% set on_len = C * L.n_on_target / L.n_targeted %}
+    {% set beh_len = C - on_len %}
+    <svg width="116" height="116" viewBox="0 0 112 112" role="img" aria-label="on-target share">
+      <circle cx="56" cy="56" r="44" fill="none" stroke="var(--track)" stroke-width="13"/>
+      {% if on_len > 0 %}
+      <circle cx="56" cy="56" r="44" fill="none" stroke="var(--good)" stroke-width="13"
+              stroke-dasharray="{{ '%.2f'|format([on_len - (3 if beh_len > 0 else 0), 0]|max) }} {{ '%.2f'|format(C) }}"
+              transform="rotate(-90 56 56)"/>
+      {% endif %}
+      {% if beh_len > 0 %}
+      <circle cx="56" cy="56" r="44" fill="none" stroke="var(--bad)" stroke-width="13"
+              stroke-dasharray="{{ '%.2f'|format([beh_len - 3, 0]|max) }} {{ '%.2f'|format(C) }}"
+              stroke-dashoffset="{{ '%.2f'|format(-on_len) }}"
+              transform="rotate(-90 56 56)"/>
+      {% endif %}
+      <text x="56" y="62" text-anchor="middle" font-size="17" font-weight="800"
+            fill="var(--fg)">{{ '%.0f'|format(100 * L.n_on_target / L.n_targeted) }}%</text>
+    </svg>
+    <div>
+      <div class="hero-k">{{ t.l1_on_target }} · {{ t.l1_stations_period }}<span class="help" tabindex="0">?<span class="tip">{{ t.q_ontarget }}</span></span></div>
+      <div class="hero-fig">{{ L.n_on_target }}<small> / {{ L.n_targeted }}</small></div>
+      {% if L.n_behind == 0 %}
+      <div class="hero-chips"><span class="hchip good">✓ {{ t.hero_all_ok }}</span></div>
+      {% else %}
+      <div class="hero-legend">
+        <span><span class="dot" style="background:var(--good)"></span>{{ L.n_on_target }} {{ t.legend_on }}</span>
+        <span><span class="dot" style="background:var(--bad)"></span>{{ L.n_behind }} {{ t.legend_behind }}</span>
+        <span><span class="dot" style="background:var(--track)"></span>{{ L.n_stations - L.n_targeted }} {{ t.legend_none }}</span>
+      </div>
+      {% endif %}
+    </div>
+    <div class="hero-side">
+      <div class="hstat"><span class="k">{{ t.l1_behind }}</span>
+        <span class="v {{ 'bad' if L.n_behind else 'good' }}">{{ L.n_behind }} <small>{{ t.l1_behind_sub }}</small></span></div>
+      <div class="hstat"><span class="k">{{ t.l1_ot_total }} <span class="tag demo">{{ t.demo_tag }}</span><span class="help" tabindex="0">?<span class="tip">{{ t.q_ot }}</span></span></span>
+        <span class="v {{ 'warn' if L.total_overtime_h else '' }}">{{ '%.0f'|format(L.total_overtime_h) }} <small>{{ t.hours }}</small></span></div>
+      {% if m.worst %}
+      <div class="hstat"><span class="k">{{ t.worst_lbl }}</span>
+        <span class="v bad" style="font-size:14px"><a href="/station/{{ m.worst[0].cls }}?{{ ov_qs }}&lang={{ lang }}"
+          style="color:inherit;text-decoration:none">{{ pretty_station(m.worst[0].cls) }} {{ m.worst[0].gap }} ›</a></span></div>
+      {% endif %}
+    </div>
+    {% else %}
+    <div style="grid-column:1/-1">
+      <div class="hero-k">{{ t.l1_on_target }}</div>
+      <div class="kpi-sub" style="font-size:13px">{{ t.hero_none_target }}</div>
+    </div>
+    {% endif %}
+  </section>
+
+  
+  {% if m.worst %}
+  <div class="sec-h" id="sc"><h2>{{ t.l1_worst_hdr }}</h2><span class="meta">{{ t.l1_row_hint }}</span></div>
+  <div class="blist">
+    <div class="brow" style="padding:6px 16px;background:var(--panel2)">
+      <span class="kpi-sub">{{ t.sb_c_station }}</span>
+      <span class="kpi-sub">{{ t.att_col }}</span>
+      <span class="kpi-sub" style="text-align:right">{{ t.c_output }} / {{ t.c_target }}</span>
+      <span class="kpi-sub" style="text-align:right">{{ t.c_gap }}</span>
+      <span class="kpi-sub" style="text-align:right;white-space:nowrap">{{ t.c_ot }}·{{ t.demo_tag }}</span>
+    </div>
+    {% for s in m.worst %}
+    {% set att = (100.0 * s.output / s.target) if s.target else 0 %}
+    <a class="brow" href="/station/{{ s.cls }}?{{ ov_qs }}&lang={{ lang }}" title="{{ s.cls }}">
+      <span class="st">{{ pretty_station(s.cls) }}</span>
+      <span class="bullet"><i class="{{ 'warn' if att >= 90 else 'bad' }}" style="width:{{ '%.1f'|format([att, 100]|min) }}%"></i></span>
+      <span class="bnum"><b>{{ "{:,}".format(s.output) }}</b> / {{ "{:,}".format(s.target) }}</span>
+      <span class="bgap">{{ s.gap }} <small>({{ '%.0f'|format(s.gap_pct) }}%)</small></span>
+      <span class="bnum">{% if s.overtime_h %}~{{ '%.1f'|format(s.overtime_h) }}{{ t.h_short }}{% else %}—{% endif %}</span>
+    </a>
+    {% endfor %}
+  </div>
+  {% elif L.n_targeted %}
+  <div class="allmet">✓ {{ t.l1_all_met }}</div>
+  {% endif %}
+
+  
+  <div class="sec-h"><h2>{{ t.l2_title }}</h2><span class="meta">{{ t.l2_sub }}</span></div>
+
+  
+
+
+  <div class="oee-eq">
+    <span class="lbl">{{ t.oee_line_lbl }}<span class="help" tabindex="0">?<span class="tip">{{ t.q_oee_rw if m.rw_axis else t.q_oee }}</span></span></span>
+    <span class="score" style="color:{{ ('var(--good)' if L.oee>=0.6 else ('var(--warn)' if L.oee>=0.4 else 'var(--bad)')) if L.oee is not none else 'var(--mut)' }}">{% if L.oee is not none %}{{ '%.0f'|format(L.oee*100) }}%{% else %}—{% endif %}</span>
+    <span class="eq">= <span class="fac">{{ t.kpi_avail_rw_t if m.rw_axis else t.kpi_avail_t }} {% if L.availability is not none %}{{ '%.0f'|format(L.availability*100) }}%{% else %}—{% endif %}</span>
+      <span class="op">×</span><span class="fac">{{ t.kpi_effi_rw_t if m.rw_axis else t.kpi_effi_t }} {% if L.utilization is not none %}{{ '%.0f'|format(L.utilization*100) }}%{% else %}—{% endif %}</span>
+      <span class="op">×</span><span class="fac">{{ t.kpi_qual_rw_t if m.rw_axis else t.kpi_qual_t }} {% if L.quality is not none %}{{ '%.0f'|format(L.quality*100) }}%{% else %}—{% endif %}</span></span>
+    <span class="note">{% if m.rw_axis %}{{ t.oee_au_rw }}{% elif m.real_split %}{{ t.oee_au_real }}{% else %}{{ t.oee_au_note }}{% endif %}</span>
+  </div>
+  {% if m.rw_axis %}
+  <div class="kpi-sub" style="margin:-4px 2px 8px">{{ t.oee_au_rw_why }}</div>
+  <div class="kpi-sub" style="margin:-4px 2px 8px">{{ t.rw_axis_cap.format(k=(rw_meta.n_machines if rw_meta else 0)) }}{% if rw_meta and rw_meta.switch %} · {{ t.rw_axis_switch }}{% endif %}{% if rw_meta and rw_meta.n_days < rw_meta.n_days_total %} · {{ t.eq_erw_cov.format(n=rw_meta.n_days, m=rw_meta.n_days_total) }}{% endif %}</div>
+  {% elif m.real_split %}<div class="kpi-sub" style="margin:-4px 2px 8px">{{ t.oee_au_real_why }}</div>{% endif %}
+
+  <div class="kpis">
+    
+    <a class="kpi" href="#util-stations">
+      <div class="kpi-top"><span class="dot" style="background:{{ state_color('生產') }}"></span>
+        <span class="kpi-t">{{ t.kpi_avail_rw_t if m.rw_axis else t.kpi_avail_t }}<span class="help" tabindex="0">?<span class="tip">{{ t.q_avail_rw if m.rw_axis else t.q_avail }}</span></span></span><span class="owner">{{ t.owner_f4 }}</span></div>
+      <div class="kpi-q">{{ t.kpi_avail_q }}</div>
+      <div class="kpi-big">{% if L.availability is not none %}{{ '%.0f'|format(L.availability*100) }}%{% else %}<span class="mut">—</span>{% endif %}</div>
+      <div class="meter"><i style="width:{{ '%.1f'|format((L.availability*100) if L.availability is not none else 0) }}%;background:{{ state_color('生產') }}"></i></div>
+      <div class="compbar">
+        {% for c in L.composition %}<i style="width:{{ '%.2f'|format(c.pct) }}%;background:{{ state_color(c.state) }}" title="{{ comp_label(c.state) }} {{ '%.0f'|format(c.pct) }}%"></i>{% endfor %}
+      </div>
+      <div class="complegend">
+        {% for c in L.composition %}<span><span class="dot" style="background:{{ state_color(c.state) }}"></span>{{ comp_label(c.state) }} {{ '%.0f'|format(c.pct) }}%</span>{% endfor %}
+      </div>
+      <div class="kpi-foot"><span class="cta">{{ t.kpi_open }}</span> · {% if m.rw_axis %}{{ t.comp_rw_note }}{% elif m.real_split %}{{ t.comp_real_note }}{% else %}{{ t.comp_demo_note }}{% endif %}</div>
+    </a>
+
+    
+    <a class="kpi" href="#util-stations">
+      <div class="kpi-top"><span class="dot" style="background:{{ state_color('待機') }}"></span>
+        <span class="kpi-t">{{ t.kpi_effi_rw_t if m.rw_axis else t.kpi_effi_t }}<span class="help" tabindex="0">?<span class="tip">{{ t.q_effi_rw if m.rw_axis else t.q_effi }}</span></span></span><span class="owner">{{ t.owner_f3 }}</span></div>
+      <div class="kpi-q">{{ t.kpi_effi_q }}</div>
+      <div class="kpi-big">{% if L.utilization is not none %}{{ '%.0f'|format(L.utilization*100) }}%{% else %}<span class="mut">—</span>{% endif %}</div>
+      <div class="meter"><i style="width:{{ '%.1f'|format((L.utilization*100) if L.utilization is not none else 0) }}%;background:{{ state_color('待機') }}"></i></div>
+      <div class="kpi-sub">{{ t.kpi_effi_sub }}</div>
+      <div class="kpi-foot"><span class="cta">{{ t.kpi_open }}</span> · {% if m.rw_axis %}{{ t.oee_au_rw }}{% elif m.real_split %}{{ t.oee_au_real }}{% else %}{{ t.oee_au_note }}{% endif %}</div>
+    </a>
+
+    
+
+    <a class="kpi" href="/yield?{{ axis_qs }}&lang={{ lang }}">
+      <div class="kpi-top"><span class="dot" style="background:{{ '#d97706' }}"></span>
+        <span class="kpi-t">{{ t.kpi_qual_rw_t if m.rw_axis else t.kpi_qual_t }}<span class="help" tabindex="0">?<span class="tip">{{ t.q_qual }}</span></span></span><span class="owner">{{ t.owner_f2 }}</span></div>
+      <div class="kpi-q">{{ t.kpi_qual_q }}</div>
+      {% if L.quality is not none %}
+      <div class="kpi-big">{{ '%.1f'|format(L.quality*100) }}%</div>
+      <div class="meter"><i style="width:{{ '%.1f'|format(L.quality*100) }}%;background:{{ '#d97706' }}"></i></div>
+      <div class="kpi-sub">{{ t.kpi_qual_sub }}</div>
+      {% else %}
+      <div class="kpi-big mut">—</div>
+      <div class="kpi-sub">{{ t.kpi_qual_none }}</div>
+      {% endif %}
+      <div class="kpi-foot"><span class="cta" style="color:var(--unk)">{{ t.kpi_open }}</span></div>
+    </a>
+
+    
+    <div class="kpi">
+      <div class="kpi-top"><span class="dot" style="background:var(--mut)"></span>
+        <span class="kpi-t">{{ t.perf_t }}<span class="help" tabindex="0">?<span class="tip">{{ t.perf_blind }}</span></span></span><span class="tag">{{ t.pending_tag }}</span></div>
+      <div class="kpi-q">{{ t.kpi_perf_q }}</div>
+      <div class="kpi-big mut">—</div>
+      <div class="meter"><i style="width:0%"></i></div>
+      <div class="kpi-sub">{{ t.perf_pending }}</div>
+    </div>
+  </div>
+
+  
+  {% if sb and sb.stations %}
+  {% set mm = {} %}
+  {% for s in m.stations %}{% set _ = mm.update({s.cls: s}) %}{% endfor %}
+  <div class="sec-h" id="util-stations"><h2>{{ t.l3_title }}</h2><span class="meta">{{ t.l3_sub }} · {{ t.p_window }} {{ days }}{{ t.p_days }}</span></div>
+  <table class="sc">
+    <thead><tr>
+      <th>{{ t.sb_c_station }}</th><th class="num">{{ t.sb_c_machines }}</th>
+      <th class="num">{{ t.sb_c_prod }}<span class="help" tabindex="0">?<span class="tip">{{ t.q_producing }}</span></span></th>
+      
+
+      <th class="num">{{ t.sb_c_util }}<span class="help" tabindex="0">?<span class="tip">{{ t.q_util_col_rw if m.rw_axis else t.q_util_col }}</span></span></th>
+      <th class="num">{{ t.c_output }}<span class="help" tabindex="0">?<span class="tip">{{ t.q_output }}</span></span></th>
+      <th class="num">{{ t.c_target }} <span class="tag demo">{{ t.demo_tag }}</span><span class="help" tabindex="0">?<span class="tip">{{ t.q_target }}</span></span></th>
+      <th class="num">{{ t.c_gap }}<span class="help" tabindex="0">?<span class="tip r">{{ t.q_gap }}</span></span></th>
+      <th class="num">{{ t.c_oee }}<span class="help" tabindex="0">?<span class="tip r">{{ t.q_oee_rw if m.rw_axis else t.q_oee }}</span></span></th>
+    </tr></thead>
+    <tbody>
+    {% for s in sb.stations %}
+    {% set ms = mm.get(s.cls) %}
+    {% set uc = 'var(--good)' if s.util_strict_pct>=60 else ('var(--warn)' if s.util_strict_pct>=40 else 'var(--bad)') %}
+    <tr class="{{ 'anchor' if s.cls==cal_cls }}">
+      <td class="st"><a href="/station/{{ s.cls }}?{{ ov_qs }}&lang={{ lang }}" title="{{ s.cls }}">{{ pretty_station(s.cls) }} ›</a></td>
+      <td class="num">{{ s.fleet_size }}</td>
+      <td class="num">{{ hms(s.producing_sec) }}</td>
+      {% if s.zero_len_only %}
+      <td class="num"><span style="color:var(--mut)" title="{{ t.util_unmeasurable_tip }}">—</span></td>
+      {% else %}
+      <td class="num"><span class="utilcell"><span class="utilbar"><i style="width:{{ '%.1f'|format([s.util_strict_pct, 100]|min) }}%;background:{{ uc }}"></i></span><span class="upct">{{ '%.0f'|format(s.util_strict_pct) }}%</span></span></td>
+      {% endif %}
+      <td class="num">{% if ms and ms.has_output %}{{ "{:,}".format(ms.output) }}{% else %}—{% endif %}</td>
+      <td class="num">{% if ms and ms.target %}{{ "{:,}".format(ms.target) }}{% else %}—{% endif %}</td>
+      <td class="num {{ 'pos' if ms and ms.met else ('neg' if ms and ms.met==False) }}">{% if ms and ms.gap is not none %}{{ '%+d'|format(ms.gap) }}{% else %}—{% endif %}</td>
+      <td class="num" style="font-weight:700;color:{{ ('var(--good)' if ms.oee>=0.6 else ('var(--warn)' if ms.oee>=0.4 else 'var(--bad)')) if (ms and ms.oee is not none) else 'var(--mut)' }}">{% if ms and ms.oee is not none %}{{ '%.0f'|format(ms.oee*100) }}%{% elif ms and ms.util_unmeasurable %}<span title="{{ t.util_unmeasurable_tip }}">—</span>{% else %}—{% endif %}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <div class="kpi-sub" style="margin:7px 2px 0">{{ t.util_stations_note }} · {% if m.rw_axis %}{{ t.l1_showall_rw }} {{ t.rw_axis_na }}{% elif m.real_split %}{{ t.l1_showall_real }}{% else %}{{ t.l1_showall_note }}{% endif %}</div>
+  {% if sb.skipped %}<details class="showall"><summary>{{ sb.skipped|length }} {{ t.sb_skipped }}</summary>
+    {% for sk in sb.skipped %}<div style="font-size:11.5px;color:var(--mut)"><code>{{ sk.cls }}</code> — {{ sk.reason }}</div>{% endfor %}
+  </details>{% endif %}
+  {% endif %}
+
+  <div class="footnote">{{ t.landing_foot | safe }}</div>
+  {% endif %}

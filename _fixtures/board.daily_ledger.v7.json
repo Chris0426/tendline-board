@@ -1,0 +1,752 @@
+{
+ "schema_id": "board.daily_ledger.v7",
+ "_what": "日帳 **v7**（#103）的契約 fixture：`products.kestrel` 產品子樹的形，＋一份**沒有那一腿的 v6 檔**（讀端必須照收＝加性升版）。",
+ "_synthetic": "★★ 全合成：與 `monthly_daily_docs_sample.json` 同一支產生器的第一天；**零 MES、零真日帳**。要換樣本＝重跑產生器，勿手改。",
+ "_iron_rule": [
+  "D1：`products.kestrel` 與站列 `units` **永不相加**（Qlik 沒有「全線」那張表）。",
+  "v6 檔缺 `products` ⇒ 讀端回 **None＝Kestrel 無帳（顯「—」）**，絕不是 0。",
+  "子樹站列只有**由 Qlik grid 得出**的量（無 `attempts`／`r_y`／`r_good`——那些的分母是設備視角的時間腿，不分產品）。"
+ ],
+ "provenance": [
+  {
+   "field": "products.kestrel.stations[]",
+   "source": "_SPEC-QLIK-YIELD.md §12（#103 D1）＋`board_unit._DOC_PRODUCT_STATION_KEYS`"
+  },
+  {
+   "field": "products.kestrel.stations[].units_by_family",
+   "source": "SPEC-LANDING.md §18.18（#98；`Σ ≡ qlik_pass` 恆等式守衛）"
+  },
+  {
+   "field": "schema_ver",
+   "source": "board_unit.LEDGER_SCHEMA_VER"
+  }
+ ],
+ "golden": [
+  {
+   "case": "v7：帶 products.kestrel（4 站，含 2 個 Kestrel 獨有站）",
+   "record": {
+    "schema_ver": "board.daily_ledger.v7",
+    "day": "2026-08-01",
+    "products": {
+     "kestrel": {
+      "product": "kestrel",
+      "n_stations": 4,
+      "degraded": false,
+      "note": null,
+      "stations": [
+       {
+        "cls": "segFrameBonding",
+        "ord": 3,
+        "display": "Frame Bonding",
+        "display_pending": false,
+        "qlik_pass": 43,
+        "qlik_fail": 0,
+        "qlik_total": 43,
+        "n_null": 0,
+        "units_by_family": {
+         "Kestrel": 43
+        }
+       },
+       {
+        "cls": "segGrout",
+        "ord": 18,
+        "display": null,
+        "display_pending": true,
+        "qlik_pass": 58,
+        "qlik_fail": 3,
+        "qlik_total": 61,
+        "n_null": 0,
+        "units_by_family": {
+         "Kestrel": 58
+        }
+       },
+       {
+        "cls": "segUVCurePostGrout",
+        "ord": 19,
+        "display": null,
+        "display_pending": true,
+        "qlik_pass": 59,
+        "qlik_fail": 0,
+        "qlik_total": 59,
+        "n_null": 0,
+        "units_by_family": {
+         "Kestrel": 59
+        }
+       },
+       {
+        "cls": "segLamination",
+        "ord": 25,
+        "display": "Lamination",
+        "display_pending": false,
+        "qlik_pass": 40,
+        "qlik_fail": 2,
+        "qlik_total": 42,
+        "n_null": 0,
+        "units_by_family": {
+         "Kestrel": 40
+        }
+       }
+      ]
+     }
+    },
+    "products_status": "ok",
+    "source": "synthetic",
+    "wo_source_status": "ok",
+    "rw_axis": true,
+    "rw_reason": "ok",
+    "families_status": null,
+    "computed_at": "2026-08-02T07:12:00",
+    "grid_min": 30,
+    "thresholds": {
+     "starved_cover_h": 0.5,
+     "blocked_cover_h": 4.0,
+     "active_near_h": 2.0,
+     "chip_min_lost_h": 1.0
+    },
+    "line": {
+     "n_stations": 5,
+     "n_measurable": 4,
+     "n_unmeasurable": 1
+    },
+    "stations": [
+     {
+      "cls": "segFrameBonding",
+      "fleet_n": 1,
+      "total_mh": 24.0,
+      "producing_h": 6.4,
+      "wo_union_h": 1.012,
+      "wo_h": {
+       "維修": 0.75,
+       "計畫保養": 0.0,
+       "調機": 0.25,
+       "其他維護(子類待定)": 0.1,
+       "等料(停機)": 0.0,
+       "等外包(停機)": 0.0
+      },
+      "wo_union_pre_h": 1.012,
+      "wo_overlap_prod_h": 0.0,
+      "starved_h": 1.8,
+      "blocked_h": 0.4,
+      "unexplained_h": 14.388,
+      "lost_h": 17.6,
+      "unmeasurable": false,
+      "note": null,
+      "closure_h": 0.0,
+      "rate_per_mh": 23.75,
+      "rate_src": "y24_raw",
+      "units": {
+       "attempts": 157,
+       "first_attempts": 154,
+       "rework_n": 3,
+       "qlik_pass": 152,
+       "qlik_fail": 2,
+       "r_y": 23.75,
+       "r_base": 27.846,
+       "base_n_days": 6,
+       "speed_net": 1.5,
+       "unit_bridge": 0,
+       "identity_ok": true,
+       "scrap_src_degraded": false,
+       "note": null,
+       "good_h": 6.196178,
+       "rework_h": 0.122293,
+       "scrap_h": 0.081529,
+       "r_good": 27.3,
+       "r_good_base": 27.846,
+       "base_good_n_days": 6,
+       "slow_good": 1.2,
+       "units_by_family": {
+        "Plover": 152
+       }
+      },
+      "rw": {
+       "planned_sec": 41400.0,
+       "health_down_sec": 2430.0,
+       "producing_sec": 21888.0,
+       "n_eid": 1,
+       "src": "erw",
+       "avail_down_sec": 3564.0,
+       "down_by_state": {
+        "維修": 2430.0,
+        "調機": 810.0,
+        "其他維護(子類待定)": 324.0
+       },
+       "eids": [
+        "E1-1"
+       ]
+      },
+      "families": null
+     },
+     {
+      "cls": "segLamination",
+      "fleet_n": 2,
+      "total_mh": 48.0,
+      "producing_h": 5.0,
+      "wo_union_h": 3.68,
+      "wo_h": {
+       "維修": 3.4,
+       "計畫保養": 0.0,
+       "調機": 0.4,
+       "其他維護(子類待定)": 0.2,
+       "等料(停機)": 0.0,
+       "等外包(停機)": 0.0
+      },
+      "wo_union_pre_h": 3.68,
+      "wo_overlap_prod_h": 0.0,
+      "starved_h": 2.4,
+      "blocked_h": 0.6,
+      "unexplained_h": 36.32,
+      "lost_h": 43.0,
+      "unmeasurable": false,
+      "note": null,
+      "closure_h": 0.0,
+      "rate_per_mh": 38.6,
+      "rate_src": "y24_raw",
+      "units": {
+       "attempts": 201,
+       "first_attempts": 196,
+       "rework_n": 5,
+       "qlik_pass": 193,
+       "qlik_fail": 3,
+       "r_y": 38.6,
+       "r_base": 55.182,
+       "base_n_days": 6,
+       "speed_net": 1.5,
+       "unit_bridge": 0,
+       "identity_ok": true,
+       "scrap_src_degraded": false,
+       "note": null,
+       "good_h": 4.800995,
+       "rework_h": 0.124378,
+       "scrap_h": 0.074627,
+       "r_good": 54.1,
+       "r_good_base": 55.182,
+       "base_good_n_days": 6,
+       "slow_good": 1.2,
+       "units_by_family": {
+        "Plover": 193
+       }
+      },
+      "rw": {
+       "planned_sec": 82800.0,
+       "health_down_sec": 11016.0,
+       "producing_sec": 17100.0,
+       "n_eid": 2,
+       "src": "erw",
+       "avail_down_sec": 12960.0,
+       "down_by_state": {
+        "維修": 11016.0,
+        "調機": 1296.0,
+        "其他維護(子類待定)": 648.0
+       },
+       "eids": [
+        "E2-1",
+        "E2-2"
+       ]
+      },
+      "families": null
+     },
+     {
+      "cls": "segAutomatedOQC",
+      "fleet_n": 1,
+      "total_mh": 24.0,
+      "producing_h": 0.48,
+      "wo_union_h": 1.748,
+      "wo_h": {
+       "維修": 1.6,
+       "計畫保養": 0.0,
+       "調機": 0.3,
+       "其他維護(子類待定)": 0.0,
+       "等料(停機)": 0.0,
+       "等外包(停機)": 0.0
+      },
+      "wo_union_pre_h": 1.748,
+      "wo_overlap_prod_h": 0.0,
+      "starved_h": 3.5,
+      "blocked_h": 0.2,
+      "unexplained_h": 18.072,
+      "lost_h": 23.52,
+      "unmeasurable": false,
+      "note": null,
+      "closure_h": 0.0,
+      "rate_per_mh": 139.583333,
+      "rate_src": "y24_raw",
+      "units": {
+       "attempts": 73,
+       "first_attempts": 71,
+       "rework_n": 2,
+       "qlik_pass": 67,
+       "qlik_fail": 4,
+       "r_y": 139.583333,
+       "r_base": 19.074,
+       "base_n_days": 6,
+       "speed_net": 1.5,
+       "unit_bridge": 0,
+       "identity_ok": true,
+       "scrap_src_degraded": false,
+       "note": null,
+       "good_h": 0.440548,
+       "rework_h": 0.013151,
+       "scrap_h": 0.026301,
+       "r_good": 18.7,
+       "r_good_base": 19.074,
+       "base_good_n_days": 6,
+       "slow_good": 1.2,
+       "units_by_family": {
+        "Plover": 67
+       }
+      },
+      "rw": null,
+      "families": null
+     },
+     {
+      "cls": "segAttachCureOven",
+      "fleet_n": 2,
+      "total_mh": null,
+      "producing_h": null,
+      "wo_union_h": null,
+      "wo_h": null,
+      "wo_union_pre_h": null,
+      "wo_overlap_prod_h": null,
+      "starved_h": null,
+      "blocked_h": null,
+      "unexplained_h": null,
+      "lost_h": null,
+      "unmeasurable": true,
+      "note": "zero_len",
+      "closure_h": null,
+      "rate_per_mh": null,
+      "rate_src": null,
+      "units": {
+       "attempts": 217,
+       "first_attempts": 217,
+       "rework_n": 0,
+       "qlik_pass": 215,
+       "qlik_fail": 2,
+       "r_y": null,
+       "r_base": null,
+       "base_n_days": 0,
+       "speed_net": null,
+       "unit_bridge": 0,
+       "identity_ok": null,
+       "scrap_src_degraded": false,
+       "note": "zero_len",
+       "good_h": null,
+       "rework_h": null,
+       "scrap_h": null,
+       "r_good": null,
+       "r_good_base": null,
+       "base_good_n_days": 0,
+       "slow_good": null,
+       "units_by_family": {
+        "Plover": 215
+       }
+      },
+      "rw": null,
+      "families": null
+     },
+     {
+      "cls": "segVacuumPackInspect",
+      "fleet_n": 1,
+      "total_mh": 24.0,
+      "producing_h": 5.65,
+      "wo_union_h": 1.058,
+      "wo_h": {
+       "維修": 1.0,
+       "計畫保養": 0.0,
+       "調機": 0.15,
+       "其他維護(子類待定)": 0.0,
+       "等料(停機)": 0.0,
+       "等外包(停機)": 0.0
+      },
+      "wo_union_pre_h": 1.058,
+      "wo_overlap_prod_h": 0.0,
+      "starved_h": 2.15,
+      "blocked_h": 0.3,
+      "unexplained_h": 14.842,
+      "lost_h": 18.35,
+      "unmeasurable": false,
+      "note": null,
+      "closure_h": 0.0,
+      "rate_per_mh": 30.973451,
+      "rate_src": "y24_raw",
+      "units": {
+       "attempts": 184,
+       "first_attempts": 180,
+       "rework_n": 4,
+       "qlik_pass": 175,
+       "qlik_fail": 5,
+       "r_y": 30.973451,
+       "r_base": 33.252,
+       "base_n_days": 6,
+       "speed_net": 1.5,
+       "unit_bridge": 0,
+       "identity_ok": true,
+       "scrap_src_degraded": false,
+       "note": null,
+       "good_h": 5.373641,
+       "rework_h": 0.122826,
+       "scrap_h": 0.153533,
+       "r_good": 32.6,
+       "r_good_base": 33.252,
+       "base_good_n_days": 6,
+       "slow_good": 1.2,
+       "units_by_family": {
+        "Plover": 175
+       }
+      },
+      "rw": {
+       "planned_sec": 41400.0,
+       "health_down_sec": 3240.0,
+       "producing_sec": 19323.0,
+       "n_eid": 1,
+       "src": "erw",
+       "avail_down_sec": 3726.0,
+       "down_by_state": {
+        "維修": 3240.0,
+        "調機": 486.0
+       },
+       "eids": [
+        "E1-1"
+       ]
+      },
+      "families": null
+     }
+    ]
+   }
+  },
+  {
+   "case": "v6：同一天、沒有 products 那一腿（讀端照收＝Kestrel 顯「—」）",
+   "record": {
+    "schema_ver": "board.daily_ledger.v6",
+    "day": "2026-08-01",
+    "source": "synthetic",
+    "wo_source_status": "ok",
+    "rw_axis": true,
+    "rw_reason": "ok",
+    "families_status": null,
+    "computed_at": "2026-08-02T07:12:00",
+    "grid_min": 30,
+    "thresholds": {
+     "starved_cover_h": 0.5,
+     "blocked_cover_h": 4.0,
+     "active_near_h": 2.0,
+     "chip_min_lost_h": 1.0
+    },
+    "line": {
+     "n_stations": 5,
+     "n_measurable": 4,
+     "n_unmeasurable": 1
+    },
+    "stations": [
+     {
+      "cls": "segFrameBonding",
+      "fleet_n": 1,
+      "total_mh": 24.0,
+      "producing_h": 6.4,
+      "wo_union_h": 1.012,
+      "wo_h": {
+       "維修": 0.75,
+       "計畫保養": 0.0,
+       "調機": 0.25,
+       "其他維護(子類待定)": 0.1,
+       "等料(停機)": 0.0,
+       "等外包(停機)": 0.0
+      },
+      "wo_union_pre_h": 1.012,
+      "wo_overlap_prod_h": 0.0,
+      "starved_h": 1.8,
+      "blocked_h": 0.4,
+      "unexplained_h": 14.388,
+      "lost_h": 17.6,
+      "unmeasurable": false,
+      "note": null,
+      "closure_h": 0.0,
+      "rate_per_mh": 23.75,
+      "rate_src": "y24_raw",
+      "units": {
+       "attempts": 157,
+       "first_attempts": 154,
+       "rework_n": 3,
+       "qlik_pass": 152,
+       "qlik_fail": 2,
+       "r_y": 23.75,
+       "r_base": 27.846,
+       "base_n_days": 6,
+       "speed_net": 1.5,
+       "unit_bridge": 0,
+       "identity_ok": true,
+       "scrap_src_degraded": false,
+       "note": null,
+       "good_h": 6.196178,
+       "rework_h": 0.122293,
+       "scrap_h": 0.081529,
+       "r_good": 27.3,
+       "r_good_base": 27.846,
+       "base_good_n_days": 6,
+       "slow_good": 1.2,
+       "units_by_family": {
+        "Plover": 152
+       }
+      },
+      "rw": {
+       "planned_sec": 41400.0,
+       "health_down_sec": 2430.0,
+       "producing_sec": 21888.0,
+       "n_eid": 1,
+       "src": "erw",
+       "avail_down_sec": 3564.0,
+       "down_by_state": {
+        "維修": 2430.0,
+        "調機": 810.0,
+        "其他維護(子類待定)": 324.0
+       },
+       "eids": [
+        "E1-1"
+       ]
+      },
+      "families": null
+     },
+     {
+      "cls": "segLamination",
+      "fleet_n": 2,
+      "total_mh": 48.0,
+      "producing_h": 5.0,
+      "wo_union_h": 3.68,
+      "wo_h": {
+       "維修": 3.4,
+       "計畫保養": 0.0,
+       "調機": 0.4,
+       "其他維護(子類待定)": 0.2,
+       "等料(停機)": 0.0,
+       "等外包(停機)": 0.0
+      },
+      "wo_union_pre_h": 3.68,
+      "wo_overlap_prod_h": 0.0,
+      "starved_h": 2.4,
+      "blocked_h": 0.6,
+      "unexplained_h": 36.32,
+      "lost_h": 43.0,
+      "unmeasurable": false,
+      "note": null,
+      "closure_h": 0.0,
+      "rate_per_mh": 38.6,
+      "rate_src": "y24_raw",
+      "units": {
+       "attempts": 201,
+       "first_attempts": 196,
+       "rework_n": 5,
+       "qlik_pass": 193,
+       "qlik_fail": 3,
+       "r_y": 38.6,
+       "r_base": 55.182,
+       "base_n_days": 6,
+       "speed_net": 1.5,
+       "unit_bridge": 0,
+       "identity_ok": true,
+       "scrap_src_degraded": false,
+       "note": null,
+       "good_h": 4.800995,
+       "rework_h": 0.124378,
+       "scrap_h": 0.074627,
+       "r_good": 54.1,
+       "r_good_base": 55.182,
+       "base_good_n_days": 6,
+       "slow_good": 1.2,
+       "units_by_family": {
+        "Plover": 193
+       }
+      },
+      "rw": {
+       "planned_sec": 82800.0,
+       "health_down_sec": 11016.0,
+       "producing_sec": 17100.0,
+       "n_eid": 2,
+       "src": "erw",
+       "avail_down_sec": 12960.0,
+       "down_by_state": {
+        "維修": 11016.0,
+        "調機": 1296.0,
+        "其他維護(子類待定)": 648.0
+       },
+       "eids": [
+        "E2-1",
+        "E2-2"
+       ]
+      },
+      "families": null
+     },
+     {
+      "cls": "segAutomatedOQC",
+      "fleet_n": 1,
+      "total_mh": 24.0,
+      "producing_h": 0.48,
+      "wo_union_h": 1.748,
+      "wo_h": {
+       "維修": 1.6,
+       "計畫保養": 0.0,
+       "調機": 0.3,
+       "其他維護(子類待定)": 0.0,
+       "等料(停機)": 0.0,
+       "等外包(停機)": 0.0
+      },
+      "wo_union_pre_h": 1.748,
+      "wo_overlap_prod_h": 0.0,
+      "starved_h": 3.5,
+      "blocked_h": 0.2,
+      "unexplained_h": 18.072,
+      "lost_h": 23.52,
+      "unmeasurable": false,
+      "note": null,
+      "closure_h": 0.0,
+      "rate_per_mh": 139.583333,
+      "rate_src": "y24_raw",
+      "units": {
+       "attempts": 73,
+       "first_attempts": 71,
+       "rework_n": 2,
+       "qlik_pass": 67,
+       "qlik_fail": 4,
+       "r_y": 139.583333,
+       "r_base": 19.074,
+       "base_n_days": 6,
+       "speed_net": 1.5,
+       "unit_bridge": 0,
+       "identity_ok": true,
+       "scrap_src_degraded": false,
+       "note": null,
+       "good_h": 0.440548,
+       "rework_h": 0.013151,
+       "scrap_h": 0.026301,
+       "r_good": 18.7,
+       "r_good_base": 19.074,
+       "base_good_n_days": 6,
+       "slow_good": 1.2,
+       "units_by_family": {
+        "Plover": 67
+       }
+      },
+      "rw": null,
+      "families": null
+     },
+     {
+      "cls": "segAttachCureOven",
+      "fleet_n": 2,
+      "total_mh": null,
+      "producing_h": null,
+      "wo_union_h": null,
+      "wo_h": null,
+      "wo_union_pre_h": null,
+      "wo_overlap_prod_h": null,
+      "starved_h": null,
+      "blocked_h": null,
+      "unexplained_h": null,
+      "lost_h": null,
+      "unmeasurable": true,
+      "note": "zero_len",
+      "closure_h": null,
+      "rate_per_mh": null,
+      "rate_src": null,
+      "units": {
+       "attempts": 217,
+       "first_attempts": 217,
+       "rework_n": 0,
+       "qlik_pass": 215,
+       "qlik_fail": 2,
+       "r_y": null,
+       "r_base": null,
+       "base_n_days": 0,
+       "speed_net": null,
+       "unit_bridge": 0,
+       "identity_ok": null,
+       "scrap_src_degraded": false,
+       "note": "zero_len",
+       "good_h": null,
+       "rework_h": null,
+       "scrap_h": null,
+       "r_good": null,
+       "r_good_base": null,
+       "base_good_n_days": 0,
+       "slow_good": null,
+       "units_by_family": {
+        "Plover": 215
+       }
+      },
+      "rw": null,
+      "families": null
+     },
+     {
+      "cls": "segVacuumPackInspect",
+      "fleet_n": 1,
+      "total_mh": 24.0,
+      "producing_h": 5.65,
+      "wo_union_h": 1.058,
+      "wo_h": {
+       "維修": 1.0,
+       "計畫保養": 0.0,
+       "調機": 0.15,
+       "其他維護(子類待定)": 0.0,
+       "等料(停機)": 0.0,
+       "等外包(停機)": 0.0
+      },
+      "wo_union_pre_h": 1.058,
+      "wo_overlap_prod_h": 0.0,
+      "starved_h": 2.15,
+      "blocked_h": 0.3,
+      "unexplained_h": 14.842,
+      "lost_h": 18.35,
+      "unmeasurable": false,
+      "note": null,
+      "closure_h": 0.0,
+      "rate_per_mh": 30.973451,
+      "rate_src": "y24_raw",
+      "units": {
+       "attempts": 184,
+       "first_attempts": 180,
+       "rework_n": 4,
+       "qlik_pass": 175,
+       "qlik_fail": 5,
+       "r_y": 30.973451,
+       "r_base": 33.252,
+       "base_n_days": 6,
+       "speed_net": 1.5,
+       "unit_bridge": 0,
+       "identity_ok": true,
+       "scrap_src_degraded": false,
+       "note": null,
+       "good_h": 5.373641,
+       "rework_h": 0.122826,
+       "scrap_h": 0.153533,
+       "r_good": 32.6,
+       "r_good_base": 33.252,
+       "base_good_n_days": 6,
+       "slow_good": 1.2,
+       "units_by_family": {
+        "Plover": 175
+       }
+      },
+      "rw": {
+       "planned_sec": 41400.0,
+       "health_down_sec": 3240.0,
+       "producing_sec": 19323.0,
+       "n_eid": 1,
+       "src": "erw",
+       "avail_down_sec": 3726.0,
+       "down_by_state": {
+        "維修": 3240.0,
+        "調機": 486.0
+       },
+       "eids": [
+        "E1-1"
+       ]
+      },
+      "families": null
+     }
+    ]
+   }
+  }
+ ],
+ "_note": [
+  "`display=null` ＋ `display_pending=true` ＝ §11.1-4「顯示名待抄錄」（12 個 Kestrel 獨有站的公司慣用名尚未從 `Product Flow List.xlsx` 抄回）。"
+ ]
+}

@@ -1,0 +1,8 @@
+
+
+
+{% macro table(cols, cls='') -%}
+<table class="board-t pnt2 {{ cls }}"><thead><tr>
+{%- for c in cols %}<th{% if c.cls %} class="{{ c.cls }}"{% endif %}{% if c.tip %} title="{{ c.tip }}"{% endif %} scope="col">{{ c.label }}</th>{% endfor -%}
+</tr></thead><tbody>{{ caller() }}</tbody></table>
+{%- endmacro %}

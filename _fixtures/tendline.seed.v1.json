@@ -1,0 +1,2356 @@
+{
+ "schema_id": "tendline.seed.v1.1",
+ "_description": [
+  "Hand-written synthetic contract sample for tendline.seed.v1.1 (the shared work-order event ledger). It contains no real data: every asset id is a placeholder in EID-00000..EID-00099 (EID-00000 is the item-master sentinel, never an asset), work-order numbers come from the synthetic range 710001-799999, part numbers from TL900001-TL999999, people fields hold role strings only, and every text is a template sentence. Station classes, display names, item names and areas are placeholders too.",
+  "Shape follows what the WP-1 generator (wsynth_world / wsynth_emit) actually emits. The validator is wsynth_seed.py; _fixtures/selftest_fixtures.py and `python wsynth_seed.py --selftest` both delegate to wsynth_seed.check_fixture (one definition, not two).",
+  "v1.1 (2026-10-02) over v1: kind inventory.item joins the closed set (item master, emitted before the first wo.part that cites it; asset_id = the sentinel EID-00000); three generator guarantees are now contract rules (failure_started_at strictly before wo.open; scope events REACTIVE-only; production_resumed_at REACTIVE-only and strictly after the downtime start). Line and manifest schema strings are tendline.seed.v1.1 / tendline.seed.manifest.v1.1; a v1 line or manifest is refused (schema_mismatch). The file name keeps the v1 family name."
+ ],
+ "_status": "Board = declarer/producer; cmms (Tendline Work) = consumer. v1 frozen at the QG-3.7 read-aloud with cmms; v1.1 = DRAFT until the cross-family review and the section 19 notice.",
+ "_mutation_ops": {
+  "set": "{op, seq, fields}: overwrite fields of the line whose golden seq is `seq` (golden seq runs 1..n)",
+  "swap": "{op, seqs:[a,b]}: swap two lines' positions; the seq field stays positional",
+  "manifest_set": "{op, fields}: overwrite manifest top-level fields",
+  "manifest_day_set": "{op, day, fields}: overwrite one manifest.days entry",
+  "rule": "each invalid case = golden + its mutation, validated in strict+complete mode; the validator's error records, reduced to {code, seq, line} and kept in report order, must equal expect_errors exactly (count, order, seq, line). A case whose expect_errors has more than one record says 'cascade' in its name. seq = the offending line's seq value; line = its 1-based position in the input; both null for manifest-level errors.",
+  "move": "{op, seq, before_seq}: move the line whose original seq is `seq` to just before the line whose original seq is `before_seq` (null = to the end)",
+  "delete": "{op, seqs:[a,b]}: drop the lines whose original seq is in [a, b]",
+  "split_day": "{op, seq, days}: shift every line whose original seq >= `seq` by `days` days (at, wo.open failure_started_at, production_resumed_at value) and manifest exposed_until likewise",
+  "structural": "move / delete / split_day address lines by their ORIGINAL seq and must come after every set / swap; after them seq is renumbered 1..n by position and manifest.days is recomputed from the events (Taipei day, n_events, sha256)",
+  "slices": "each slices case = golden + its mutation, read once whole (strict+complete; must equal whole_expect_errors) and then read in the listed pieces (seqs = inclusive range of the mutated ledger; state fresh = no state, carry = the previous read's state after a JSON round trip; manifest true/false; complete true/false), each piece's error records equal to its expect_errors. chain_covers_ledger = the pieces read the whole ledger from seq 1, so their (code, seq) list must equal the whole read's. valid = no piece reports an error"
+ },
+ "provenance": [
+  {
+   "field": "envelope (schema, world_id, seq, at, kind, asset_id, actor)",
+   "source": "SPEC-SYNTHLINE s5.2; seq contiguous from 1 across days; at = UTC Z, second precision (Q17)"
+  },
+  {
+   "field": "seed file day boundary / manifest",
+   "source": "SPEC-SYNTHLINE s5.1; Taipei 00:00 (Q16); canonical line = sort_keys, compact, UTF-8, LF (wsynth_emit._line)"
+  },
+  {
+   "field": "kinds and per-kind fields",
+   "source": "SPEC-SYNTHLINE s5.3 as emitted by wsynth_world (all fields always present; optional ones null)"
+  },
+  {
+   "field": "status / hold_reason / is_downtime",
+   "source": "board_w8.STATUSES, HOLD_REASONS_KNOWN; is_downtime = board_eqmeeting._phase_kind == 'count' (COMPLETED/terminal false)"
+  },
+  {
+   "field": "synthetic ranges",
+   "source": "_SYNTHLINE-RULINGS second batch Q-N: WO 710001-799999, part TL900001-TL999999"
+  },
+  {
+   "field": "actor",
+   "source": "Q7: closed role set, never a person"
+  },
+  {
+   "field": "byte form and hashes (canonical line, day sha256, fleet_digest, world_id)",
+   "source": "SPEC-SYNTHLINE s5.7 (WP-2 fix round F4); golden world_id is computed from golden[0].world_inputs and the golden asset.define lines, so the golden is itself a test vector"
+  },
+  {
+   "field": "reserved kinds / test worlds / resume fingerprint",
+   "source": "SPEC-SYNTHLINE s5.4 (F1 reserved kinds, F6 test_only, F7 state fingerprint)"
+  },
+  {
+   "field": "inventory.item (v1.1)",
+   "source": "SPEC-SYNTHLINE s5.3/s5.4 v1.1 (cmms A18b s2.3 #5, Board reply Q4): item master from the same event stream as asset.define; fields item_code + display_name (template); asset_id = sentinel EID-00000"
+  },
+  {
+   "field": "fsa strict / scope REACTIVE-only / production_resumed_at direction (v1.1)",
+   "source": "SPEC-SYNTHLINE s5.4-2 v1.1 (Board reply Q7/Q9/Q10, optional O1-O3 made contract): generator guarantees written into the validator"
+  }
+ ],
+ "golden": [
+  {
+   "_case": "one day (the horizon day): every v1.1 kind (item master lines right after the asset definitions, before the first wo.part that cites them), all five hold reasons, one-click PM, seat-level WO, parent WO with scope change, cancelled WO, two WOs still on hold at exposure",
+   "world_inputs": {
+    "seed": "fixture-seed-1",
+    "generator_version": "fixture-handwritten-1"
+   },
+   "manifest": {
+    "schema": "tendline.seed.manifest.v1.1",
+    "world_id": "c126aa2699e8686b",
+    "generator_version": "fixture-handwritten-1",
+    "fleet_digest": "6741dc88ac5011076949874660e58364b9357b32fa435989bdf967340f8e0286",
+    "horizon_start": "2026-07-02T16:00:00Z",
+    "exposed_until": "2026-07-03T16:00:00Z",
+    "flags": {
+     "long_stop": true,
+     "on_hold_reasons": true,
+     "one_click_close": true,
+     "seat_level_wo": true,
+     "zero_length_stations": true
+    },
+    "days": [
+     {
+      "day": "2026-07-03",
+      "file": "seed-2026-07-03.jsonl",
+      "n_events": 74,
+      "sha256": "3b5a1259b15b8ae853097b60679721a811a1c703ee4c54b319f5a7541cba5835"
+     }
+    ]
+   },
+   "events": [
+    {
+     "seq": 1,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-02T16:00:00Z",
+     "kind": "asset.define",
+     "asset_id": "EID-00001",
+     "actor": "role:system",
+     "station_cls": "segStationA",
+     "stations": [
+      "segStationA"
+     ],
+     "display_name": "Machine A-1",
+     "area": "Area 1",
+     "parent_asset_id": null,
+     "seats": [
+      {
+       "unit": "nest:1",
+       "asset_id": "EID-00001-N1"
+      },
+      {
+       "unit": "nest:2",
+       "asset_id": "EID-00001-N2"
+      }
+     ],
+     "roles": [],
+     "in_service_from": "2026-07-03"
+    },
+    {
+     "seq": 2,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-02T16:00:00Z",
+     "kind": "asset.define",
+     "asset_id": "EID-00002",
+     "actor": "role:system",
+     "station_cls": "segStationB",
+     "stations": [
+      "segStationB"
+     ],
+     "display_name": "EID-00002",
+     "area": "Area 2",
+     "parent_asset_id": null,
+     "seats": [
+      {
+       "unit": "EID-00003",
+       "asset_id": "EID-00003"
+      },
+      {
+       "unit": "EID-00004",
+       "asset_id": "EID-00004"
+      }
+     ],
+     "roles": [
+      "contains_module"
+     ],
+     "in_service_from": "2026-07-03"
+    },
+    {
+     "seq": 3,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-02T16:00:00Z",
+     "kind": "asset.define",
+     "asset_id": "EID-00003",
+     "actor": "role:system",
+     "station_cls": "segStationB",
+     "stations": [
+      "segStationB"
+     ],
+     "display_name": "Machine B-1a",
+     "area": "Area 2",
+     "parent_asset_id": "EID-00002",
+     "seats": [],
+     "roles": [],
+     "in_service_from": "2026-07-03"
+    },
+    {
+     "seq": 4,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-02T16:00:00Z",
+     "kind": "asset.define",
+     "asset_id": "EID-00004",
+     "actor": "role:system",
+     "station_cls": "segStationB",
+     "stations": [
+      "segStationB"
+     ],
+     "display_name": "Machine B-1b",
+     "area": "Area 2",
+     "parent_asset_id": "EID-00002",
+     "seats": [],
+     "roles": [],
+     "in_service_from": "2026-07-03"
+    },
+    {
+     "seq": 5,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-02T16:00:00Z",
+     "kind": "asset.define",
+     "asset_id": "EID-00005",
+     "actor": "role:system",
+     "station_cls": "segStationC",
+     "stations": [
+      "segStationC"
+     ],
+     "display_name": "Machine C-1",
+     "area": "Area 1",
+     "parent_asset_id": null,
+     "seats": [
+      {
+       "unit": "EID-00006",
+       "asset_id": "EID-00006"
+      }
+     ],
+     "roles": [
+      "cotag"
+     ],
+     "in_service_from": "2026-07-03"
+    },
+    {
+     "seq": 6,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-02T16:00:00Z",
+     "kind": "asset.define",
+     "asset_id": "EID-00006",
+     "actor": "role:system",
+     "station_cls": "segStationC",
+     "stations": [
+      "segStationC"
+     ],
+     "display_name": "Machine C-1 module",
+     "area": "Area 1",
+     "parent_asset_id": null,
+     "seats": [],
+     "roles": [],
+     "in_service_from": "2026-07-03"
+    },
+    {
+     "seq": 7,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-02T16:00:00Z",
+     "kind": "asset.define",
+     "asset_id": "EID-00007",
+     "actor": "role:system",
+     "station_cls": "segStationD",
+     "stations": [
+      "segStationD"
+     ],
+     "display_name": "Machine D-1",
+     "area": "Area 3",
+     "parent_asset_id": null,
+     "seats": [],
+     "roles": [],
+     "in_service_from": "2026-07-03"
+    },
+    {
+     "seq": 8,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-02T16:00:00Z",
+     "kind": "asset.define",
+     "asset_id": "EID-00008",
+     "actor": "role:system",
+     "station_cls": null,
+     "stations": [],
+     "display_name": "Fixture E-1",
+     "area": "Area 3",
+     "parent_asset_id": null,
+     "seats": [],
+     "roles": [],
+     "in_service_from": "2026-07-03"
+    },
+    {
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "seq": 9,
+     "at": "2026-07-02T16:00:00Z",
+     "kind": "inventory.item",
+     "asset_id": "EID-00000",
+     "actor": "role:system",
+     "item_code": "TL900003",
+     "display_name": "Spare part: sensor #1"
+    },
+    {
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "seq": 10,
+     "at": "2026-07-02T16:00:00Z",
+     "kind": "inventory.item",
+     "asset_id": "EID-00000",
+     "actor": "role:system",
+     "item_code": "TL900018",
+     "display_name": "Spare part: valve #2"
+    },
+    {
+     "seq": 11,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T00:12:00Z",
+     "kind": "wo.open",
+     "asset_id": "EID-00005",
+     "actor": "role:system",
+     "work_order_no": 710001,
+     "work_type": "PM",
+     "brief_description": "Preventive maintenance (14-day)",
+     "failure_started_at": null,
+     "scope": [],
+     "sub_units": [],
+     "pm_source_id": null
+    },
+    {
+     "seq": 12,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T01:00:00Z",
+     "kind": "asset.schedule_state",
+     "asset_id": "EID-00001",
+     "actor": "role:planner",
+     "state": "not_scheduled",
+     "effective_date": "2026-07-03",
+     "sub_unit": "nest:1",
+     "reason": "Not scheduled: line plan excludes this unit."
+    },
+    {
+     "seq": 13,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T01:00:00Z",
+     "kind": "asset.schedule_state",
+     "asset_id": "EID-00008",
+     "actor": "role:planner",
+     "state": "not_scheduled",
+     "effective_date": "2026-07-03",
+     "sub_unit": null,
+     "reason": "Not scheduled: line plan excludes this unit."
+    },
+    {
+     "seq": 14,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T01:30:00Z",
+     "kind": "wo.open",
+     "asset_id": "EID-00007",
+     "actor": "role:operator",
+     "work_order_no": 710002,
+     "work_type": "REACTIVE",
+     "brief_description": "Breakdown: feeder jam",
+     "failure_started_at": "2026-07-03T01:05:00Z",
+     "scope": [],
+     "sub_units": [],
+     "pm_source_id": null
+    },
+    {
+     "seq": 15,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T01:30:00Z",
+     "kind": "wo.note",
+     "asset_id": "EID-00007",
+     "actor": "role:operator",
+     "work_order_no": 710002,
+     "entry_type": "report",
+     "body": "Operator reported feeder jam."
+    },
+    {
+     "seq": 16,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T01:50:00Z",
+     "kind": "wo.status",
+     "asset_id": "EID-00007",
+     "actor": "role:technician",
+     "work_order_no": 710002,
+     "from_status": "OPEN",
+     "to_status": "IN_PROGRESS",
+     "hold_reason": null,
+     "is_downtime": true
+    },
+    {
+     "seq": 17,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T01:50:00Z",
+     "kind": "wo.note",
+     "asset_id": "EID-00007",
+     "actor": "role:technician",
+     "work_order_no": 710002,
+     "entry_type": "progress",
+     "body": "Technician started work on feeder jam."
+    },
+    {
+     "seq": 18,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T02:02:00Z",
+     "kind": "wo.open",
+     "asset_id": "EID-00001-N2",
+     "actor": "role:operator",
+     "work_order_no": 710003,
+     "work_type": "REACTIVE",
+     "brief_description": "Breakdown: vacuum pressure alarm",
+     "failure_started_at": null,
+     "scope": [],
+     "sub_units": [],
+     "pm_source_id": null
+    },
+    {
+     "seq": 19,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T02:02:00Z",
+     "kind": "wo.note",
+     "asset_id": "EID-00001-N2",
+     "actor": "role:operator",
+     "work_order_no": 710003,
+     "entry_type": "report",
+     "body": "Operator reported vacuum pressure alarm."
+    },
+    {
+     "seq": 20,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T02:20:00Z",
+     "kind": "wo.status",
+     "asset_id": "EID-00007",
+     "actor": "role:technician",
+     "work_order_no": 710002,
+     "from_status": "IN_PROGRESS",
+     "to_status": "ON_HOLD",
+     "hold_reason": "WAITING_PARTS",
+     "is_downtime": true
+    },
+    {
+     "seq": 21,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T02:20:00Z",
+     "kind": "wo.note",
+     "asset_id": "EID-00007",
+     "actor": "role:technician",
+     "work_order_no": 710002,
+     "entry_type": "hold",
+     "body": "Work paused: WAITING_PARTS."
+    },
+    {
+     "seq": 22,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T02:20:00Z",
+     "kind": "wo.part",
+     "asset_id": "EID-00007",
+     "actor": "role:technician",
+     "work_order_no": 710002,
+     "item_code": "TL900018",
+     "quantity": 2
+    },
+    {
+     "seq": 23,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T02:20:00Z",
+     "kind": "wo.note",
+     "asset_id": "EID-00007",
+     "actor": "role:technician",
+     "work_order_no": 710002,
+     "entry_type": "part",
+     "body": "Requested part TL900018 x2."
+    },
+    {
+     "seq": 24,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T02:20:00Z",
+     "kind": "wo.status",
+     "asset_id": "EID-00001-N2",
+     "actor": "role:engineer",
+     "work_order_no": 710003,
+     "from_status": "OPEN",
+     "to_status": "CANCELLED",
+     "hold_reason": null,
+     "is_downtime": false
+    },
+    {
+     "seq": 25,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T03:40:00Z",
+     "kind": "wo.note",
+     "asset_id": "EID-00005",
+     "actor": "role:technician",
+     "work_order_no": 710001,
+     "entry_type": "note",
+     "body": "Repair complete: cleaned and re-seated sensor."
+    },
+    {
+     "seq": 26,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T03:40:00Z",
+     "kind": "wo.status",
+     "asset_id": "EID-00005",
+     "actor": "role:technician",
+     "work_order_no": 710001,
+     "from_status": "OPEN",
+     "to_status": "IN_PROGRESS",
+     "hold_reason": null,
+     "is_downtime": true
+    },
+    {
+     "seq": 27,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T03:40:00Z",
+     "kind": "wo.status",
+     "asset_id": "EID-00005",
+     "actor": "role:technician",
+     "work_order_no": 710001,
+     "from_status": "IN_PROGRESS",
+     "to_status": "COMPLETED",
+     "hold_reason": null,
+     "is_downtime": false
+    },
+    {
+     "seq": 28,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T03:40:00Z",
+     "kind": "wo.status",
+     "asset_id": "EID-00005",
+     "actor": "role:technician",
+     "work_order_no": 710001,
+     "from_status": "COMPLETED",
+     "to_status": "CLOSED",
+     "hold_reason": null,
+     "is_downtime": false
+    },
+    {
+     "seq": 29,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T04:15:00Z",
+     "kind": "wo.open",
+     "asset_id": "EID-00002",
+     "actor": "role:operator",
+     "work_order_no": 710004,
+     "work_type": "REACTIVE",
+     "brief_description": "Breakdown: alignment drift",
+     "failure_started_at": "2026-07-03T04:00:00Z",
+     "scope": [
+      "EID-00003"
+     ],
+     "sub_units": [],
+     "pm_source_id": null
+    },
+    {
+     "seq": 30,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T04:15:00Z",
+     "kind": "wo.note",
+     "asset_id": "EID-00002",
+     "actor": "role:operator",
+     "work_order_no": 710004,
+     "entry_type": "report",
+     "body": "Operator reported alignment drift."
+    },
+    {
+     "seq": 31,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T04:40:00Z",
+     "kind": "wo.status",
+     "asset_id": "EID-00002",
+     "actor": "role:technician",
+     "work_order_no": 710004,
+     "from_status": "OPEN",
+     "to_status": "IN_PROGRESS",
+     "hold_reason": null,
+     "is_downtime": true
+    },
+    {
+     "seq": 32,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T04:40:00Z",
+     "kind": "wo.note",
+     "asset_id": "EID-00002",
+     "actor": "role:technician",
+     "work_order_no": 710004,
+     "entry_type": "progress",
+     "body": "Technician started work on alignment drift."
+    },
+    {
+     "seq": 33,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T05:10:00Z",
+     "kind": "wo.scope",
+     "asset_id": "EID-00002",
+     "actor": "role:technician",
+     "work_order_no": 710004,
+     "scope": [
+      "EID-00003",
+      "EID-00004"
+     ],
+     "sub_units": []
+    },
+    {
+     "seq": 34,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T05:45:00Z",
+     "kind": "wo.open",
+     "asset_id": "EID-00006",
+     "actor": "role:operator",
+     "work_order_no": 710005,
+     "work_type": "REACTIVE",
+     "brief_description": "Breakdown: sensor fault",
+     "failure_started_at": "2026-07-03T05:30:00Z",
+     "scope": [],
+     "sub_units": [],
+     "pm_source_id": null
+    },
+    {
+     "seq": 35,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T05:45:00Z",
+     "kind": "wo.note",
+     "asset_id": "EID-00006",
+     "actor": "role:operator",
+     "work_order_no": 710005,
+     "entry_type": "report",
+     "body": "Operator reported sensor fault."
+    },
+    {
+     "seq": 36,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T06:00:00Z",
+     "kind": "wo.status",
+     "asset_id": "EID-00006",
+     "actor": "role:technician",
+     "work_order_no": 710005,
+     "from_status": "OPEN",
+     "to_status": "IN_PROGRESS",
+     "hold_reason": null,
+     "is_downtime": true
+    },
+    {
+     "seq": 37,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T06:00:00Z",
+     "kind": "wo.note",
+     "asset_id": "EID-00006",
+     "actor": "role:technician",
+     "work_order_no": 710005,
+     "entry_type": "progress",
+     "body": "Technician started work on sensor fault."
+    },
+    {
+     "seq": 38,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T06:20:00Z",
+     "kind": "wo.status",
+     "asset_id": "EID-00007",
+     "actor": "role:technician",
+     "work_order_no": 710002,
+     "from_status": "ON_HOLD",
+     "to_status": "IN_PROGRESS",
+     "hold_reason": null,
+     "is_downtime": true
+    },
+    {
+     "seq": 39,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T06:20:00Z",
+     "kind": "wo.note",
+     "asset_id": "EID-00007",
+     "actor": "role:technician",
+     "work_order_no": 710002,
+     "entry_type": "resume",
+     "body": "Work resumed after WAITING_PARTS."
+    },
+    {
+     "seq": 40,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T06:40:00Z",
+     "kind": "wo.status",
+     "asset_id": "EID-00002",
+     "actor": "role:technician",
+     "work_order_no": 710004,
+     "from_status": "IN_PROGRESS",
+     "to_status": "ON_HOLD",
+     "hold_reason": "TEST_RUN",
+     "is_downtime": false
+    },
+    {
+     "seq": 41,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T06:40:00Z",
+     "kind": "wo.note",
+     "asset_id": "EID-00002",
+     "actor": "role:technician",
+     "work_order_no": 710004,
+     "entry_type": "hold",
+     "body": "Work paused: TEST_RUN."
+    },
+    {
+     "seq": 42,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T07:00:00Z",
+     "kind": "wo.status",
+     "asset_id": "EID-00006",
+     "actor": "role:technician",
+     "work_order_no": 710005,
+     "from_status": "IN_PROGRESS",
+     "to_status": "ON_HOLD",
+     "hold_reason": "WAITING_MACHINE_TIME",
+     "is_downtime": false
+    },
+    {
+     "seq": 43,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T07:00:00Z",
+     "kind": "wo.note",
+     "asset_id": "EID-00006",
+     "actor": "role:technician",
+     "work_order_no": 710005,
+     "entry_type": "hold",
+     "body": "Work paused: WAITING_MACHINE_TIME."
+    },
+    {
+     "seq": 44,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T07:03:00Z",
+     "kind": "wo.field",
+     "asset_id": "EID-00006",
+     "actor": "role:technician",
+     "work_order_no": 710005,
+     "field": "production_resumed_at",
+     "value": "2026-07-03T07:00:00Z"
+    },
+    {
+     "seq": 45,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T07:30:00Z",
+     "kind": "wo.status",
+     "asset_id": "EID-00007",
+     "actor": "role:technician",
+     "work_order_no": 710002,
+     "from_status": "IN_PROGRESS",
+     "to_status": "COMPLETED",
+     "hold_reason": null,
+     "is_downtime": false
+    },
+    {
+     "seq": 46,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T07:30:00Z",
+     "kind": "wo.field",
+     "asset_id": "EID-00007",
+     "actor": "role:technician",
+     "work_order_no": 710002,
+     "field": "diagnosis",
+     "value": "Root cause: feeder jam."
+    },
+    {
+     "seq": 47,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T07:30:00Z",
+     "kind": "wo.field",
+     "asset_id": "EID-00007",
+     "actor": "role:technician",
+     "work_order_no": 710002,
+     "field": "action_taken",
+     "value": "replaced worn part."
+    },
+    {
+     "seq": 48,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T07:30:00Z",
+     "kind": "wo.note",
+     "asset_id": "EID-00007",
+     "actor": "role:technician",
+     "work_order_no": 710002,
+     "entry_type": "note",
+     "body": "Repair complete: replaced worn part."
+    },
+    {
+     "seq": 49,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T07:34:00Z",
+     "kind": "wo.field",
+     "asset_id": "EID-00007",
+     "actor": "role:technician",
+     "work_order_no": 710002,
+     "field": "production_resumed_at",
+     "value": "2026-07-03T07:30:00Z"
+    },
+    {
+     "seq": 50,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T08:05:00Z",
+     "kind": "wo.status",
+     "asset_id": "EID-00007",
+     "actor": "role:engineer",
+     "work_order_no": 710002,
+     "from_status": "COMPLETED",
+     "to_status": "CLOSED",
+     "hold_reason": null,
+     "is_downtime": false
+    },
+    {
+     "seq": 51,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T09:10:00Z",
+     "kind": "wo.status",
+     "asset_id": "EID-00002",
+     "actor": "role:technician",
+     "work_order_no": 710004,
+     "from_status": "ON_HOLD",
+     "to_status": "COMPLETED",
+     "hold_reason": null,
+     "is_downtime": false
+    },
+    {
+     "seq": 52,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T09:10:00Z",
+     "kind": "wo.field",
+     "asset_id": "EID-00002",
+     "actor": "role:technician",
+     "work_order_no": 710004,
+     "field": "diagnosis",
+     "value": "Root cause: alignment drift."
+    },
+    {
+     "seq": 53,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T09:10:00Z",
+     "kind": "wo.field",
+     "asset_id": "EID-00002",
+     "actor": "role:technician",
+     "work_order_no": 710004,
+     "field": "action_taken",
+     "value": "recalibrated axis."
+    },
+    {
+     "seq": 54,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T09:10:00Z",
+     "kind": "wo.note",
+     "asset_id": "EID-00002",
+     "actor": "role:technician",
+     "work_order_no": 710004,
+     "entry_type": "note",
+     "body": "Repair complete: recalibrated axis."
+    },
+    {
+     "seq": 55,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T09:13:00Z",
+     "kind": "wo.field",
+     "asset_id": "EID-00002",
+     "actor": "role:technician",
+     "work_order_no": 710004,
+     "field": "production_resumed_at",
+     "value": "2026-07-03T09:10:00Z"
+    },
+    {
+     "seq": 56,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T10:20:00Z",
+     "kind": "wo.open",
+     "asset_id": "EID-00001",
+     "actor": "role:operator",
+     "work_order_no": 710006,
+     "work_type": "REACTIVE",
+     "brief_description": "Breakdown: motion axis alarm",
+     "failure_started_at": null,
+     "scope": [],
+     "sub_units": [],
+     "pm_source_id": null
+    },
+    {
+     "seq": 57,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T10:20:00Z",
+     "kind": "wo.note",
+     "asset_id": "EID-00001",
+     "actor": "role:operator",
+     "work_order_no": 710006,
+     "entry_type": "report",
+     "body": "Operator reported motion axis alarm."
+    },
+    {
+     "seq": 58,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T10:40:00Z",
+     "kind": "wo.status",
+     "asset_id": "EID-00001",
+     "actor": "role:technician",
+     "work_order_no": 710006,
+     "from_status": "OPEN",
+     "to_status": "IN_PROGRESS",
+     "hold_reason": null,
+     "is_downtime": true
+    },
+    {
+     "seq": 59,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T10:40:00Z",
+     "kind": "wo.note",
+     "asset_id": "EID-00001",
+     "actor": "role:technician",
+     "work_order_no": 710006,
+     "entry_type": "progress",
+     "body": "Technician started work on motion axis alarm."
+    },
+    {
+     "seq": 60,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T11:00:00Z",
+     "kind": "wo.status",
+     "asset_id": "EID-00006",
+     "actor": "role:technician",
+     "work_order_no": 710005,
+     "from_status": "ON_HOLD",
+     "to_status": "IN_PROGRESS",
+     "hold_reason": null,
+     "is_downtime": true
+    },
+    {
+     "seq": 61,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T11:00:00Z",
+     "kind": "wo.note",
+     "asset_id": "EID-00006",
+     "actor": "role:technician",
+     "work_order_no": 710005,
+     "entry_type": "resume",
+     "body": "Work resumed after WAITING_MACHINE_TIME."
+    },
+    {
+     "seq": 62,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T11:10:00Z",
+     "kind": "wo.status",
+     "asset_id": "EID-00001",
+     "actor": "role:technician",
+     "work_order_no": 710006,
+     "from_status": "IN_PROGRESS",
+     "to_status": "ON_HOLD",
+     "hold_reason": "WAITING_VENDOR",
+     "is_downtime": true
+    },
+    {
+     "seq": 63,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T11:10:00Z",
+     "kind": "wo.note",
+     "asset_id": "EID-00001",
+     "actor": "role:technician",
+     "work_order_no": 710006,
+     "entry_type": "hold",
+     "body": "Work paused: WAITING_VENDOR."
+    },
+    {
+     "seq": 64,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T12:00:00Z",
+     "kind": "wo.status",
+     "asset_id": "EID-00006",
+     "actor": "role:technician",
+     "work_order_no": 710005,
+     "from_status": "IN_PROGRESS",
+     "to_status": "COMPLETED",
+     "hold_reason": null,
+     "is_downtime": false
+    },
+    {
+     "seq": 65,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T12:00:00Z",
+     "kind": "wo.field",
+     "asset_id": "EID-00006",
+     "actor": "role:technician",
+     "work_order_no": 710005,
+     "field": "diagnosis",
+     "value": "Root cause: sensor fault."
+    },
+    {
+     "seq": 66,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T12:00:00Z",
+     "kind": "wo.field",
+     "asset_id": "EID-00006",
+     "actor": "role:technician",
+     "work_order_no": 710005,
+     "field": "action_taken",
+     "value": "cleaned and re-seated sensor."
+    },
+    {
+     "seq": 67,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T12:00:00Z",
+     "kind": "wo.note",
+     "asset_id": "EID-00006",
+     "actor": "role:technician",
+     "work_order_no": 710005,
+     "entry_type": "note",
+     "body": "Repair complete: cleaned and re-seated sensor."
+    },
+    {
+     "seq": 68,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T12:10:00Z",
+     "kind": "wo.open",
+     "asset_id": "EID-00003",
+     "actor": "role:operator",
+     "work_order_no": 710007,
+     "work_type": "REACTIVE",
+     "brief_description": "Breakdown: temperature out of range",
+     "failure_started_at": "2026-07-03T12:00:00Z",
+     "scope": [],
+     "sub_units": [],
+     "pm_source_id": null
+    },
+    {
+     "seq": 69,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T12:10:00Z",
+     "kind": "wo.note",
+     "asset_id": "EID-00003",
+     "actor": "role:operator",
+     "work_order_no": 710007,
+     "entry_type": "report",
+     "body": "Operator reported temperature out of range."
+    },
+    {
+     "seq": 70,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T12:30:00Z",
+     "kind": "wo.status",
+     "asset_id": "EID-00003",
+     "actor": "role:technician",
+     "work_order_no": 710007,
+     "from_status": "OPEN",
+     "to_status": "IN_PROGRESS",
+     "hold_reason": null,
+     "is_downtime": true
+    },
+    {
+     "seq": 71,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T12:30:00Z",
+     "kind": "wo.note",
+     "asset_id": "EID-00003",
+     "actor": "role:technician",
+     "work_order_no": 710007,
+     "entry_type": "progress",
+     "body": "Technician started work on temperature out of range."
+    },
+    {
+     "seq": 72,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T13:00:00Z",
+     "kind": "wo.status",
+     "asset_id": "EID-00003",
+     "actor": "role:technician",
+     "work_order_no": 710007,
+     "from_status": "IN_PROGRESS",
+     "to_status": "ON_HOLD",
+     "hold_reason": "OTHER",
+     "is_downtime": true
+    },
+    {
+     "seq": 73,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T13:00:00Z",
+     "kind": "wo.note",
+     "asset_id": "EID-00003",
+     "actor": "role:technician",
+     "work_order_no": 710007,
+     "entry_type": "hold",
+     "body": "Work paused: OTHER."
+    },
+    {
+     "seq": 74,
+     "schema": "tendline.seed.v1.1",
+     "world_id": "c126aa2699e8686b",
+     "at": "2026-07-03T13:30:00Z",
+     "kind": "wo.status",
+     "asset_id": "EID-00006",
+     "actor": "role:engineer",
+     "work_order_no": 710005,
+     "from_status": "COMPLETED",
+     "to_status": "CLOSED",
+     "hold_reason": null,
+     "is_downtime": false
+    }
+   ]
+  }
+ ],
+ "invalid": [
+  {
+   "case": "seq not monotonic: line 22 carries seq 20, a value already used (one error; the line still occupies its slot so the next line resyncs)",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 22,
+     "fields": {
+      "seq": 20
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "seq_order",
+     "seq": 20,
+     "line": 22
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "event after a terminal status: a note filed on the CANCELLED work order 710003 hours later",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 63,
+     "fields": {
+      "work_order_no": 710003,
+      "asset_id": "EID-00001-N2"
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "wo_after_terminal",
+     "seq": 63,
+     "line": 63
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "ON_HOLD without a hold_reason (WAITING_PARTS transition with hold_reason=null)",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 20,
+     "fields": {
+      "hold_reason": null
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "hold_reason_missing",
+     "seq": 20,
+     "line": 20
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "world_id of one line differs from the manifest world => refuse to read the whole ledger",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 32,
+     "fields": {
+      "world_id": "ffffffffffffffff"
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "world_mismatch",
+     "seq": 32,
+     "line": 32
+    }
+   ],
+   "reject_by": "consumer_read_refusal"
+  },
+  {
+   "case": "event time later than the exposure point: manifest exposed_until pulled back to 21:00 Taipei while a 21:30 event is published",
+   "mutation": [
+    {
+     "op": "manifest_set",
+     "fields": {
+      "exposed_until": "2026-07-03T13:00:00Z"
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "exposure",
+     "seq": 74,
+     "line": 74
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "first event of a work order is not wo.open: report note placed before its wo.open (same second, order swapped)",
+   "mutation": [
+    {
+     "op": "swap",
+     "seqs": [
+      14,
+      15
+     ]
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "wo_first_not_open",
+     "seq": 14,
+     "line": 14
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "schema string of one line is the previous contract version tendline.seed.v1, not tendline.seed.v1.1 => refuse to read (a v1.1 reader does not read v1 lines)",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 69,
+     "fields": {
+      "schema": "tendline.seed.v1"
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "schema_mismatch",
+     "seq": 69,
+     "line": 69
+    }
+   ],
+   "reject_by": "consumer_read_refusal"
+  },
+  {
+   "case": "actor outside the role closed set (role strings only, never a person)",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 15,
+     "fields": {
+      "actor": "role:manager"
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "closed_set",
+     "seq": 15,
+     "line": 15
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "from_status does not equal the previous status of the work order",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 45,
+     "fields": {
+      "from_status": "OPEN"
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "wo_status_chain",
+     "seq": 45,
+     "line": 45
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "is_downtime disagrees with the vocabulary rule (IN_PROGRESS flagged false)",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 16,
+     "fields": {
+      "is_downtime": false
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "is_downtime_mismatch",
+     "seq": 16,
+     "line": 16
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "hold_reason carried on a non-ON_HOLD transition",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 58,
+     "fields": {
+      "hold_reason": "OTHER"
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "hold_reason_unexpected",
+     "seq": 58,
+     "line": 58
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "item_code outside the synthetic part-number range TL900001-TL999999",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 22,
+     "fields": {
+      "item_code": "TL100018"
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "range",
+     "seq": 22,
+     "line": 22
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "manifest n_events disagrees with the day file line count",
+   "mutation": [
+    {
+     "op": "manifest_day_set",
+     "day": "2026-07-03",
+     "fields": {
+      "n_events": 75
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "manifest_mismatch",
+     "seq": null,
+     "line": null
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "failure_started_at later than the wo.open time",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 14,
+     "fields": {
+      "failure_started_at": "2026-07-03T01:45:00Z"
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "fsa_after_open",
+     "seq": 14,
+     "line": 14
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "event on an asset that no asset.define declared",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 13,
+     "fields": {
+      "asset_id": "EID-00099"
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "unknown_asset",
+     "seq": 13,
+     "line": 13
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "events of one work order on two different assets",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 39,
+     "fields": {
+      "asset_id": "EID-00005"
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "wo_asset_mismatch",
+     "seq": 39,
+     "line": 39
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "at goes backwards relative to the previous line",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 39,
+     "fields": {
+      "at": "2026-07-03T06:10:00Z"
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "at_order",
+     "seq": 39,
+     "line": 39
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "malformed asset_id (not EID-ddddd / EID-ddddd-N<n>)",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 15,
+     "fields": {
+      "asset_id": "EID-7"
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "envelope",
+     "seq": 15,
+     "line": 15
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "empty note body",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 15,
+     "fields": {
+      "body": ""
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "field",
+     "seq": 15,
+     "line": 15
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "manifest marks a test-only world => refuse to read unless explicitly allowed",
+   "mutation": [
+    {
+     "op": "manifest_set",
+     "fields": {
+      "test_only": true
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "test_world",
+     "seq": null,
+     "line": null
+    }
+   ],
+   "reject_by": "consumer_read_refusal"
+  },
+  {
+   "case": "child-EID seat whose asset_id differs from its unit (F3: EID-00005 declares unit EID-00006 as asset EID-00007); cascade: the define line is dropped, so the five events of work order 710001 on EID-00005 become unknown_asset and the manifest fleet_digest no longer matches the remaining defines",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 5,
+     "fields": {
+      "seats": [
+       {
+        "unit": "EID-00006",
+        "asset_id": "EID-00007"
+       }
+      ]
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "field",
+     "seq": 5,
+     "line": 5
+    },
+    {
+     "code": "unknown_asset",
+     "seq": 11,
+     "line": 11
+    },
+    {
+     "code": "unknown_asset",
+     "seq": 25,
+     "line": 25
+    },
+    {
+     "code": "unknown_asset",
+     "seq": 26,
+     "line": 26
+    },
+    {
+     "code": "unknown_asset",
+     "seq": 27,
+     "line": 27
+    },
+    {
+     "code": "unknown_asset",
+     "seq": 28,
+     "line": 28
+    },
+    {
+     "code": "manifest_mismatch",
+     "seq": null,
+     "line": null
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "wo.part cites an item_code that no earlier inventory.item defined (in range, never defined)",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 22,
+     "fields": {
+      "item_code": "TL900019"
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "unknown_item",
+     "seq": 22,
+     "line": 22
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "inventory.item whose asset_id is a machine instead of the item-master sentinel",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 9,
+     "fields": {
+      "asset_id": "EID-00001"
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "field",
+     "seq": 9,
+     "line": 9
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "the same item_code defined twice by inventory.item (the second definition is the error)",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 9,
+     "fields": {
+      "item_code": "TL900018"
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "item_redefined",
+     "seq": 10,
+     "line": 10
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "failure_started_at equal to the wo.open time (must be strictly earlier)",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 14,
+     "fields": {
+      "failure_started_at": "2026-07-03T01:30:00Z"
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "fsa_after_open",
+     "seq": 14,
+     "line": 14
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "PM work order opened with a non-empty scope (scope events are REACTIVE-only)",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 11,
+     "fields": {
+      "scope": [
+       "EID-00006"
+      ]
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "scope_non_reactive",
+     "seq": 11,
+     "line": 11
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "production_resumed_at written on a non-REACTIVE work order (710005 relabelled PM)",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 34,
+     "fields": {
+      "work_type": "PM"
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "pra_non_reactive",
+     "seq": 44,
+     "line": 44
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "production_resumed_at not strictly later than the downtime start (equal to failure_started_at)",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 44,
+     "fields": {
+      "value": "2026-07-03T05:30:00Z"
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "pra_not_after_start",
+     "seq": 44,
+     "line": 44
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "cascade: scoped parent work order 710004 relabelled PM - its wo.open scope, its wo.scope and its production_resumed_at are each REACTIVE-only",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 29,
+     "fields": {
+      "work_type": "PM"
+     }
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "scope_non_reactive",
+     "seq": 29,
+     "line": 29
+    },
+    {
+     "code": "scope_non_reactive",
+     "seq": 33,
+     "line": 33
+    },
+    {
+     "code": "pra_non_reactive",
+     "seq": 55,
+     "line": 55
+    }
+   ],
+   "reject_by": "validator"
+  },
+  {
+   "case": "inventory.item later than the wo.part that cites it, same day file (item TL900018 moved after its 02:20 part; definitions must precede references)",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 10,
+     "fields": {
+      "at": "2026-07-03T02:20:00Z"
+     }
+    },
+    {
+     "op": "move",
+     "seq": 10,
+     "before_seq": 23
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "unknown_item",
+     "seq": 21,
+     "line": 21
+    }
+   ]
+  },
+  {
+   "case": "cascade: complete ledger without its baseline master (every asset.define and inventory.item removed; the ledger is cut to the 12 lines old seq 11-22) - complete=True forces reference checks, so every event is unknown_asset and the part is unknown_item",
+   "mutation": [
+    {
+     "op": "delete",
+     "seqs": [
+      1,
+      10
+     ]
+    },
+    {
+     "op": "delete",
+     "seqs": [
+      23,
+      74
+     ]
+    }
+   ],
+   "expect_errors": [
+    {
+     "code": "unknown_asset",
+     "seq": 1,
+     "line": 1
+    },
+    {
+     "code": "unknown_asset",
+     "seq": 2,
+     "line": 2
+    },
+    {
+     "code": "unknown_asset",
+     "seq": 3,
+     "line": 3
+    },
+    {
+     "code": "unknown_asset",
+     "seq": 4,
+     "line": 4
+    },
+    {
+     "code": "unknown_asset",
+     "seq": 5,
+     "line": 5
+    },
+    {
+     "code": "unknown_asset",
+     "seq": 6,
+     "line": 6
+    },
+    {
+     "code": "unknown_asset",
+     "seq": 7,
+     "line": 7
+    },
+    {
+     "code": "unknown_asset",
+     "seq": 8,
+     "line": 8
+    },
+    {
+     "code": "unknown_asset",
+     "seq": 9,
+     "line": 9
+    },
+    {
+     "code": "unknown_asset",
+     "seq": 10,
+     "line": 10
+    },
+    {
+     "code": "unknown_asset",
+     "seq": 11,
+     "line": 11
+    },
+    {
+     "code": "unknown_asset",
+     "seq": 12,
+     "line": 12
+    },
+    {
+     "code": "unknown_item",
+     "seq": 12,
+     "line": 12
+    }
+   ]
+  }
+ ],
+ "tolerated": [
+  {
+   "case": "unknown kind is skipped and counted, never an exception (consumer is lenient); strict mode reports closed_set",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 32,
+     "fields": {
+      "kind": "wo.attachment"
+     }
+    }
+   ],
+   "expect": {
+    "ok": true,
+    "rejected": null,
+    "skipped_unknown_kind": 1,
+    "unknown_kinds": {
+     "wo.attachment": 1
+    },
+    "n_valid": 73
+   },
+   "expect_strict_errors": [
+    {
+     "code": "closed_set",
+     "seq": 32,
+     "line": 32
+    }
+   ]
+  },
+  {
+   "case": "reserved kind (pm.schedule, not part of v1) with none of its fields: consumer mode skips and counts it; strict mode rejects it with reserved_kind",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 32,
+     "fields": {
+      "kind": "pm.schedule"
+     }
+    }
+   ],
+   "expect": {
+    "ok": true,
+    "rejected": null,
+    "skipped_unknown_kind": 0,
+    "skipped_reserved": 1,
+    "n_valid": 73
+   },
+   "expect_strict_errors": [
+    {
+     "code": "reserved_kind",
+     "seq": 32,
+     "line": 32
+    }
+   ]
+  },
+  {
+   "case": "additive unknown field on an event is dropped by normalize (not an error outside strict mode)",
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 32,
+     "fields": {
+      "future_field": "x"
+     }
+    }
+   ],
+   "expect": {
+    "ok": true,
+    "rejected": null,
+    "n_valid": 74
+   }
+  }
+ ],
+ "slices": [
+  {
+   "case": "valid: master in read 1 (seq 1-10, no manifest), the rest in read 2 with the carried state (complete) - state.master_complete carries the baseline",
+   "valid": true,
+   "mutation": [],
+   "chain_covers_ledger": true,
+   "reads": [
+    {
+     "seqs": [
+      1,
+      10
+     ],
+     "state": "fresh",
+     "manifest": false,
+     "complete": false,
+     "expect_errors": []
+    },
+    {
+     "seqs": [
+      11,
+      74
+     ],
+     "state": "carry",
+     "manifest": true,
+     "complete": true,
+     "expect_errors": []
+    }
+   ],
+   "whole_expect_errors": []
+  },
+  {
+   "case": "valid: stateless slice that starts after an omitted earlier item (TL900003, seq 9) and contains a later one (TL900018) - the part cites the omitted TL900003; a slice without a from-start chain does not judge references",
+   "valid": true,
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 22,
+     "fields": {
+      "item_code": "TL900003"
+     }
+    }
+   ],
+   "reads": [
+    {
+     "seqs": [
+      10,
+      74
+     ],
+     "state": "fresh",
+     "manifest": false,
+     "complete": false,
+     "expect_errors": []
+    }
+   ],
+   "whole_expect_errors": []
+  },
+  {
+   "case": "carried state enforces references: read 2 (with the state from a seq-1 read) cites TL900019, never defined",
+   "valid": false,
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 22,
+     "fields": {
+      "item_code": "TL900019"
+     }
+    }
+   ],
+   "chain_covers_ledger": true,
+   "reads": [
+    {
+     "seqs": [
+      1,
+      10
+     ],
+     "state": "fresh",
+     "manifest": false,
+     "complete": false,
+     "expect_errors": []
+    },
+    {
+     "seqs": [
+      11,
+      74
+     ],
+     "state": "carry",
+     "manifest": true,
+     "complete": true,
+     "expect_errors": [
+      {
+       "code": "unknown_item",
+       "seq": 22,
+       "line": 12
+      }
+     ]
+    }
+   ],
+   "whole_expect_errors": [
+    {
+     "code": "unknown_item",
+     "seq": 22,
+     "line": 22
+    }
+   ]
+  },
+  {
+   "case": "two day files: inventory.item TL900018 defined in day 2 (2026-07-04) after the day-1 wo.part that cites it - read day by day with the carried state",
+   "valid": false,
+   "chain_covers_ledger": true,
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 10,
+     "fields": {
+      "at": "2026-07-04T02:20:00Z"
+     }
+    },
+    {
+     "op": "split_day",
+     "seq": 23,
+     "days": 1
+    },
+    {
+     "op": "move",
+     "seq": 10,
+     "before_seq": 23
+    }
+   ],
+   "reads": [
+    {
+     "seqs": [
+      1,
+      21
+     ],
+     "state": "fresh",
+     "manifest": true,
+     "complete": false,
+     "expect_errors": [
+      {
+       "code": "unknown_item",
+       "seq": 21,
+       "line": 21
+      }
+     ]
+    },
+    {
+     "seqs": [
+      22,
+      74
+     ],
+     "state": "carry",
+     "manifest": true,
+     "complete": true,
+     "expect_errors": []
+    }
+   ],
+   "whole_expect_errors": [
+    {
+     "code": "unknown_item",
+     "seq": 21,
+     "line": 21
+    }
+   ]
+  },
+  {
+   "case": "two day files: item TL900018 defined in day 1 and again in day 2 (the day-2 definition is item_redefined) - read day by day with the carried state",
+   "valid": false,
+   "chain_covers_ledger": true,
+   "mutation": [
+    {
+     "op": "set",
+     "seq": 9,
+     "fields": {
+      "item_code": "TL900018"
+     }
+    },
+    {
+     "op": "set",
+     "seq": 10,
+     "fields": {
+      "at": "2026-07-04T02:20:00Z"
+     }
+    },
+    {
+     "op": "split_day",
+     "seq": 23,
+     "days": 1
+    },
+    {
+     "op": "move",
+     "seq": 10,
+     "before_seq": 23
+    }
+   ],
+   "reads": [
+    {
+     "seqs": [
+      1,
+      21
+     ],
+     "state": "fresh",
+     "manifest": true,
+     "complete": false,
+     "expect_errors": []
+    },
+    {
+     "seqs": [
+      22,
+      74
+     ],
+     "state": "carry",
+     "manifest": true,
+     "complete": true,
+     "expect_errors": [
+      {
+       "code": "item_redefined",
+       "seq": 22,
+       "line": 1
+      }
+     ]
+    }
+   ],
+   "whole_expect_errors": [
+    {
+     "code": "item_redefined",
+     "seq": 22,
+     "line": 22
+    }
+   ]
+  }
+ ],
+ "test_vectors": [
+  {
+   "name": "A-default-flags",
+   "_note": "Default flags: the world_id input has no flags suffix. Nest seat -N form.",
+   "inputs": {
+    "seed": "vector-seed-A",
+    "generator_version": "vector-g1",
+    "flags": null,
+    "day_events": [
+     {
+      "seq": 1,
+      "schema": "tendline.seed.v1",
+      "world_id": "a102bf09718cf67d",
+      "at": "2026-07-02T16:00:00Z",
+      "kind": "asset.define",
+      "asset_id": "EID-00011",
+      "actor": "role:system",
+      "station_cls": "segStationA",
+      "stations": [
+       "segStationA"
+      ],
+      "display_name": "Machine A-1",
+      "area": "Area 1",
+      "parent_asset_id": null,
+      "seats": [
+       {
+        "unit": "nest:1",
+        "asset_id": "EID-00011-N1"
+       }
+      ],
+      "roles": [],
+      "in_service_from": "2026-07-03"
+     },
+     {
+      "seq": 2,
+      "schema": "tendline.seed.v1",
+      "world_id": "a102bf09718cf67d",
+      "at": "2026-07-02T16:00:00Z",
+      "kind": "asset.define",
+      "asset_id": "EID-00012",
+      "actor": "role:system",
+      "station_cls": null,
+      "stations": [],
+      "display_name": "Fixture E-1",
+      "area": null,
+      "parent_asset_id": null,
+      "seats": [],
+      "roles": [],
+      "in_service_from": "2026-07-03"
+     },
+     {
+      "seq": 3,
+      "schema": "tendline.seed.v1",
+      "world_id": "a102bf09718cf67d",
+      "at": "2026-07-03T01:30:00Z",
+      "kind": "wo.open",
+      "asset_id": "EID-00011-N1",
+      "actor": "role:operator",
+      "work_order_no": 710001,
+      "work_type": "REACTIVE",
+      "brief_description": "Breakdown: feeder jam",
+      "failure_started_at": "2026-07-03T01:05:00Z",
+      "scope": [],
+      "sub_units": [],
+      "pm_source_id": null
+     }
+    ]
+   },
+   "expect": {
+    "canonical_lines": [
+     "{\"actor\":\"role:system\",\"area\":\"Area 1\",\"asset_id\":\"EID-00011\",\"at\":\"2026-07-02T16:00:00Z\",\"display_name\":\"Machine A-1\",\"in_service_from\":\"2026-07-03\",\"kind\":\"asset.define\",\"parent_asset_id\":null,\"roles\":[],\"schema\":\"tendline.seed.v1\",\"seats\":[{\"asset_id\":\"EID-00011-N1\",\"unit\":\"nest:1\"}],\"seq\":1,\"station_cls\":\"segStationA\",\"stations\":[\"segStationA\"],\"world_id\":\"a102bf09718cf67d\"}\n",
+     "{\"actor\":\"role:system\",\"area\":null,\"asset_id\":\"EID-00012\",\"at\":\"2026-07-02T16:00:00Z\",\"display_name\":\"Fixture E-1\",\"in_service_from\":\"2026-07-03\",\"kind\":\"asset.define\",\"parent_asset_id\":null,\"roles\":[],\"schema\":\"tendline.seed.v1\",\"seats\":[],\"seq\":2,\"station_cls\":null,\"stations\":[],\"world_id\":\"a102bf09718cf67d\"}\n",
+     "{\"actor\":\"role:operator\",\"asset_id\":\"EID-00011-N1\",\"at\":\"2026-07-03T01:30:00Z\",\"brief_description\":\"Breakdown: feeder jam\",\"failure_started_at\":\"2026-07-03T01:05:00Z\",\"kind\":\"wo.open\",\"pm_source_id\":null,\"schema\":\"tendline.seed.v1\",\"scope\":[],\"seq\":3,\"sub_units\":[],\"work_order_no\":710001,\"work_type\":\"REACTIVE\",\"world_id\":\"a102bf09718cf67d\"}\n"
+    ],
+    "day_sha256": "46f34b274072c5fcf2a09a6a0487530b6a46bf771bd14c4a80a53f4ca664d6c8",
+    "fleet_digest": "0fdbd17ec6ea3cf7bb1fdf2e9967963c42ed30aba681b83678b6860d30bbb342",
+    "world_id_input_utf8_hex": "766563746f722d736565642d411f766563746f722d67311f30666462643137656336656133636637626231666466326539393637393633633432656433306162613638316238333637386236383630643330626262333432",
+    "world_id": "a102bf09718cf67d"
+   }
+  },
+  {
+   "name": "B-non-default-flags-non-ascii",
+   "_note": "One flag off: world_id input gets 0x1F + 'flags=' + canonical flags. display_name carries non-ASCII (U+00E9, U+6A5F, U+53F0, U+03B2), a double quote and a backslash: non-ASCII is not escaped, quote and backslash are escaped as \\\" and \\\\.",
+   "inputs": {
+    "seed": "vector-seed-B",
+    "generator_version": "vector-g1",
+    "flags": {
+     "long_stop": false,
+     "on_hold_reasons": true,
+     "one_click_close": true,
+     "seat_level_wo": true,
+     "zero_length_stations": true
+    },
+    "day_events": [
+     {
+      "seq": 1,
+      "schema": "tendline.seed.v1",
+      "world_id": "0d5fa29356cdc6df",
+      "at": "2026-07-02T16:00:00Z",
+      "kind": "asset.define",
+      "asset_id": "EID-00021",
+      "actor": "role:system",
+      "station_cls": "segStationB",
+      "stations": [
+       "segStationB"
+      ],
+      "display_name": "Café 機台 \"β\" \\ 1",
+      "area": "Area 2",
+      "parent_asset_id": null,
+      "seats": [
+       {
+        "unit": "EID-00022",
+        "asset_id": "EID-00022"
+       }
+      ],
+      "roles": [
+       "contains_module"
+      ],
+      "in_service_from": "2026-07-03"
+     },
+     {
+      "seq": 2,
+      "schema": "tendline.seed.v1",
+      "world_id": "0d5fa29356cdc6df",
+      "at": "2026-07-02T16:00:00Z",
+      "kind": "asset.define",
+      "asset_id": "EID-00022",
+      "actor": "role:system",
+      "station_cls": "segStationB",
+      "stations": [
+       "segStationB"
+      ],
+      "display_name": "Machine B-1a",
+      "area": "Area 2",
+      "parent_asset_id": "EID-00021",
+      "seats": [],
+      "roles": [],
+      "in_service_from": "2026-07-03"
+     },
+     {
+      "seq": 3,
+      "schema": "tendline.seed.v1",
+      "world_id": "0d5fa29356cdc6df",
+      "at": "2026-07-03T01:00:00Z",
+      "kind": "asset.schedule_state",
+      "asset_id": "EID-00022",
+      "actor": "role:planner",
+      "state": "not_scheduled",
+      "effective_date": "2026-07-03",
+      "sub_unit": null,
+      "reason": "Not scheduled: line plan excludes this unit."
+     }
+    ]
+   },
+   "expect": {
+    "canonical_lines": [
+     "{\"actor\":\"role:system\",\"area\":\"Area 2\",\"asset_id\":\"EID-00021\",\"at\":\"2026-07-02T16:00:00Z\",\"display_name\":\"Café 機台 \\\"β\\\" \\\\ 1\",\"in_service_from\":\"2026-07-03\",\"kind\":\"asset.define\",\"parent_asset_id\":null,\"roles\":[\"contains_module\"],\"schema\":\"tendline.seed.v1\",\"seats\":[{\"asset_id\":\"EID-00022\",\"unit\":\"EID-00022\"}],\"seq\":1,\"station_cls\":\"segStationB\",\"stations\":[\"segStationB\"],\"world_id\":\"0d5fa29356cdc6df\"}\n",
+     "{\"actor\":\"role:system\",\"area\":\"Area 2\",\"asset_id\":\"EID-00022\",\"at\":\"2026-07-02T16:00:00Z\",\"display_name\":\"Machine B-1a\",\"in_service_from\":\"2026-07-03\",\"kind\":\"asset.define\",\"parent_asset_id\":\"EID-00021\",\"roles\":[],\"schema\":\"tendline.seed.v1\",\"seats\":[],\"seq\":2,\"station_cls\":\"segStationB\",\"stations\":[\"segStationB\"],\"world_id\":\"0d5fa29356cdc6df\"}\n",
+     "{\"actor\":\"role:planner\",\"asset_id\":\"EID-00022\",\"at\":\"2026-07-03T01:00:00Z\",\"effective_date\":\"2026-07-03\",\"kind\":\"asset.schedule_state\",\"reason\":\"Not scheduled: line plan excludes this unit.\",\"schema\":\"tendline.seed.v1\",\"seq\":3,\"state\":\"not_scheduled\",\"sub_unit\":null,\"world_id\":\"0d5fa29356cdc6df\"}\n"
+    ],
+    "day_sha256": "f23f4c3e6045b9b71bc61d1b14d7fd1732c60c1e4b00970622c4bc4e4f0d511f",
+    "fleet_digest": "0aa8597e07afc0e77d164cbfe7de4ab3d3ca266d663797358e272eced71e8d31",
+    "world_id_input_utf8_hex": "766563746f722d736565642d421f766563746f722d67311f306161383539376530376166633065373764313634636266653764653461623364336361323636643636333739373335386532373265636564373165386433311f666c6167733d7b226c6f6e675f73746f70223a66616c73652c226f6e5f686f6c645f726561736f6e73223a747275652c226f6e655f636c69636b5f636c6f7365223a747275652c22736561745f6c6576656c5f776f223a747275652c227a65726f5f6c656e6774685f73746174696f6e73223a747275657d",
+    "world_id": "0d5fa29356cdc6df"
+   }
+  }
+ ],
+ "_note": [
+  "asset.schedule_state.in_production is not in the golden (a return-to-plan needs a later day); the generator emits it.",
+  "wo.field downtime_estimated / scheduled_date / assigned_vendor / confirmed_reason_code are declared but not emitted in phase 1.",
+  "test_vectors A and B are byte-form / hash vectors (s5.7) and are deliberately left byte-identical to v1: their lines still carry the string tendline.seed.v1, which check_vector does not read (the vectors pin canonical bytes, day sha256, fleet_digest and world_id, none of which v1.1 changed).",
+  "v1.1 cross-family review fix round (2026-10-02): reference checks (unknown_asset / unknown_item) are judged only when the master baseline is complete - a complete=True read, or a read chain that started at seq 1 (state.master_complete). Two invalid cases (item master later than its same-day wo.part; cascade complete ledger with no baseline master) and the slices section (piecewise / two-day-file reads with fresh or carried state) cover ordering and cross-file behaviour; the structural mutation ops move / delete / split_day renumber seq and recompute manifest.days."
+ ]
+}

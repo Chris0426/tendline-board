@@ -1,0 +1,123 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{% if not assistant_page %}
+<style>
+  .board-fab{ position:fixed; right:22px; bottom:22px; z-index:60; display:flex; align-items:center;
+           gap:8px; padding:11px 18px; border-radius:26px; border:1px solid var(--line);
+           background:var(--panel); color:var(--fg); font-size:14px; font-weight:700;
+           cursor:pointer; box-shadow:0 4px 18px rgba(0,0,0,.18) }
+  .board-fab:hover{ border-color:var(--hover); background:var(--panel2) }
+  .board-dock{ position:fixed; top:0; right:0; bottom:0; width:min(380px, 96vw); z-index:70;
+            display:flex; flex-direction:column; background:var(--panel);
+            border-left:1px solid var(--line); box-shadow:-6px 0 24px rgba(0,0,0,.22);
+            transform:translateX(102%); transition:transform .18s ease }
+  .board-dock.is-open{ transform:translateX(0) }
+  
+
+
+  .board-dock.board-dock--noanim{ transition:none }
+  .board-dock__head{ display:flex; align-items:center; gap:8px; padding:11px 14px;
+                  border-bottom:1px solid var(--line) }
+  .board-dock__head .ttl{ font-weight:800; font-size:14px; letter-spacing:.6px; color:var(--fg) }
+  .board-dock__head .spacer{ margin-left:auto }
+  .board-dock__btn{ font-size:12px; padding:4px 10px; border-radius:9px; border:1px solid var(--line);
+                 background:var(--panel2); color:var(--fg); cursor:pointer }
+  .board-dock__btn:hover{ border-color:var(--hover) }
+  .board-dock__panel{ display:flex; flex-direction:column; flex:1; min-height:0 }
+  
+
+
+
+  .board-fullpage{ padding:0 12px 10px; display:flex }
+  .board-fullpage a{ font-size:11px; color:var(--mut); text-decoration:none; margin-left:auto }
+  .board-fullpage a:hover{ color:var(--fg); text-decoration:underline }
+</style>
+{% include "_assistant_css.html" %}
+
+{% if is_synth %}<button class="board-fab" type="button" data-assistant-toggle aria-label="{{ t.as_fab_synth }}">✦ {{ t.as_fab_synth }}</button>{% else %}<button class="board-fab" type="button" data-assistant-toggle aria-label="{{ t.as_fab }}">✦ {{ t.as_fab }}</button>{% endif %}
+
+<aside class="board-dock" id="assistant-dock" aria-label="{% if is_synth %}{{ t.as_title_synth }}{% else %}Hermes assistant{% endif %}">
+  <div class="board-dock__head">
+    <span class="ttl">✦ {% if is_synth %}{{ t.as_title_synth }}{% else %}{{ t.as_title }}{% endif %}</span>{% if is_synth %} <span class="board-src synth" title="{{ t.as_synth_note }}">{{ t.source_label_synth }}</span>{% endif %}
+    <span class="spacer"></span>
+    <button type="button" class="board-dock__btn"
+            hx-get="/assistant/panel?new=1&lang={{ lang }}"
+            hx-target="#assistant-panel" hx-swap="innerHTML">{{ t.as_new }}</button>
+    <button type="button" class="board-dock__btn" data-assistant-close aria-label="{{ t.as_close }}">✕</button>
+  </div>
+  
+  <div id="assistant-panel" class="board-dock__panel"
+       hx-get="/assistant/panel?lang={{ lang }}" hx-trigger="load" hx-swap="innerHTML"></div>
+  
+
+
+  {% if not is_synth %}<div class="board-fullpage">
+    <a href="/assistant?source={{ source }}&lang={{ lang }}" target="_blank" rel="noopener"
+       title="{{ t.as_fullpage }}">{{ t.as_fullpage }} ↗</a>
+  </div>{% endif %}
+</aside>
+
+{% include "_assistant_js.html" %}
+
+
+
+
+
+
+<script>
+(function () {
+  var KEY = "board_dock_open";
+  
+
+
+
+
+
+  var WIDE = "(min-width: 900px)";
+  function dock() { return document.getElementById("assistant-dock"); }
+  function save(open) {                       
+    try {
+      if (open) { window.localStorage.setItem(KEY, "1"); }
+      else { window.localStorage.removeItem(KEY); }
+    } catch (_e) {}
+  }
+  function wasOpen() {
+    try { return window.localStorage.getItem(KEY) === "1"; } catch (_e) { return false; }
+  }
+  
+
+
+
+  var d0 = dock();
+  if (d0 && wasOpen() && window.matchMedia && window.matchMedia(WIDE).matches) {
+    d0.classList.add("board-dock--noanim");
+    d0.classList.add("is-open");
+    var raf = window.requestAnimationFrame || function (cb) { return setTimeout(cb, 0); };
+    raf(function () { raf(function () {
+      var d = dock(); if (d) { d.classList.remove("board-dock--noanim"); }
+    }); });
+  }
+   
+  document.addEventListener("click", function (e) {
+    if (!e.target || !e.target.closest) { return; }
+    if (!e.target.closest("[data-assistant-toggle]")
+        && !e.target.closest("[data-assistant-close]")) { return; }
+    var d = dock(); if (!d) { return; }
+    save(d.classList.contains("is-open"));
+  });
+})();
+</script>
+{% endif %}

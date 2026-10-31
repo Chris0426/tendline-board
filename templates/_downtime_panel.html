@@ -1,0 +1,45 @@
+
+
+
+<div class="ph">{{ panel_head }}</div>
+{% if repeat_line %}<div class="rep" data-repeat="1">{{ repeat_line }}</div>{% endif %}
+{% if not panel_rows %}
+  <div class="hint">{{ t.dt_no_rows }}</div>
+{% else %}
+<div class="tw"><table>
+  <thead><tr>
+    <th>{{ t.dt_col_rank }}</th><th class="l">{{ t.dt_col_wo }}</th><th class="l">{{ t.dt_col_machine }}</th>
+    <th class="l">{{ t.dt_col_type }}</th><th>{{ t.dt_col_hpct }}</th><th>{{ t.dt_col_stage }}</th>
+    <th class="l">{{ t.dt_col_span }}</th>{% if show_code %}<th class="l">{{ t.dt_col_code }}</th>{% endif %}
+    <th class="l">{{ t.dt_col_flags }}</th>
+  </tr></thead>
+  <tbody>
+  {% for r in panel_rows %}
+    <tr>
+      <td>{{ r.rank }}</td>
+      <td class="l">{% if cmms_base %}<a href="{{ cmms_base }}{{ r.wo_no }}" target="_blank" rel="noopener">{{ r.wo_no }} ↗</a>{% else %}{{ r.wo_no }}{% endif %}</td>
+      <td class="l"><a href="/machine/{{ r.eid }}?source={{ source }}&lang={{ lang }}" title="{{ r.display }} {{ r.eid }}"><span class="trunc">{{ r.display }}</span></a> <span class="mutd" style="color:var(--mut)">{{ r.eid }}</span></td>
+      <td class="l">{{ t['dt_type_' ~ r.type] }}</td>
+      <td class="num">{{ hf(r.h) }}{% if r.pct is not none %} ({{ '%.0f' % r.pct }}%){% endif %}</td>
+      <td class="num">{% if r.stage %}{{ hf(r.stage.repair) if r.stage.repair else '—' }} / {{ hf(r.stage.parts) if r.stage.parts else '—' }} / {{ hf(r.stage.vendor) if r.stage.vendor else '—' }}{% else %}—{% endif %}</td>
+      <td class="l">{{ r.start or '—' }} → {{ r.end or t.dt_open }}</td>
+      {% if show_code %}<td class="l">{{ r.fault_code or '' }}</td>{% endif %}
+      <td class="l">{% for f in r.flags %}<span class="flag">{{ t['dt_flag_' ~ f] }}</span>{% endfor %}</td>
+    </tr>
+    <tr class="sumr"><td colspan="{{ 9 if show_code else 8 }}">
+      {% set s = r.summary %}
+      {% if s.state in ('ok', 'cached') %}<span class="ai">{{ t.dt_ai_badge }}</span>{{ s.text }}
+      {% elif s.state == 'demo' %}<span class="ai">{{ t.dt_ai_demo }}</span>{{ s.text }}
+      {% elif s.state == 'budget' %}<span class="mutd">{{ t.dt_ai_budget }}</span>
+      {% elif s.state == 'unavailable' %}<span class="mutd">{{ t.dt_ai_unavail.format(r=t['dt_ai_r_' ~ (s.reason or 'gateway')]) }}</span>
+      {% else %}<span class="mutd">{{ t.dt_ai_off }}</span>{% endif %}
+      <details><summary>{{ t.dt_orig }}</summary>
+        {% if r.orig %}<dl>{% for lk, txt in r.orig %}<dt>{{ t[lk] }}</dt><dd>{{ txt }}</dd>{% endfor %}</dl>
+        {% else %}<div class="mutd">{{ t.dt_orig_none }}</div>{% endif %}
+      </details>
+    </td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+<div class="hint">{{ t.dt_overlap_note }}</div>
+{% endif %}

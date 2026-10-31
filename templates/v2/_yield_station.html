@@ -1,0 +1,104 @@
+
+
+
+
+
+
+{% if err %}
+  <div class="ys"><div class="ys-head"><span class="eid">{{ pretty_station(cls) }}</span>
+    <span class="desc">{{ err }}</span></div></div>
+{% elif ys and ys.cls_mismatch %}
+  <div class="ys"><div class="ys-head"><span class="eid">{{ pretty_station(cls) }}</span></div>
+    <div class="ys-note">{{ t.ys_snap_mismatch | safe }}</div></div>
+{% elif not rec %}
+  
+  <div class="ys"><div class="ys-head"><span class="eid"{% if qrow and qrow.display_source == 'derived' %} title="{{ t.qk_disp_derived }}"{% endif %}>{{ qrow.display if qrow else pretty_station(cls) }}</span>
+    <span class="desc">{{ cls }}</span></div>
+    {% if qrow %}
+    <div class="ys-kv">{{ t.qk_col_total }} <b>{{ "{:,}".format(qrow.total) }}</b> ·
+      {{ t.qk_col_final }} <b>{{ ('%.3f%%'|format(qrow.final_yield_pct)) if qrow.final_yield_pct is not none else '—' }}</b> ·
+      {{ t.qk_col_fpy }} <b>{{ ('%.3f%%'|format(qrow.fpy_pct)) if qrow.fpy_pct is not none else '—' }}</b></div>
+    <div style="color:var(--mut);font-size:11.5px;margin-top:4px">{{ t.qk_caliber_short }} ·
+      {% if qk_win_start %}{{ clock(qk_win_start) }} → {{ clock(qk_win_end) }}{% else %}—{% endif %}</div>
+    {% endif %}
+    <div class="ys-note">{{ t.ys_not_found }}</div></div>
+{% else %}
+<div class="ys">
+  <div class="ys-head">
+    <span class="eid"{% if qrow and qrow.display_source == 'derived' %} title="{{ t.qk_disp_derived }}"{% endif %}>{{ qrow.display if qrow else pretty_station(rec.cls) }}</span>
+    <span class="desc">{{ rec.cls }}</span>
+    {% if rec.fleet_size is not none %}<span class="ys-fleet">{{ rec.fleet_size }} {{ t.ys_fleet }}</span>{% endif %}
+  </div>
+
+  
+
+
+  <div class="ys-winrow" style="color:var(--mut);font-size:11.5px;margin:2px 0 8px">
+    {{ t.qk_col_total }}/{{ t.qk_col_final }}（{{ t.qk_caliber_short }}）·
+    {% if qk_win_start %}{{ clock(qk_win_start) }} → {{ clock(qk_win_end) }}{% else %}—{% endif %}
+  </div>
+  <div class="ys-grid">
+    
+    <div class="ys-card">
+      <h4>{{ t.qk_col_total }}</h4>
+      {% if qrow %}
+      <div class="ys-big">{{ "{:,}".format(qrow.total) }}</div>
+      <div class="ys-kv">{{ t.qk_col_pass }} <b>{{ "{:,}".format(qrow['pass']) }}</b> ·
+        {{ t.qk_col_fail }} <b>{{ "{:,}".format(qrow.fail) }}</b></div>
+      {% else %}
+      <div class="ys-big" style="color:var(--mut)">—</div>
+      <div class="ys-kv">{{ t.qk_unavail_short }}</div>
+      {% endif %}
+    </div>
+    
+    <div class="ys-card">
+      <h4>{% if qrow and qrow.final_yield_pct is not none %}<span class="vdot" style="background:{{ 'var(--good)' if qrow.final_yield_pct>=99 else ('var(--warn)' if qrow.final_yield_pct>=95 else 'var(--bad)') }}" aria-hidden="true"></span>{% endif %}{{ t.qk_col_final }}</h4>
+      {% if qrow and qrow.final_yield_pct is not none %}
+      <div class="ys-big">{{ '%.3f'|format(qrow.final_yield_pct) }}%</div>
+      {% else %}
+      <div class="ys-big" style="color:var(--mut)">—</div>
+      {% endif %}
+      <div class="ys-kv">{{ t.qk_col_fpy }}
+        <b>{{ ('%.3f%%'|format(qrow.fpy_pct)) if (qrow and qrow.fpy_pct is not none) else '—' }}</b></div>
+      {% if qrow and qrow.absorbed_elsewhere %}
+      <div class="ys-warn">⚠ +{{ qrow.absorbed_elsewhere }} {{ t.qk_lots }} · {{ t.qk_absorb_hint }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  
+  
+  <h4 class="ys-mh">{{ t.ys_machines_h }}
+    <span class="ys-raw" title="{{ rec.caliber }}">{{ t.raw_tag }}</span>
+    <span style="font-weight:400">· {{ t.p_window }} {{ y_days }}{{ t.p_days }}</span></h4>
+  <div class="ys-kv" style="color:var(--mut)">{{ t.ys_good }} <b>{{ "{:,}".format(rec.good_units) }}</b> ·
+    {{ t.segs }} {{ "{:,}".format(rec.n_seg) }} ·
+    {{ t.ys_fail_raw }} <b>{{ ('%.1f%%'|format(rec.fail_pct_raw)) if rec.fail_pct_raw is not none else '—' }}</b></div>
+  {% if rec.machines %}
+  <table class="ysm">
+    <thead><tr>
+      <th>{{ t.ys_m_eid }}</th><th></th>
+      <th class="num">{{ t.ys_m_output }}</th><th class="num">{{ t.ys_m_good }}</th>
+      <th class="num">{{ t.ys_m_seg }}</th><th class="num">{{ t.ys_m_fail }}</th>
+    </tr></thead>
+    <tbody>
+    {% for m in rec.machines | sort(attribute='output_units', reverse=true) %}
+    <tr>
+      <td style="font-weight:600">{{ m.eid }}</td>
+      <td class="num" style="color:var(--mut)">{{ m.desc or '—' }}</td>
+      <td class="num">{{ "{:,}".format(m.output_units) }}</td>
+      <td class="num">{{ "{:,}".format(m.good_units) }}</td>
+      <td class="num">{{ "{:,}".format(m.n_seg) }}</td>
+      <td class="num" style="color:{{ 'var(--fg)' if (m.fail_pct_raw or 0)>=3 else 'var(--mut)' }}">{% if (m.fail_pct_raw or 0)>=3 %}<span class="vdot" style="background:{{ 'var(--bad)' if (m.fail_pct_raw or 0)>=10 else 'var(--warn)' }}" aria-hidden="true"></span>{% endif %}{{ ('%.1f%%'|format(m.fail_pct_raw)) if m.fail_pct_raw is not none else '—' }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% set summ = rec.machines | sum(attribute='output_units') %}
+  <div class="ys-note">{{ t.ys_nosum_pre }} <b>{{ "{:,}".format(rec.output_units) }}</b> {{ t.ys_nosum_mid }}
+    <b>{{ "{:,}".format(summ) }}</b> {{ t.ys_nosum_post }}.</div>
+  {% else %}
+  <div class="ys-note">{{ t.ys_no_machines }}</div>
+  {% endif %}
+</div>
+{% endif %}

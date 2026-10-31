@@ -1,0 +1,112 @@
+
+
+
+
+
+
+{% if turn.status == "pending" %}
+
+
+<div class="chat-msg chat-msg--pending" id="assist-turn-{{ turn.id }}"
+     hx-get="/assistant/turn/{{ turn.id }}?lang={{ lang }}"
+     hx-trigger="load delay:2s, every 2s" hx-swap="outerHTML">
+  <span class="board-dots" aria-hidden="true"><span></span><span></span><span></span></span>
+  <span>{{ t.as_thinking }}</span>
+</div>
+{% elif turn.status == "failed" %}
+
+
+
+<div class="chat-msg chat-msg--sys chat-msg--err" id="assist-turn-{{ turn.id }}">
+  {% if turn.error_kind == "gw_down" %}{{ t.as_err_gw_down }}
+  {% elif turn.error_kind == "ai_timeout" %}{{ t.as_err_timeout }}
+  {% elif turn.error_kind == "interrupted" %}{{ t.as_err_interrupted }}
+  {% elif turn.error_kind == "quota" %}{{ t.as_err_quota }}
+  {% elif turn.error_kind == "budget" %}{{ t.as_err_budget }}
+  {% else %}{{ t.as_err_fail }}{% endif %}
+  {% if rate_note %}<div class="board-ratenote">{{ t.as_rate }}</div>{% endif %}
+  
+
+  {% if budget_note %}<div class="board-ratenote">{{ t.as_budget }}</div>{% endif %}
+  {% if turn.error_kind not in ("quota", "budget") %}<form class="board-retry" hx-post="/assistant/turn/{{ turn.id }}/retry"
+        hx-target="#assist-turn-{{ turn.id }}" hx-swap="outerHTML">
+    <input type="hidden" name="lang" value="{{ lang }}">
+    <button type="submit">↻ {{ t.as_retry }}</button>
+  </form>{% endif %}
+</div>
+{% else %}
+
+
+
+
+
+
+
+
+
+<div class="board-botwrap" id="assist-wrap-{{ turn.id }}">
+  <div class="chat-msg chat-msg--bot" id="assist-turn-{{ turn.id }}">{{ render_reply(turn.content)|safe }}</div>
+
+
+
+
+
+
+
+
+
+
+
+{% if turn.tool_basis %}
+  <details class="board-basis">
+    <summary title="{{ t.as_basis_tip }}">{{ t.as_basis }} ({{ turn.tool_basis|length }})</summary>
+    <ul class="board-basis-list">
+    {% for c in turn.tool_basis %}
+      {% set _fr = c.freshness %}{% set _frtip = c.freshness %}{% if is_synth and c.freshness == 'fixture' %}{% set _fr = t.as_fresh_synth %}{% set _frtip = t.as_fresh_synth ~ ' (' ~ c.freshness ~ ')' %}{% endif %}{% set _tip = c.tool ~ ' · ' ~ (c.window_full or c.window) ~ ' · ' ~ _frtip ~ ' · ' ~ c.caliber ~ ' · ' ~ c.confidence ~ (' · fetched ' ~ c.fetched_at if c.fetched_at else '') ~ (' · ' ~ c.evidence_ref if c.evidence_ref else '') %}
+      <li>{% if c.page %}<a class="board-basis-chip" href="{{ c.page }}" title="{{ _tip }}">{% else %}<span class="board-basis-chip" title="{{ _tip }}">{% endif %}<b>{{ c.tool }}</b> · {{ c.window }} · {{ _fr }} · {{ c.caliber }} · {{ c.confidence }}{% if c.page %}</a>{% else %}</span>{% endif %}</li>
+    {% endfor %}
+    </ul>
+  </details>
+{% endif %}
+  <div class="board-rate{% if turn.rating %} is-rated{% endif %}">
+    <button type="button" class="{% if turn.rating == 'up' %}is-active{% endif %}"
+            hx-post="/assistant/turn/{{ turn.id }}/rate"
+            hx-vals='{"rating": "up", "lang": "{{ lang }}"}'
+            hx-target="#assist-wrap-{{ turn.id }}" hx-swap="outerHTML"
+            aria-pressed="{{ 'true' if turn.rating == 'up' else 'false' }}"
+            aria-label="{{ t.as_rate_up }}" title="{{ t.as_rate_up }}">&#128077;</button>
+    <button type="button" class="{% if turn.rating == 'down' %}is-active{% endif %}"
+            hx-post="/assistant/turn/{{ turn.id }}/rate"
+            hx-vals='{"rating": "down", "lang": "{{ lang }}"}'
+            hx-target="#assist-wrap-{{ turn.id }}" hx-swap="outerHTML"
+            aria-pressed="{{ 'true' if turn.rating == 'down' else 'false' }}"
+            aria-label="{{ t.as_rate_down }}" title="{{ t.as_rate_down }}">&#128078;</button>
+
+
+
+
+
+
+
+
+{% if turn.tool_call_count %}
+    <a class="board-toolcsv" href="/assistant/turn/{{ turn.id }}/tools.csv" download
+       title="{{ t.as_tools_csv }}">{{ t.as_tools_csv }}</a>
+{% endif %}
+
+
+
+
+
+{% if turn.jev_applied in ("tool", "ask", "refuse") %}
+    <span class="board-toolcsv board-routerchip"
+          title="{{ turn.jev_predicted }} · {{ '%.2f'|format(turn.jev_confidence) if turn.jev_confidence is not none else '—' }}">{{ t.as_router_chip }}</span>
+{% endif %}
+  </div>
+</div>
+{% endif %}
+{% if oob_sess %}
+
+<div id="assistant-sess" hx-swap-oob="true">{% include "_assistant_sess.html" %}</div>
+<div id="assistant-endbar" hx-swap-oob="true">{% include "_assistant_endbar.html" %}</div>
+{% endif %}

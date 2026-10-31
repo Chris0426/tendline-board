@@ -1,0 +1,81 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!doctype html>
+<html lang="{{ 'zh-Hant' if lang=='zh' else 'en' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tendline Board — {{ t.as_title }}</title>
+<script src="/static/htmx.min.js"></script>
+<style>
+  :root{ color-scheme: light dark;
+    --bg:#f4f6fb; --panel:#ffffff; --panel2:#eef2f8; --line:#d8e0ec; --track:#e6ebf3;
+    --fg:#1b2433; --mut:#5c6b82; --hover:#b9c6db; --unk:#b07d12; --good:#1f9d57;
+    --warn:#b07d12; --bad:#c4504f; }
+  @media (prefers-color-scheme: dark){ :root{
+    --bg:#0b1220; --panel:#141d2e; --panel2:#1b2740; --line:#2a3852; --track:#0e1626;
+    --fg:#e6edf6; --mut:#8aa0bd; --hover:#3a5c86; --unk:#cbb26b; --good:#36c47f;
+    --warn:#cbb26b; --bad:#e0726f; } }
+  *{ box-sizing:border-box }
+  
+
+
+
+
+  html, body{ height:100% }
+  body{ margin:0; overflow:hidden; display:flex; flex-direction:column;
+        background:var(--bg); color:var(--fg);
+        font:14px/1.5 "Segoe UI",system-ui,"Microsoft JhengHei",sans-serif }
+  a{ color:inherit }
+  main.ap{ flex:1; min-height:0; width:100%; max-width:900px; margin:0 auto;
+           padding:14px 22px 18px; display:flex; flex-direction:column }
+  .ap-head{ display:flex; align-items:center; gap:8px; padding:0 2px 8px }
+  .ap-head .ttl{ font-weight:800; font-size:15px; letter-spacing:.6px; color:var(--fg) }
+  .ap-head .spacer{ margin-left:auto }
+  
+
+  .ap-head button{ font-size:12px; padding:4px 10px; border-radius:9px;
+                   border:1px solid var(--line); background:var(--panel2); color:var(--fg);
+                   cursor:pointer }
+  .ap-head button:hover{ border-color:var(--hover) }
+  .ap-panel{ flex:1; min-height:0; display:flex; flex-direction:column;
+             background:var(--panel); border:1px solid var(--line); border-radius:12px;
+             overflow:hidden }
+</style>
+{% include "_assistant_css.html" %}
+</head>
+<body>
+{% set nav_active = '' %}
+{% include '_nav.html' %}
+<main class="ap">
+  <div class="ap-head">
+    <span class="ttl">✦ {{ t.as_title }}</span>
+    <span class="spacer"></span>
+    <button type="button"
+            hx-get="/assistant/panel?new=1&lang={{ lang }}"
+            hx-target="#assistant-panel" hx-swap="innerHTML">{{ t.as_new }}</button>
+  </div>
+  
+
+
+  <div id="assistant-panel" class="ap-panel">{% include "_assistant_panel.html" %}</div>
+</main>
+{% include "_assistant_js.html" %}
+</body>
+</html>

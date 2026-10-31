@@ -1,0 +1,62 @@
+
+
+
+
+
+
+
+<script>
+(function () {
+  
+
+
+
+
+
+  function dock() { return document.getElementById("assistant-dock"); }
+  function conv() { return document.getElementById("assistant-conv"); }
+  function scrollBottom() { var c = conv(); if (c) c.scrollTop = c.scrollHeight; }
+
+  document.addEventListener("click", function (e) {
+    if (e.target.closest("[data-assistant-toggle]")) {
+      var d = dock(); if (d) d.classList.toggle("is-open");
+      return;
+    }
+    if (e.target.closest("[data-assistant-close]")) {
+      var d = dock(); if (d) d.classList.remove("is-open");
+    }
+  });
+
+  document.addEventListener("htmx:beforeRequest", function (e) {
+    var form = e.target.closest && e.target.closest("#assistant-form");
+    if (!form) return;
+    var input = form.querySelector("[name=message]");
+    var text = input ? input.value.trim() : "";
+    if (!text) return;
+    var c = conv(); if (!c) return;
+    var e0 = c.querySelector(".board-empty");    
+    if (e0) e0.remove();
+    if (input) input.value = "";              
+    scrollBottom();
+  });
+  document.addEventListener("htmx:afterSwap", function (e) {
+    
+
+
+    var xhr = e.detail && e.detail.xhr;
+    if (xhr && xhr.status === 286) { scrollBottom(); return; }
+    if (xhr && (xhr.responseURL || "").indexOf("/assistant/turn/") !== -1) { return; }
+    if (e.target && (e.target.id === "assistant-conv" || e.target.id === "assistant-panel")) {
+      scrollBottom();
+    }
+    if (e.target && e.target.id === "assistant-panel") {
+       
+      var inp = e.target.querySelector("form input[name=message]");
+      if (inp) { try { inp.focus(); } catch (_e) {} }
+    }
+  });
+  
+
+  document.addEventListener("DOMContentLoaded", scrollBottom);
+})();
+</script>

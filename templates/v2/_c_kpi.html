@@ -1,0 +1,11 @@
+
+
+
+{% macro kpi(label, value, unit='', tip='', delta=None, delta_tip='', sub='', cls='') -%}
+<div class="board-kpi {{ cls }}"{% if tip %} title="{{ tip }}"{% endif %}>
+  <div class="board-kpi-l">{{ label }}</div>
+  <div class="board-kpi-v"><span class="num">{{ value }}</span>{% if unit %}<span class="board-kpi-u">{{ unit }}</span>{% endif %}
+    {%- if delta is not none %}<span class="board-kpi-d num"{% if delta_tip %} title="{{ delta_tip }}"{% endif %}>{{ delta }}</span>{% endif %}</div>
+  {%- if sub %}<div class="board-kpi-s">{{ sub }}</div>{% endif %}
+</div>
+{%- endmacro %}

@@ -1,0 +1,282 @@
+
+
+
+
+
+
+
+
+
+{% import 'v2/_c_help.html' as HP %}
+{% import 'v2/_c_icon.html' as ic %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{% set UPT = '暫停·可生產' %}
+{% set MHC = {'等動工':'var(--mh-wait)','修理':'var(--st-repair)','等料':'var(--st-parts)',
+              '等外包':'var(--st-vendor)','其他暫停':'var(--mut)','暫停·可生產':'var(--st-hwait)'} %}
+{% set MHN = {'等動工':t.mh_st_wait,'修理':t.mh_st_repair,'等料':t.mh_st_parts,
+              '等外包':t.mh_st_vendor,'其他暫停':t.mh_st_other,'暫停·可生產':t.mh_st_uptime} %}
+
+
+{% macro dlt(d, tip) %}{% if d %}<span class="mh-dlt {{ 'good' if d.good else ('bad' if d.good is not none else 'flat') }}" title="{{ t.mh_dlt_good if d.good else (t.mh_dlt_bad if d.good is not none else t.mh_dlt_flat) }} · {{ tip }}">{{ '↑' if d.dir == 'up' else ('↓' if d.dir == 'down' else '→') }}</span>{% endif %}{% endmacro %}
+
+
+
+
+
+
+{% set ok30 = model and model.wo_status30 in ('live','demo','live_stale') %}
+{% set ok90 = model and model.wo_status90 in ('live','demo','live_stale') %}
+{% set wo_stale = model and ('live_stale' in (model.wo_status30, model.wo_status90)) %}
+{% set both_off = model and not (ok30 or ok90) %}
+
+{#-#}
+{% if err %}
+  <div class="mh-unavail">{{ t.sx_err_lead }}</div>
+  <div class="mh-unavail-hint">{{ err }}</div>
+{% elif model and model.mode == 'demo' %}
+  <div class="mh-srcbanner"><span class="pin">⚠ {{ t.eq_demo_all }}</span><span>{{ t.eq_demo_all_why }}</span></div>
+{% elif both_off %}
+  {% if model.mode == 'snapshot' %}<div class="mh-srcbanner snap"><span class="pin">{{ t.eq_snap_banner }}</span></div>{% endif %}
+  <div class="mh-off">{{ t.mh_wo_off }}</div>
+{% elif wo_stale and wo_stale_note %}
+  
+
+  <div class="mh-caveat">◦ {{ wo_stale_note }}</div>
+{% endif %}
+
+{% set s1 = model.s1 if model else None %}
+{% set s2 = model.s2 if model else None %}
+{% set s3 = model.s3 if model else None %}
+
+
+<div class="mh-sec">
+  <h2>{{ t.mh_s1_hdr }}</h2>
+  {% if model and model.truncated30 %}<div class="mh-caveat">{{ t.mh_truncated }}</div>{% endif %}
+  {% if ok30 and s1.n_closed > 0 %}
+    <div class="mh-hero">
+      <div class="big">{% if s1.med_lead_d is not none %}{{ '%.1f'|format(s1.med_lead_d) }}<small>{{ t.mh_lead_days }}</small>{% else %}—{% endif %}</div>
+      <div class="side">
+        {{ t.mh_lead_hero }}<br>
+        {% if s1.p90_lead_d is not none %}<span class="p90">{{ t.mh_lead_p90.format(v='%.1f'|format(s1.p90_lead_d)) }}</span><br>{% endif %}
+        {{ t.mh_lead_n.format(n=s1.n_closed) }}
+      </div>
+    </div>
+    {% if s1.n_ongoing %}<div class="mh-ongoing">{{ t.mh_ongoing.format(n=s1.n_ongoing) }}</div>{% endif %}
+    {% if s1.n_oneclick > 0 %}<div class="mh-ocline">{{ t.mh_oc_s1.format(n=s1.n_oneclick, m=s1.n_decomposed) }}</div>{% endif %}
+
+    
+    {% if s1.stage_total_share %}
+    <div class="mh-band-lbl">{{ t.mh_stage_hdr }}
+      {{ HP.help(t.mh_stage_how) }}
+    </div>
+    <div class="mh-band">
+      {% for key, share, mean_h in s1.stage_total_share %}
+      <span class="{{ 'upt' if key == UPT }}" style="flex:{{ '%.4f'|format(share) }};background-color:{{ MHC.get(key,'var(--mut)') }}"
+            title="{{ MHN.get(key, key) }} · {{ '%.1f'|format(mean_h) }}h · {{ '%.0f'|format(share*100) }}%{% if key == UPT %} · {{ t.mh_uptime_tip }}{% endif %}"></span>
+      {% endfor %}
+    </div>
+    <div class="mh-legend">
+      {% for key, share, mean_h in s1.stage_total_share %}
+      <span class="li"><span class="d {{ 'upt' if key == UPT }}" style="background-color:{{ MHC.get(key,'var(--mut)') }}"></span>{{ MHN.get(key, key) }} <b>{{ '%.1f'|format(mean_h) }}h</b> <span class="sh">{{ '%.0f'|format(share*100) }}%</span></span>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    
+    {% if s1.slowest %}
+    <div class="mh-band-lbl">{{ t.mh_slowest }}</div>
+    <div class="mh-slow">
+      {% for lc in s1.slowest %}
+      <div class="mh-slow-row">
+        <span class="no">{% if cmms_wo_base %}<a href="{{ cmms_wo_base }}{{ lc.wno }}" target="_blank" rel="noopener">WO {{ lc.wno }}</a>{% else %}WO {{ lc.wno }}{% endif %}</span>
+        <span class="mh-mini">
+          {% for skey, sstart, send in lc.phase_segs %}
+          <span class="{{ 'upt' if skey == UPT }}" style="flex:{{ '%.1f'|format((send - sstart).total_seconds()) }};background-color:{{ MHC.get(skey,'var(--mut)') }}"
+                title="{{ MHN.get(skey, skey) }}"></span>
+          {% endfor %}
+        </span>
+        <span class="lead">{{ '%.1f'|format(lc.lead_h / 24.0) }}{{ t.mh_lead_days }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  {% elif not ok30 %}
+    <div class="mh-none">{{ t.mh_wo_off if (both_off or not model) else t.mh_wo_win_off }}</div>
+  {% else %}
+    <div class="mh-none">{{ t.mh_none }}</div>
+  {% endif %}
+</div>
+
+
+<div class="mh-sec">
+  <h2>{{ t.mh_s2_hdr }}
+    {{ HP.help(t.mh_mtbf_q) }}
+    
+    <a class="mh-dl" href="/equipment/health/export.csv?section=machines&source={{ source }}&lang={{ lang }}">{{ ic.download() }}{{ t.dl_csv }}</a>
+  </h2>
+  {% if model and (model.truncated90 or model.truncated_prev) %}<div class="mh-caveat">{{ t.mh_truncated }}</div>{% endif %}
+  {% if ok90 %}
+    
+    {% set top_eids = (s2.top5 | map(attribute='eid') | list) if s2 else [] %}
+    
+    {% set pm = model.prod_meta %}
+    {% if pm and pm.available %}
+      {% if pm.n_skipped %}<div class="mh-cov"><span class="mh-covchip warn">{{ t.mh_prod_cov.format(done=pm.n_done, skip=pm.n_skipped) }}</span></div>{% endif %}
+    {% elif model.mode == 'live' %}
+      <div class="mh-cov"><span class="mh-covchip warn">{{ t.mh_prod_unavail }}</span></div>
+    {% elif is_synth and model.mode == 'synth' %}{#-#}
+      <div class="mh-cov"><span class="mh-covchip warn">{{ t.mh_prod_unavail }}</span></div>
+    {% endif %}{% if synth_prev_short is defined and synth_prev_short %}<div class="mh-cov"><span class="mh-covchip warn">{{ t.mh_synth_prev_short.format(d=synth_prev_short.d, n=synth_prev_short.n) }}</span></div>{% endif %}
+    {% if s2.n_oneclick_total > 0 %}
+      <div class="mh-cov"><span class="mh-covchip warn">{{ t.mh_oc_chip.format(n=s2.n_oneclick_total, m=s2.n_mttr_total, d=model.days90) }}</span></div>
+    {% endif %}
+
+    <div class="mh-scatter">
+      <div class="mh-svgwrap">
+      {% if s2.scatter %}
+        {% set sc = s2.scatter %}
+        <svg viewBox="0 0 640 340" role="img" aria-label="MTBF vs MTTR scatter">
+          
+          {% if sc.quad %}
+          <rect x="{{ sc.quad.x0 }}" y="{{ sc.quad.y0 }}" width="{{ sc.quad.w }}" height="{{ sc.quad.h }}"
+                fill="var(--bad)" fill-opacity="0.07"></rect>
+          <text x="{{ sc.quad.x0 + 6 }}" y="{{ sc.quad.y0 + 13 }}" class="axt" fill="var(--mut)">{{ t.mh_bad_quad }}</text>
+          {% endif %}
+          
+          {% if sc.med_x_px is not none %}
+          <line x1="{{ sc.med_x_px }}" y1="16" x2="{{ sc.med_x_px }}" y2="296" stroke="var(--line)" stroke-dasharray="3 3"></line>
+          <line x1="52" y1="{{ sc.med_y_px }}" x2="624" y2="{{ sc.med_y_px }}" stroke="var(--line)" stroke-dasharray="3 3"></line>
+          {% endif %}
+          
+          <line x1="52" y1="16" x2="52" y2="296" stroke="var(--mut)" stroke-width="1"></line>
+          <line x1="52" y1="296" x2="624" y2="296" stroke="var(--mut)" stroke-width="1"></line>
+          
+          {% for px, lbl in sc.ticks_x %}
+          <line x1="{{ px }}" y1="296" x2="{{ px }}" y2="300" stroke="var(--mut)"></line>
+          <text x="{{ px }}" y="312" text-anchor="middle" class="axt">{{ lbl }}</text>
+          {% endfor %}
+          {% for py, lbl in sc.ticks_y %}
+          <text x="47" y="{{ py + 3 }}" text-anchor="end" class="axt">{{ lbl }}</text>
+          {% endfor %}
+          
+          {% for p in sc.points %}
+          <circle cx="{{ p.cx }}" cy="{{ p.cy }}" r="5" fill="{{ 'var(--bad)' if p.hot else 'var(--mut)' }}" fill-opacity="0.85">
+            <title>{{ p.eid }} · {{ p.name }} · MTBF {{ '%.0f'|format(p.x) }} · MTTR {{ '%.1f'|format(p.y) }}h{% if p.oc %} {{ t.mh_oc_mark }}{% endif %}</title>
+          </circle>
+          {% if focus and p.eid == focus %}
+          <circle {% if focus not in top_eids %}id="mh-{{ p.eid }}" {% endif %}cx="{{ p.cx }}" cy="{{ p.cy }}" r="9" fill="none" stroke="var(--hover)" stroke-width="2.5"></circle>
+          {% endif %}
+          {% endfor %}
+          
+          <text x="338" y="332" text-anchor="middle" class="axl">{{ t.mh_scatter_x }}</text>
+          <text x="14" y="156" text-anchor="middle" class="axl" transform="rotate(-90 14 156)">{{ t.mh_scatter_y }}</text>
+        </svg>
+      {% else %}
+        {% set pmx = model.prod_meta or {} %}
+        <div class="mh-scatter-empty">{{ t.mh_scatter_empty if pmx.available and ((pmx.n_done or 0) >= 1 or ((pmx.n_cand or 0) + (pmx.n_unmapped or 0)) == 0) else t.mh_scatter_noprod }}</div>
+      {% endif %}
+      </div>
+      <div class="mh-scatter-side">
+        {{ t.mh_scatter_note.format(d=model.days90) }}<br>
+        {% if s2.n_insufficient %}<b>{{ t.mh_insufficient.format(n=s2.n_insufficient) }}</b>{% endif %}
+      </div>
+    </div>
+
+    
+    {% if s2.top5 %}
+    <div class="mh-band-lbl mh-top5">{{ t.mh_top5 }}</div>
+    <div class="mh-tblwrap">
+      <table class="mh-tbl">
+        <thead><tr>
+          <th>{{ t.mh_th_eid }}</th><th>{{ t.mh_th_name }}</th><th>{{ t.mh_th_grp }}</th>
+          <th>{{ t.mh_th_n }}</th><th>{{ t.mh_th_mtbf }}</th><th>{{ t.mh_th_mttr }}</th><th>{{ t.mh_th_burden }}</th>
+        </tr></thead>
+        <tbody>
+        {% set bmax = (s2.top5[0].burden_h or 0) if s2.top5 else 0 %}
+        {% for r in s2.top5 %}
+          <tr id="mh-{{ r.eid }}"{% if focus and r.eid == focus %} class="mh-hl"{% endif %}>
+            <td class="mut">{{ r.eid }}</td>
+            <td>{{ r.name }}</td>
+            <td class="mut">{{ r.grp or '—' }}</td>
+            <td>{{ r.n_reactive }}</td>
+            <td>{% if r.mtbf_h is not none %}{{ t.mh_mtbf_unit.format(v='%.0f'|format(r.mtbf_h)) }}{{ dlt(r.mtbf_delta, t.mh_delta_prev_mtbf.format(d=model.days90, v='%.0f'|format(r.mtbf_delta.prev)) if r.mtbf_delta else '') }}{% else %}<span class="help mh-dash" tabindex="0">—<span class="tip">{{ t.mh_zlo if r.zlo else t.mh_no_prod }}</span></span>{% endif %}</td>
+            <td>{% if r.mttr_h is not none and r.mttr_oneclick %}0h <span class="help mh-oc" tabindex="0">{{ t.mh_oc_mark }}<span class="tip">{{ t.mh_oc_tip.format(n=r.n_oneclick, m=r.n_mttr) }}</span></span>{% elif r.mttr_h is not none %}{{ '%.1f'|format(r.mttr_h) }}h{{ dlt(r.mttr_delta, t.mh_delta_prev_mttr.format(d=model.days90, v='%.1f'|format(r.mttr_delta.prev)) if r.mttr_delta else '') }}{% else %}—{% endif %}</td>
+            <td class="mh-barc">{% if r.burden_h is not none %}{% if bmax and bmax > 0 %}<i style="width:{{ '%.1f'|format(r.burden_h / bmax * 100) }}%"></i>{% endif %}<span>{{ '%.1f'|format(r.burden_h) }}h</span>{% else %}<span>—</span>{% endif %}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  {% elif not ok90 %}
+    <div class="mh-none">{{ t.mh_wo_off if (both_off or not model) else t.mh_wo_win_off }}</div>
+  {% else %}
+    <div class="mh-none">{{ t.mh_none }}</div>
+  {% endif %}
+</div>
+
+
+<div class="mh-sec">
+  <h2>{{ t.mh_s3_hdr.format(d=model.days30 if model else days30) }}
+    
+    <a class="mh-dl" href="/equipment/health/export.csv?section=pareto&source={{ source }}&lang={{ lang }}">{{ ic.download() }}{{ t.dl_csv }}</a>
+  </h2>
+  <div class="mh-secnote">{{ t.mh_s3_note }}</div>
+  {% if model and model.truncated30 %}<div class="mh-caveat">{{ t.mh_truncated }}</div>{% endif %}
+  {% if ok30 and s3 %}
+    <div class="mh-tblwrap">
+      <table class="mh-tbl">
+        <thead><tr>
+          <th>{{ t.mh_th_grp }}</th><th>{{ t.mh_th_stop }}</th>
+          <th>{{ t.mh_th_share }}</th><th>{{ t.mh_th_cum }}</th><th>{{ t.mh_th_n }}</th>
+          <th>{{ t.mh_th_mttr }}</th><th>{{ t.mh_th_closed }}</th>
+        </tr></thead>
+        <tbody>
+        {% for g in s3 %}
+          <tr>
+            <td>{{ g.grp }}{% if g.small_sample %}<span class="mh-ss" title="{{ t.mh_small }}">n&lt;5</span>{% endif %}</td>
+            <td>{{ '%.1f'|format(g.stop_h) }}h</td>
+            <td class="mh-barc"><i style="width:{{ '%.1f'|format(g.share * 100) }}%"></i><span>{{ '%.0f'|format(g.share * 100) }}%</span></td>
+            <td class="mut">{{ '%.0f'|format(g.cum * 100) }}%</td>
+            <td>{{ g.n_reactive }}</td>
+            <td>{% if g.mttr_h is not none and g.mttr_oneclick %}0h <span class="help mh-oc" tabindex="0">{{ t.mh_oc_mark }}<span class="tip">{{ t.mh_oc_tip.format(n=g.n_oneclick, m=g.n_closed) }}</span></span>{% elif g.mttr_h is not none %}{{ '%.1f'|format(g.mttr_h) }}h{% else %}—{% endif %}</td>
+            <td class="mut">{{ g.n_closed }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% elif not ok30 %}
+    <div class="mh-none">{{ t.mh_wo_off if (both_off or not model) else t.mh_wo_win_off }}</div>
+  {% else %}
+    <div class="mh-none">{{ t.mh_none }}</div>
+  {% endif %}
+</div>
+
+
+<div class="mh-foot">
+  {{ t.mh_foot.format(d30=(model.days30 if model else days30), d90=(model.days90 if model else days90)) }}
+  {% if model and model.has_delta %} · {{ t.mh_delta_foot.format(d=model.days90) }}{% endif %}
+  {% if model and model.has_oneclick %} · {{ t.mh_oc_foot }}{% endif %}
+  {% if model and model.fallback_rate and model.fallback_rate[1] %}
+    · {{ t.eq_fallback.format(fb=model.fallback_rate[0], tot=model.fallback_rate[1]) }}
+  {% endif %}
+  {% if model and (model.truncated30 or model.truncated90 or model.truncated_prev) %} · {{ t.mh_truncated }}{% endif %}
+</div>

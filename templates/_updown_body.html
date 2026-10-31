@@ -1,0 +1,72 @@
+
+
+
+{% if not board %}
+<div class="unavail">{{ t.ud_unavail }}</div>
+<div class="unavail-hint">{{ t.ud_unavail_hint | safe }}{% if err %}<br><span class="pend">{{ t.sx_err_lead }} <code>{{ err }}</code></span>{% endif %}</div>
+{% else %}
+
+<div class="sumrow">
+  <div class="sumcard up"><div class="k">{{ t.ud_up }}</div>
+    <div class="v">{{ board.n_up }}<small> / {{ board.n_total }}</small></div></div>
+  <div class="sumcard down"><div class="k">{{ t.ud_down }}</div>
+    {% if mode == 'live' and not board.wo_wired %}
+    <div class="v">—</div><div class="vnote">{{ t.ud_down_live_note }}</div>
+    {% else %}
+    <div class="v">{{ board.n_down }}</div>
+    {% endif %}</div>
+  <div class="sumcard unk"><div class="k">{{ t.ud_unknown }}</div>
+    <div class="v">{{ board.n_unknown }}</div></div>
+  {% if board.longest_down %}{% set L = board.longest_down %}
+  <div class="sumcard worst"><div class="k">{{ t.ud_longest }}</div>
+    <div class="v"><a href="/station/{{ L.cls }}?source={{ source }}&days=7&stop_min=15&lang={{ lang }}">{{ L.eid }} · {{ pretty_station(L.cls) }}</a><br>
+      <span style="font-size:13px;color:var(--mut)">{% if L.now_state %}{{ t.ud_down }} · {{ state_label(L.now_state) }}{% else %}{{ t['vl_' ~ L.verdict] }}{% endif %} · {{ t.ud_since }} <b style="color:var(--bad)">{{ '%.0f'|format(L.since_h) }}h</b></span></div></div>
+  {% endif %}
+</div>
+
+
+<h2 class="sec">{{ t.ud_status }} — {{ board.n_total }} <span style="text-transform:none">{{ t.ud_machines_word }}</span></h2>
+{% if board.n_total == 0 %}
+<div class="pend">{{ t.ud_empty }}</div>
+{% else %}
+<table class="ud">
+  <thead><tr>
+    <th>{{ t.sx_eid }}</th>
+    <th>{{ t.sb_c_station }}</th>
+    <th>{{ t.ud_status }}</th>
+    <th>{{ t.ud_ev_mes }}</th>
+    <th>{{ t.ud_ev_wo }}</th>
+    <th>{{ t.ud_ev_hb }}</th>
+    <th>{{ t.ud_ev_op }}</th>
+  </tr></thead>
+  <tbody>
+  {% for r in board.rows %}
+  <tr>
+    <td class="eid">{{ r.eid }}{% if r.desc %}<small>{{ r.desc }}</small>{% endif %}</td>
+    <td class="stn"><a href="/station/{{ r.cls }}?source={{ source }}&days=7&stop_min=15&lang={{ lang }}" title="{{ r.cls }}">{{ pretty_station(r.cls) }} ›</a></td>
+    <td><span class="vchip"><span class="d" style="background:{{ state_color(r.now_state) if r.now_state else state_color(r.state) }}"></span>{% if r.bucket == 'down' and r.now_state %}{{ t.ud_down }} · {{ state_label(r.now_state) }}{% else %}{{ t['vl_' ~ r.verdict] }}{% endif %}
+      {% if r.since_h is not none %}<small>· {{ t.ud_since }} {{ '%.1f'|format(r.since_h) }}h</small>{% endif %}</span></td>
+    
+    {% set rnd_newer = r.ev.mes_last_designation == 'Engineering (R&D)' and r.ev.mes_last_h is not none and r.ev.mes_any_last_h is not none and r.ev.mes_any_last_h < r.ev.mes_last_h %}
+    <td class="ev"{% if rnd_newer %} title="{{ t.eq_mes_rnd_newer.format(age='%.1f'|format(r.ev.mes_any_last_h) ~ 'h') }}"{% endif %}>{% if r.ev.mes_last_h is not none %}<b>{{ '%.1f'|format(r.ev.mes_last_h) }}h</b> {{ t.ud_ago }}{% else %}{{ t.ud_mes_nosig.format(h=ud_lookback_h|default(24)) }}{% endif %}{% if mode == 'sim' %}<span class="simtag">{{ t.ud_st_sim }}</span>{% endif %}</td>
+    
+    {% if mode == 'sim' %}
+    <td class="ev">{% if r.ev.wo %}<b>{{ r.ev.wo.id }}</b> · {{ r.ev.wo.kind }} {{ t.ud_open }}{% else %}—{% endif %}<span class="simtag">{{ t.ud_st_sim }}</span></td>
+    <td class="ev">{% if r.ev.heartbeat=='alive' %}<b style="color:var(--good)">{{ t.ud_hb_alive }}</b>{% else %}{{ t.ud_hb_none }}{% endif %}<span class="simtag">{{ t.ud_st_sim }}</span></td>
+    <td class="ev">{% if r.ev.operator %}<b style="color:var(--bad)">{{ t.ud_op_rep }}</b>{% else %}—{% endif %}<span class="simtag">{{ t.ud_st_sim }}</span></td>
+    {% else %}
+    
+    {% if board.wo_wired %}
+    <td class="ev">{% if r.ev.wo %}{% if cmms_wo_base %}<a href="{{ cmms_wo_base }}{{ r.ev.wo.id }}" target="_blank" rel="noopener"><b>WO {{ r.ev.wo.id }}</b></a>{% else %}<b>WO {{ r.ev.wo.id }}</b>{% endif %}{% if r.now_state %} · {{ state_label(r.now_state) }}{% endif %}{% else %}{{ t.ud_wo_none }}{% endif %}</td>
+    {% else %}
+    <td class="ev"><span class="pend">{{ t.ud_pending }}</span></td>
+    {% endif %}
+    <td class="ev"><span class="pend">{{ t.ud_pending }}</span></td>
+    <td class="ev"><span class="pend">{{ t.ud_pending }}</span></td>
+    {% endif %}
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endif %}
+{% endif %}

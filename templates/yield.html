@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="{{ 'zh-Hant' if lang=='zh' else 'en' }}">
+
+
+
+
+
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tendline Board — {{ (t.yax_output_t if axis=='output' else t.yax_yield_t) }}</title>
+<script src="/static/htmx.min.js"></script>
+<style>
+  :root{
+    color-scheme: light dark;
+    --bg:#f4f6fb; --panel:#ffffff; --panel2:#eef2f8; --line:#d8e0ec;
+    --track:#e6ebf3; --fg:#1b2433; --mut:#5c6b82; --hover:#b9c6db; --unk:#b07d12;
+    --good:#1f9d57; --warn:#b07d12; --bad:#c4504f;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b1220; --panel:#141d2e; --panel2:#1b2740; --line:#2a3852;
+      --track:#0e1626; --fg:#e6edf6; --mut:#8aa0bd; --hover:#3a5c86; --unk:#cbb26b;
+      --good:#36c47f; --warn:#cbb26b; --bad:#e0726f;
+    }
+  }
+  *{ box-sizing:border-box }
+  body{ margin:0; background:var(--bg); color:var(--fg);
+        font:14px/1.5 "Segoe UI",system-ui,"Microsoft JhengHei",sans-serif }
+  header{ display:flex; align-items:baseline; gap:14px; padding:14px 22px;
+          border-bottom:1px solid var(--line); background:var(--panel) }
+  header h1{ font-size:17px; margin:0; letter-spacing:.5px }
+  header .sub{ color:var(--mut); font-size:12px }
+  header .right{ margin-left:auto; display:flex; align-items:center; gap:12px }
+  .toggle{ font-size:12px; padding:3px 11px; border-radius:13px; border:1px solid var(--line);
+           color:var(--fg); text-decoration:none; background:var(--panel2) }
+  .toggle:hover{ border-color:var(--hover) }
+  .badge{ font-size:11px; padding:2px 8px; border-radius:10px; border:1px solid var(--line); color:var(--mut) }
+  .badge.live{ color:#1f9d57; border-color:#1f9d57 }
+  .badge.demo{ color:#b07d12; border-color:#b07d12 }
+  .badge.snapshot{ color:#2f7fc4; border-color:#2f7fc4 }
+  main{ max-width:1080px; margin:0 auto; padding:22px }
+  .err{ background:#fce9ee; border:1px solid #e7a9b8; color:#9b2741;
+        padding:12px 16px; border-radius:8px; margin-bottom:18px }
+  @media (prefers-color-scheme: dark){ .err{ background:#3a1620; border-color:#6f1f2f; color:#f0b6c2 } }
+  .intro{ color:var(--mut); font-size:13px; margin:2px 2px 12px }
+  
+
+
+
+   
+  .anchor{ display:flex; gap:24px; align-items:center; background:var(--panel);
+        border:1px solid var(--line); border-radius:12px; padding:18px 22px; margin-bottom:14px }
+  .anchor .big{ font-size:42px; font-weight:800; line-height:1; font-variant-numeric:tabular-nums }
+  .anchor .lbl{ color:var(--mut); font-size:12px; max-width:340px; margin-top:4px }
+  .anchor .chips{ margin-top:8px }
+  .chip{ display:inline-block; font-size:11.5px; padding:1px 9px; margin:2px 5px 0 0; border-radius:9px;
+         background:var(--panel2); border:1px solid var(--line); color:var(--fg);
+         font-variant-numeric:tabular-nums }
+  h2.sec{ font-size:13px; color:var(--mut); font-weight:600; margin:18px 2px 8px;
+          text-transform:uppercase; letter-spacing:.6px }
+  table.sb{ width:100%; border-collapse:collapse; font-size:12.5px; background:var(--panel);
+        border:1px solid var(--line); border-radius:10px; overflow:hidden }
+  table.sb th,table.sb td{ padding:7px 11px; border-bottom:1px solid var(--line); text-align:left }
+  table.sb th{ color:var(--mut); font-weight:600; font-size:11px; text-transform:uppercase;
+        letter-spacing:.4px; background:var(--panel2) }
+  table.sb tr:last-child td{ border-bottom:none }
+  table.sb td.num,table.sb th.num{ text-align:right; font-variant-numeric:tabular-nums }
+  table.sb td.st{ font-weight:600 }
+  table.sb tbody tr{ cursor:pointer; transition:.12s }
+  table.sb tbody tr:hover{ background:var(--panel2) }
+  table.sb tr.cal{ background:var(--panel2) }
+  table.sb tr.active-row.htmx-request{ opacity:.55 }
+  td.hi{ font-weight:800 }                  
+  td.muted{ color:var(--mut) }
+  .cta{ color:var(--unk); text-decoration:none; font-weight:600 }
+  .cta:hover{ text-decoration:underline }
+  #detail{ margin-top:18px }
+  .hint{ color:var(--mut); font-size:12.5px; padding:14px 2px }
+  details.skip{ margin:10px 2px; color:var(--mut); font-size:11.5px }
+  details.skip code{ background:var(--panel2); padding:1px 5px; border-radius:4px }
+   
+  .help{ position:relative; display:inline-flex; align-items:center; justify-content:center;
+         width:14px; height:14px; border-radius:50%; border:1px solid var(--line); color:var(--mut);
+         font-size:10px; font-weight:700; cursor:help; vertical-align:1px; margin-left:4px }
+  .help .tip{ display:none; position:absolute; z-index:40; top:19px; left:50%; transform:translateX(-50%);
+         width:270px; background:var(--fg); color:var(--bg); font-size:11.5px; font-weight:400;
+         line-height:1.55; padding:8px 11px; border-radius:8px; text-align:left; white-space:normal;
+         text-transform:none; letter-spacing:0 }
+  .help:hover .tip, .help:focus .tip{ display:block }
+  .help .tip.r{ left:auto; right:-8px; transform:none }
+  .obar{ position:relative; height:14px; border-radius:5px; background:var(--track);
+         overflow:hidden; min-width:130px }
+  .obar i{ position:absolute; left:0; top:0; bottom:0; border-radius:5px 4px 4px 5px }
+  .ybar{ position:relative; height:12px; border-radius:5px; background:var(--track);
+         overflow:hidden; min-width:110px }
+  .ybar i{ position:absolute; left:0; top:0; bottom:0; border-radius:5px 4px 4px 5px }
+  .pos{ color:var(--good); font-weight:700 } .neg{ color:var(--bad); font-weight:700 }
+  .tag{ font-size:10px; font-weight:700; letter-spacing:.5px; padding:1px 7px; border-radius:9px;
+        border:1px solid var(--line); color:var(--mut); vertical-align:1px }
+  .tag.demo{ color:var(--unk); border-color:var(--unk) }
+  .metchip{ font-size:11px; font-weight:700; color:var(--good) }
+   
+  .kchips{ display:flex; flex-wrap:wrap; gap:8px; margin-top:8px }
+  .kchip{ border:1px solid var(--line); background:var(--panel2); border-radius:9px;
+          padding:5px 10px; min-width:96px }
+  .kchip .k{ display:block; font-size:10.5px; color:var(--mut); letter-spacing:.4px }
+  .kchip .v{ font-size:15px; font-weight:800; font-variant-numeric:tabular-nums }
+  .absorb{ display:block; margin:0 2px 16px; padding:11px 14px; border-radius:10px;
+           font-size:12.5px; line-height:1.55; color:var(--fg);
+           background:rgba(176,125,18,.10); border:1px solid var(--unk) }
+  .absorb summary{ cursor:pointer; font-weight:700 }
+  .absorb .hint{ color:var(--mut); font-weight:400; margin-left:6px }
+  .absorb table{ width:100%; border-collapse:collapse; margin-top:8px; font-size:12px }
+  .absorb td{ padding:4px 8px; border-bottom:1px solid var(--line) }
+  .qk-unavail{ margin:0 2px 16px; padding:11px 14px; border-radius:10px; font-size:12.5px;
+               color:var(--fg); background:var(--panel2); border:1px dashed var(--line) }
+  .qk-note{ margin:22px 2px 8px; padding:12px 15px; border-radius:10px; font-size:12.5px;
+            line-height:1.6; background:var(--panel); border:1px solid var(--line) }
+  .qk-note summary{ cursor:pointer; font-weight:700; color:var(--fg) }
+  .qk-note p{ margin:9px 0; color:var(--mut) }
+  .qk-note b{ color:var(--fg) }
+  .qk-meta{ color:var(--mut); font-size:11.5px; margin-top:6px }
+  .product-switch{ display:flex; justify-content:flex-end; align-items:center; gap:7px;
+                   max-width:1080px; margin:10px auto -10px; padding:0 22px; font-size:12px }
+  .product-switch b.toggle{ cursor:default; font-weight:700; border-color:var(--hover) }
+  .product-switch .sep{ color:var(--mut) }
+  td.ord{ color:var(--mut); font-variant-numeric:tabular-nums; width:34px }
+</style>
+</head>
+<body>
+{% set lang_href = '/' ~ axis ~ '?' ~ axis_qs ~ '&lang=' ~ ('zh' if lang=='en' else 'en') %}
+{% set nav_active = 'output' if axis=='output' else 'yield' %}
+{% include '_nav.html' %}
+<div class="product-switch" title="{{ t.qk_prod_tip }}">
+  {% for key, label, href, current in product_links %}
+    {% if current %}<b class="toggle">{{ label }}</b>{% else %}<a class="toggle" href="{{ href }}">{{ label }}</a>{% endif %}{% if not loop.last %}<span class="sep">|</span>{% endif %}
+  {% endfor %}
+</div>
+<main>
+  <div style="color:var(--mut);font-size:12px;margin:0 2px 10px">
+    
+    {{ yax_sub_text }} ·
+    <b style="color:var(--fg)">{{ t.p_window }} {{ yb_days }}{{ t.p_days }}</b>{% if grid and grid.win_start %} · {{ clock(grid.win_start) }} → {{ clock(grid.win_end) }}{% endif %}{% if grid and grid.window_from_snapshot %} · <span class="badge snapshot">{{ t.qk_snap_win }}</span>{% endif %}
+  </div>
+  <div class="intro">{{ (t.yax_output_intro if axis=='output' else t.yax_yield_intro) | safe }}</div>
+
+  {% if err %}
+    <div class="err">⚠ {{ t.err_lead }}{{ source }}{{ t.err_tail }}：{{ err }}<br>
+      <span style="font-size:12px">{{ t.yld_unavail_hint | safe }}</span>
+    </div>
+  {% endif %}
+
+  
+  {% if not qk_ok %}
+  <div class="qk-unavail">⚠ <b>{{ t.qk_unavail_short }}</b>
+    {% if grid and grid.unavailable and grid.unavailable.startswith('snapshot') %}
+      — {{ t.qk_snap_unavail | safe }}
+    {% endif %}
+    <div style="color:var(--mut);margin-top:4px">reason: <code>{{ grid.unavailable }}</code></div>
+  </div>
+  {% endif %}
+
+  {% if qk_ok and grid.diag and grid.diag.degraded %}
+  <div class="qk-unavail" style="border-style:solid;border-color:var(--unk)">⚠ {{ t.qk_degraded }}</div>
+  {% endif %}
+
+  {% if qk_ok %}
+  <section class="anchor">
+    {% if axis=='output' %}
+      {% if anchor %}
+      <div>
+        <div class="big">{{ "{:,}".format(anchor.total) }}<span class="help" tabindex="0">?<span class="tip">{{ t.q_output }}</span></span></div>
+        <div class="lbl">{{ anchor.display }} · <span title="{{ anchor.cls }}">{{ anchor.cls }}</span></div>
+      </div>
+      {% set atgt = demo_target(anchor.cls, anchor.total) %}
+      {% if atgt %}{% set agap = anchor.total - atgt %}
+      <div>
+        <div class="lbl">{{ t.yc_target }} <span class="tag demo">{{ t.demo_tag }}</span><span class="help" tabindex="0">?<span class="tip">{{ t.q_target }}</span></span>
+          <b style="font-size:16px;color:var(--fg)">{{ "{:,}".format(atgt) }}</b></div>
+        <div class="lbl">{{ t.yc_gap }}<span class="help" tabindex="0">?<span class="tip">{{ t.q_gap }}</span></span>
+          <b class="{{ 'pos' if agap>=0 else 'neg' }}" style="font-size:16px">{{ '%+d'|format(agap) }}</b>
+          <span style="color:var(--mut)">({{ '%+.0f'|format(agap / atgt * 100) }}%)</span></div>
+      </div>
+      {% endif %}
+      {% endif %}
+    {% else %}
+      
+      {% set ov = (kpis.get('OVERALL') or {}).get('pct') %}
+      <div>
+        {% if ov is not none %}
+        <div class="big" style="color:{{ 'var(--good)' if ov>=90 else ('var(--warn)' if ov>=70 else 'var(--bad)') }}">{{ '%.3f'|format(ov) }}%</div>
+        {% else %}
+        <div class="big" style="color:var(--mut)">—</div>
+        {% endif %}
+        <div class="lbl">{{ t.qk_hero_overall }} · {{ qk_line_scope_text }}</div>
+      </div>
+      <div style="flex:1">
+        <div class="kchips">
+          {% for key, lbl in kpi_chips %}
+          {% set kv = (kpis.get(key) or {}).get('pct') %}
+          <div class="kchip"><span class="k">{{ lbl }}</span>
+            <span class="v">{% if kv is not none %}{{ '%.3f'|format(kv) }}%{% else %}<span style="color:var(--mut)">—</span>{% endif %}</span></div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  
+  {% if axis=='yield' and qk_ok and absorbed_total %}
+  <details class="absorb">
+    <summary>⚠ {{ t.qk_absorb_line | replace('{n}', absorbed_total) }}<span class="hint">{{ t.qk_absorb_hint }}</span></summary>
+    <div style="margin-top:6px;color:var(--mut)">{{ t.qk_absorb_where }}</div>
+    <table>
+      {% for a in absorption %}
+      <tr>
+        <td title="{{ a.station }}"><b>{{ a.station }}</b></td>
+        <td style="color:var(--mut)">{{ a.mcl }}</td>
+        <td>{% if a.bucket=='invisible_station' %}{{ qk_bucket_invisible_text }}
+            {% elif a.bucket=='sorting_cut' %}{{ t.qk_bucket_sorting }}
+            {% elif a.bucket=='non_b' %}{{ t.qk_bucket_nonb }}
+            {% else %}{{ a.bucket }}{% endif %}</td>
+        <td class="num" style="text-align:right"><b>{{ a.n_lots }}</b> {{ t.qk_lots }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </details>
+  {% endif %}
+
+  {% if qk_ok %}
+  <h2 class="sec">{{ (t.yax_output_t if axis=='output' else t.yax_yield_t) }} · {{ qk_sec_text }}</h2>
+
+  {% if axis=='output' %}
+  
+  <table class="sb">
+    <thead><tr>
+      <th class="ord">{{ t.qk_ord }}</th>
+      <th>{{ t.sb_c_station }}（{{ t['qk_prod_' ~ product] }}）</th>
+      <th>{{ t.yc_att }}<span class="help" tabindex="0">?<span class="tip">{{ t.q_target }}</span></span></th>
+      <th class="num">{{ t.qk_col_total }}<span class="help" tabindex="0">?<span class="tip">{{ t.q_output }}</span></span></th>
+      <th class="num">{{ t.yc_target }} <span class="tag demo">{{ t.demo_tag }}</span></th>
+      <th class="num">{{ t.yc_gap }}<span class="help" tabindex="0">?<span class="tip r">{{ t.q_gap }}</span></span></th>
+      <th></th>
+    </tr></thead>
+    <tbody>
+    {% for s in rows %}
+    <tr class="active-row {{ 'cal' if s.cls==cal_cls }}"
+        hx-get="/yield/station/{{ s.cls }}?source={{ source }}&axis={{ axis }}&lang={{ lang }}{{ win_qs }}"
+        hx-target="#detail" hx-swap="innerHTML" hx-indicator="this">
+      <td class="ord">{{ s.ord }}</td>
+      <td class="st"{% if s.display_pending %} title="{{ t.qk_disp_pending }}">{{ s.cls }}{% else %} title="{{ s.cls }}{% if s.display_source == 'derived' %} · {{ t.qk_disp_derived }}{% endif %}">{{ s.display }}{% endif %}</td>
+      <td>{% if s.att is not none %}
+        {% set oc = 'var(--good)' if s.att>=100 else ('var(--warn)' if s.att>=90 else 'var(--bad)') %}
+        <span class="obar"><i style="width:{{ '%.1f'|format([s.att, 100]|min) }}%;background:{{ oc }}"></i></span>
+        {% else %}<span class="muted">—</span>{% endif %}</td>
+      <td class="num hi">{% if s.total %}{{ "{:,}".format(s.total) }}{% else %}<span class="muted" title="{{ t.qk_nodata }}">—</span>{% endif %}</td>
+      <td class="num">{% if s.target %}{{ "{:,}".format(s.target) }}{% else %}—{% endif %}</td>
+      <td class="num {{ 'pos' if s.gap is not none and s.gap>=0 else ('neg' if s.gap is not none) }}">{% if s.gap is not none %}{{ '%+d'|format(s.gap) }} <span style="font-weight:400;color:var(--mut)">({{ '%+.0f'|format(s.gap_pct) }}%)</span>{% else %}—{% endif %}</td>
+      <td class="num"><span class="cta">{{ t.yc_drill }}</span></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  {% else %}
+  
+  <table class="sb">
+    <thead><tr>
+      <th class="ord">{{ t.qk_ord }}</th>
+      <th>{{ t.sb_c_station }}（{{ t['qk_prod_' ~ product] }}）</th>
+      <th class="num">{{ t.qk_col_total }}</th>
+      <th class="num">{{ t.qk_col_fpy }}</th>
+      <th class="num">{{ t.qk_col_pass }}</th>
+      <th class="num">{{ t.qk_col_fail }}</th>
+      <th class="num">{{ t.qk_col_final }}</th>
+      <th></th>
+    </tr></thead>
+    <tbody>
+    {% for s in rows %}
+    {% set fy = s.final_yield_pct %}
+    <tr class="active-row {{ 'cal' if s.cls==cal_cls }}"
+        hx-get="/yield/station/{{ s.cls }}?source={{ source }}&axis={{ axis }}&lang={{ lang }}{{ win_qs }}"
+        hx-target="#detail" hx-swap="innerHTML" hx-indicator="this">
+      <td class="ord">{{ s.ord }}</td>
+      <td class="st"{% if s.display_pending %} title="{{ t.qk_disp_pending }}">{{ s.cls }}{% else %} title="{{ s.cls }}{% if s.display_source == 'derived' %} · {{ t.qk_disp_derived }}{% endif %}">{{ s.display }}{% endif %}</td>
+      <td class="num">{% if s.total %}{{ "{:,}".format(s.total) }}{% else %}<span class="muted" title="{{ t.qk_nodata }}">—</span>{% endif %}</td>
+      <td class="num">{{ ('%.3f%%'|format(s.fpy_pct)) if s.fpy_pct is not none else '—' }}</td>
+      <td class="num">{% if s.total %}{{ "{:,}".format(s['pass']) }}{% else %}—{% endif %}</td>
+      <td class="num" style="color:{{ 'var(--bad)' if s.fail else 'var(--mut)' }}">{% if s.total %}{{ "{:,}".format(s.fail) }}{% if s.absorbed_elsewhere %} <span class="muted" style="font-weight:400" title="{{ t.qk_absorb_hint }}">(+{{ s.absorbed_elsewhere }})</span>{% endif %}{% else %}—{% endif %}</td>
+      <td class="num hi" style="color:{{ ('var(--good)' if fy>=99 else ('var(--warn)' if fy>=95 else 'var(--bad)')) if fy is not none else 'var(--mut)' }}">{{ ('%.3f%%'|format(fy)) if fy is not none else '—' }}</td>
+      <td class="num"><span class="cta">{{ t.yc_drill }}</span></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <div id="detail"><div class="hint">{{ t.y_drill_hint }}</div></div>
+  {% endif %}
+
+  
+  {% if axis=='yield' %}
+  <details class="qk-note" id="caliber-note">
+    <summary>{{ t.qk_footer_t }}</summary>
+    {{ qk_note_text | safe }}
+    <div class="qk-meta">
+      {% if grid and grid.win_start %}{{ t.p_window }} {{ grid.win_start }} → {{ grid.win_end }} · {% endif %}
+      {% if grid and grid.cap %}{{ t.qk_asof }} {{ grid.cap }} · {% endif %}
+      <code>{{ grid.schema if grid else '—' }}</code>
+    </div>
+  </details>
+  {% endif %}
+</main>
+</body>
+</html>

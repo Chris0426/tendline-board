@@ -1,0 +1,29 @@
+<!doctype html>
+
+
+
+
+
+<html lang="{{ 'zh-Hant' if lang == 'zh' else 'en' }}" data-ui="{{ ui }}" data-density="{{ density }}" data-page="{% block page %}{% endblock %}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<title>{% block title %}Tendline Board{% endblock %}</title>
+<link rel="preload" href="/static/v2/fonts/public-sans-latin-400.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/static/v2/board.css">
+<script src="/static/htmx.min.js"></script>
+<script src="/static/v2/board.js" defer></script>
+{% block head_extra %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+{% block nav %}{% include 'v2/_nav.html' %}{% endblock %}
+{#-#}{%- if is_synth %}
+<div class="board-synthbar" role="note">{{ t.synth_bar }}</div>
+{%- endif %}
+<main class="board-main">
+{% block main %}{% endblock %}
+</main>
+{% block foot %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="{{ 'zh-Hant' if lang=='zh' else 'en' }}">
+
+
+
+
+
+
+
+
+
+
+
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tendline Board — {{ t.mr_title }}</title>
+<style>
+  :root{
+    color-scheme: light dark;
+    --bg:#f4f6fb; --panel:#ffffff; --panel2:#eef2f8; --line:#d8e0ec; --track:#e6ebf3;
+    --fg:#1b2433; --mut:#5c6b82; --hover:#b9c6db; --unk:#b07d12;
+    --good:#1e7d4f; --warn:#b07d12; --bad:#b3423a;
+    --acc-n:#2563eb;                      
+    --gapfg:#9aa7bb;                      
+     
+    --l-down:#dc2626; --l-yield:#b07d12; --l-rework:#2563eb;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b1220; --panel:#141d2e; --panel2:#1b2740; --line:#2a3852; --track:#0e1626;
+      --fg:#e6edf6; --mut:#8aa0bd; --hover:#3a5c86; --unk:#cbb26b;
+      --good:#36c47f; --warn:#cbb26b; --bad:#e0726f;
+      --acc-n:#5b8def; --gapfg:#55657e;
+      --l-down:#e0726f; --l-yield:#cbb26b; --l-rework:#5b8def;
+    }
+  }
+  *{ box-sizing:border-box }
+  body{ margin:0; background:var(--bg); color:var(--fg);
+        font:14px/1.5 "Segoe UI",system-ui,"Microsoft JhengHei",sans-serif }
+  main{ max-width:1360px; margin:0 auto; padding:18px 22px 40px }
+  h1{ font-size:19px; margin:6px 0 2px } h2{ font-size:15px; margin:22px 0 6px }
+  h3{ font-size:13px; margin:12px 0 4px; font-weight:700 }
+  .sub{ color:var(--mut); font-size:12.5px; max-width:1000px }
+  .demotag{ font-size:10px; font-weight:800; letter-spacing:1px; color:var(--warn);
+            border:1px solid var(--warn); border-radius:8px; padding:1px 7px; margin-left:8px }
+   
+  .parttag{ font-size:10px; font-weight:800; letter-spacing:1px; color:var(--acc-n);
+            border:1px solid var(--acc-n); border-radius:8px; padding:1px 7px; margin-left:8px }
+  .head{ display:flex; flex-wrap:wrap; gap:8px 16px; align-items:center; margin:10px 0 2px;
+         font-size:12.5px; color:var(--mut) }
+   
+  .seg{ display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden;
+        flex-wrap:wrap }
+  .seg a{ padding:4px 12px; font-size:12.5px; text-decoration:none; color:var(--mut);
+          background:var(--panel); border-right:1px solid var(--line); white-space:nowrap }
+  .seg a:last-child{ border-right:0 }
+  .seg a:hover{ background:var(--panel2); color:var(--fg) }
+  .seg a.on{ background:var(--acc-n); color:#fff; font-weight:600 }
+  .tabs{ display:flex; gap:0; margin:12px 0 0; border-bottom:1px solid var(--line) }
+  .tabs a{ padding:7px 16px; text-decoration:none; color:var(--mut); font-size:13px;
+           border:1px solid transparent; border-bottom:0; border-radius:9px 9px 0 0;
+           margin-bottom:-1px }
+  .tabs a:hover{ color:var(--fg); background:var(--panel2) }
+  .tabs a.on{ color:var(--fg); font-weight:700; background:var(--panel);
+              border-color:var(--line); border-bottom:1px solid var(--panel) }
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:12px;
+         padding:12px 16px; margin:14px 0 }
+  .note{ background:var(--panel); border:1px solid var(--line); border-radius:10px;
+         padding:8px 14px; margin:10px 0; font-size:12.5px; color:var(--mut) }
+  .deg{ background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--warn);
+        border-radius:12px; padding:14px 16px; margin:12px 0; font-size:13px }
+  .lead{ font-size:15px; max-width:1080px; margin:12px 0 2px }
+  .mut{ color:var(--mut) } .nowrap{ white-space:nowrap }
+   
+  .bricks{ display:flex; flex-wrap:wrap; gap:10px; margin:10px 0 4px }
+  .brick{ flex:1; min-width:210px; background:var(--panel); border:1px solid var(--line);
+          border-left:3px solid var(--mut); border-radius:12px; padding:10px 14px }
+  .brick.down{ border-left-color:var(--l-down) }
+  .brick.yield{ border-left-color:var(--l-yield) }
+  .brick.rework{ border-left-color:var(--l-rework) }
+  .brick .k{ color:var(--mut); font-size:12px }
+  .brick .v{ font-size:26px; font-weight:800; font-variant-numeric:tabular-nums; line-height:1.2 }
+  .brick .v small{ font-size:13px; font-weight:600; color:var(--mut); margin-left:3px }
+  .brick .s{ color:var(--mut); font-size:11.5px }
+   
+  .tw{ overflow-x:auto; margin:8px 0 2px }
+  table{ border-collapse:collapse; font-size:12.5px; width:100% }
+  th,td{ border-bottom:1px solid var(--line); padding:4px 9px; text-align:right;
+         white-space:nowrap }
+  thead th{ background:var(--panel2); font-weight:600; position:sticky; top:0 }
+  td.cls, th.cls{ text-align:left }
+  td.cls small{ color:var(--mut); margin-left:5px }
+  td.num,th.num{ font-variant-numeric:tabular-nums }
+  tbody tr.pick{ cursor:pointer }
+  
+
+  tbody tr.pick:hover td{ background:var(--panel2) }
+  
+
+
+
+  .tw.stk{ overflow:auto; max-height:calc(100vh - 260px) }
+  .tw.stk thead th{ z-index:3 }
+  .tw.stk th.cls, .tw.stk td.cls{ position:sticky; left:0; z-index:2;
+       background:var(--panel); box-shadow:1px 0 0 var(--line) }
+  .tw.stk thead th.cls{ z-index:4; background:var(--panel2) }    
+  a.stn{ color:var(--acc-n); text-decoration:none; font-size:11px; margin-left:6px }
+  a.stn:hover{ text-decoration:underline }
+  a.pbtn{ color:var(--mut); text-decoration:none; border:1px solid var(--line);
+          border-radius:8px; padding:3px 10px; font-size:12.5px; background:var(--panel) }
+  a.pbtn:hover{ color:var(--fg); background:var(--panel2) }
+   
+  .st{ display:flex; height:9px; width:150px; background:var(--track); border-radius:3px;
+       overflow:hidden }
+  .st i{ display:block; height:9px }
+  .st.nul{ background:repeating-linear-gradient(45deg, transparent 0 3px,
+           var(--gapfg) 3px 4px) }
+   
+  .cov{ font-size:10.5px; padding:0 5px; border-radius:8px; border:1px dotted var(--gapfg);
+        color:var(--mut); margin-left:5px; white-space:nowrap; font-weight:600 }
+  .cov.zero{ border-color:var(--warn); color:var(--warn) }
+   
+  .ptline{ color:var(--fg) }
+  .ptchip{ display:inline-block; max-width:100%; vertical-align:bottom; font-size:10.5px; padding:0 6px;
+           border-radius:8px; border:1px solid var(--unk); color:var(--unk); margin-left:6px;
+           white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:help }
+   
+  .strip{ display:flex; align-items:flex-end; gap:2px; height:108px; padding:12px 0 0;
+          border-bottom:1px solid var(--line); overflow-x:auto }
+  .strip .col{ flex:1; min-width:9px; height:100%; display:flex; flex-direction:column;
+               justify-content:flex-end }
+  .strip .col b{ display:block; width:100%; border-radius:2px 2px 0 0 }
+  .strip .col b.d{ background:var(--l-down) } .strip .col b.y{ background:var(--l-yield) }
+  .strip .col b.r{ background:var(--l-rework); border-radius:0 }
+   
+  .strip .col b.z{ background:var(--gapfg); height:2px; border-radius:1px }
+   
+  .strip .col b.u{ height:10px; border-radius:2px; border:1px solid var(--gapfg);
+                   background:repeating-linear-gradient(45deg, transparent 0 3px,
+                              var(--gapfg) 3px 4px) }
+  .strip .col em{ display:block; width:100%; height:22px; border-radius:2px;
+                  border:1px dashed var(--gapfg);
+                  background:radial-gradient(var(--gapfg) 0.5px, transparent 0.6px) 0 0/5px 5px }
+  .xax{ display:flex; gap:2px; font-size:9.5px; color:var(--mut); padding:3px 0 0 }
+  .xax span{ flex:1; min-width:9px; text-align:center }
+  .lgd{ display:flex; gap:16px; flex-wrap:wrap; font-size:12px; color:var(--mut); margin:8px 0 0 }
+  .lgd i{ display:inline-block; width:22px; height:8px; border-radius:2px;
+          vertical-align:middle; margin-right:5px }
+  .lgd i.d{ background:var(--l-down) } .lgd i.y{ background:var(--l-yield) }
+  .lgd i.r{ background:var(--l-rework) }
+  
+
+
+
+
+
+  .sm{ display:grid; grid-template-columns:repeat(auto-fit,minmax(276px,1fr));
+       gap:10px; margin:10px 0 4px }
+  .smc{ background:var(--panel); border:1px solid var(--line); border-radius:12px;
+        padding:8px 11px 5px }
+  .smc .k{ color:var(--mut); font-size:12px; margin:0 0 1px }
+  .smc svg{ display:block; width:100%; height:auto }
+  .smc .gl{ stroke:var(--line); stroke-width:1 }
+  .smc .gt{ fill:var(--mut); font-size:8px; text-anchor:end }
+  .smc .xt{ fill:var(--mut); font-size:8px; text-anchor:middle }
+  .smc .ln{ fill:none; stroke:var(--acc-n); stroke-width:1.8;
+            stroke-linejoin:round; stroke-linecap:round }
+  .smc .dt{ fill:var(--acc-n); stroke:var(--panel); stroke-width:1 }
+  .smc .dt.ho{ fill:var(--panel); stroke:var(--acc-n); stroke-width:1.6 }
+  .smc .vl{ fill:var(--fg); font-size:9.5px; font-weight:700; text-anchor:middle }
+   
+  .smc .na{ fill:var(--mut); font-size:9px; text-anchor:middle }
+   
+  .foot{ background:var(--panel); border:1px solid var(--line); border-radius:12px;
+         padding:11px 16px; margin:18px 0 0; font-size:12.5px; color:var(--mut) }
+  .loading{ display:flex; align-items:center; gap:9px; color:var(--mut); font-size:12.5px;
+            padding:30px 2px }
+  .spin{ width:14px; height:14px; border:2px solid var(--track); border-top-color:var(--mut);
+         border-radius:50%; animation:sp .8s linear infinite }
+  @keyframes sp{ to{ transform:rotate(360deg) } }
+   
+  @media print{
+    body{ background:#fff; color:#000 }
+    nav.wrnav, .tabs, .seg, .noprint, .board-dock, .board-fab{ display:none !important }
+    main{ max-width:none; padding:0 }
+    .card,.brick,.note,.foot,.smc{ break-inside:avoid; border-color:#bbb }
+     
+    .tw{ overflow:visible } .tw.stk{ overflow:visible; max-height:none }
+    thead th, th.cls, td.cls, .tw.stk thead th, .tw.stk th.cls, .tw.stk td.cls{
+      position:static; box-shadow:none }
+    th,td{ white-space:normal }
+  }
+</style>
+<script src="/static/htmx.min.js"></script>
+</head>
+<body>
+{% set nav_active = 'monthly' %}
+{% include "_nav.html" %}
+<main>
+  <h1>{{ t.mr_title }}{% if source == 'demo' %}<span class="demotag">DEMO</span>{% endif %}{% if partial %}<span class="parttag">{{ t.mr_partial }}</span>{% endif %}</h1>
+  <div class="sub">{{ t.mr_sub }}</div>
+
+  
+
+  <div class="head">
+    <span class="noprint">{{ t.mr_month }}</span>
+    <span class="seg">
+      {% for o in month_opts %}
+      <a href="{{ o.href }}" class="{{ 'on' if o.on }}">{{ o.label }}</a>
+      {% endfor %}
+    </span>
+    
+    {% if through %}<span>{{ t.mr_asof.format(d=through) }}</span>{% endif %}
+    {% if frozen_at %}<span>{{ t.mr_frozen.format(d=frozen_at) }}</span>{% endif %}
+    
+
+    <a class="noprint pbtn" href="{{ csv_url }}"
+       title="{{ t.mr_csv_tip }}">{{ t.mr_csv }}</a>
+    <a class="noprint pbtn" href="#" role="button"
+       onclick="window.print();return false">{{ t.mr_print }}</a>
+  </div>
+
+  
+
+
+  <div class="head noprint" title="{{ t.qk_prod_tip }}">
+    {% for key, label, href, current in product_links %}
+      {% if current %}<b>{{ label }}</b>{% else %}<a href="{{ href }}">{{ label }}</a>{% endif %}{% if not loop.last %}<span style="color:var(--mut)">|</span>{% endif %}
+    {% endfor %}
+    {% if product != 'plover' %}<span style="color:var(--mut);font-size:11.5px">{{ t.mr_prod_notime.format(p=t['qk_prod_' ~ product]) }}</span>{% endif %}
+  </div>
+
+  <div class="tabs noprint">
+    <a href="{{ tab_loss }}" title="{{ t.mr_tab_loss_tip }}"
+       class="{{ 'on' if tab == 'loss' }}">{{ t.mr_tab_loss }}</a>
+    
+
+    {% if product == 'plover' %}<a href="{{ tab_oee }}" title="{{ t.mr_tab_oee_tip }}"
+       class="{{ 'on' if tab == 'oee' }}">{{ t.mr_tab_oee }}</a>{% endif %}
+    <a href="{{ tab_notes }}" title="{{ t.mr_tab_notes_tip }}"
+       class="{{ 'on' if tab == 'notes' }}">{{ t.mr_tab_notes }}</a>
+  </div>
+
+  {% if source == 'demo' %}<div class="note">{{ t.mr_demo_note }}</div>{% endif %}
+
+  
+  <div id="mr-body" hx-get="{{ body_url }}" hx-trigger="load" hx-swap="innerHTML">
+    <div class="loading"><span class="spin"></span>{{ t.mr_loading }}</div>
+  </div>
+
+  
+  <div class="foot">{% for s in assumptions %}{{ s }}{% if not loop.last %} {% endif %}{% endfor %}</div>
+</main>
+</body>
+</html>

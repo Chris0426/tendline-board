@@ -1,0 +1,39 @@
+{% extends 'v2/_base.html' %}
+
+
+
+{% import 'v2/_c_icon.html' as ic %}
+{% block page %}daily{% endblock %}
+{% block title %}Tendline Board — {{ t.daily_sub }}{% endblock %}
+{% block nav %}
+{% set nav_active = 'daily' %}
+{% include 'v2/_nav.html' %}
+{% endblock %}
+{% block main %}
+{% set nav_active = 'daily' %}
+  <div class="dy-head">
+    <h1>{{ t.nav_daily }}</h1>
+    <span class="sub">{{ t.daily_sub }}</span>
+  </div>
+  <div class="dy-winnote">{{ t.daily_window_note }}
+    <span class="help" tabindex="0">?<span class="tip">{{ t.q_daily_window }}</span></span></div>
+
+  
+
+  <div class="dy-winnote" title="{{ t.qk_prod_tip }}">
+    {% for key, label, href, current in product_links %}
+      {% if current %}<b>{{ label }}</b>{% else %}<a href="{{ href }}">{{ label }}</a>{% endif %}{% if not loop.last %} | {% endif %}
+    {% endfor %}
+    {% if product != 'plover' %}· {{ t.mr_prod_notime.format(p=t['qk_prod_' ~ product]) }}{% endif %}
+  </div>
+
+  
+  <div id="daily-body"
+       hx-get="/daily/body?source={{ source }}&lang={{ lang }}{% if product != 'plover' %}&product={{ product }}{% endif %}"
+       hx-trigger="load" hx-swap="innerHTML">
+    <div class="loading"><span class="spin"></span>{{ t.sx_loading }}</div>
+  </div>
+{% endblock %}
+{% block foot %}
+
+{% endblock %}

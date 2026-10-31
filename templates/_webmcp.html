@@ -1,0 +1,101 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<script>
+(function () {
+  var mc = document.modelContext || navigator.modelContext;
+  if (!mc || typeof mc.registerTool !== "function") return;
+
+  var ac = new AbortController();
+  window.addEventListener("pagehide", function () { try { ac.abort(); } catch (e) {} });
+
+  function call(tool, qs) {
+    return fetch("/api/board/" + tool + (qs ? "?" + qs : ""),
+                 { signal: ac.signal, headers: { "Accept": "application/json" } })
+      .then(function (r) { return r.json(); })
+      .catch(function () { return { error: "request_failed", tool: tool }; });
+  }
+  function q(name, v) {
+    return (v === undefined || v === null || v === "")
+      ? "" : name + "=" + encodeURIComponent(String(v));
+  }
+  function join() {
+    var out = [];
+    for (var i = 0; i < arguments.length; i++) { if (arguments[i]) out.push(arguments[i]); }
+    return out.join("&");
+  }
+  var DAYS = { type: "integer", minimum: 1, maximum: 30,
+               description: "Window length in days (1-30; clamped server-side)." };
+  var CLS = { type: "string",
+              description: "Exact station class name from board_list_stations. Never guess one." };
+  var EID = { type: "string",
+              description: "Equipment ID, e.g. EID-00950. Omit for the whole fleet." };
+
+  
+
+  function reg(name, description, props, required, exec) {
+    mc.registerTool({
+      name: name,
+      description: description,
+      inputSchema: { type: "object", properties: props, required: required || [] },
+      annotations: { readOnlyHint: true },
+      execute: exec
+    }, { signal: ac.signal });
+  }
+
+  reg("board_list_stations",
+      "List the canonical MES station class names every other Tendline Board tool takes. Call this "
+      + "FIRST to resolve a station the user names; never guess or invent a cls value. Read-only.",
+      {}, [], function () { return call("list_stations", ""); });
+
+  reg("board_fleet_scoreboard",
+      "Line-wide equipment-utilization scoreboard for the last N days (1-30). Caliber: raw MES, "
+      + "equipment axis, interval-union over every segment (no product-view de-duplication); "
+      + "utilization = producing time / active window. A null util_pct means structurally "
+      + "unmeasurable, never 0%. Hours are hours; Units: PH = modules. Read-only.",
+      { days: DAYS }, [], function (i) { return call("fleet_scoreboard", q("days", (i || {}).days)); });
+
+  reg("board_station_overview",
+      "One station's utilization plus its output/yield. DUAL CALIBER: the yield block is the "
+      + "COMPANY Qlik first-fail caliber, the utilization block is raw MES equipment axis - never "
+      + "call the utilization figures company-caliber, and never mix the two. cls must be an exact "
+      + "value from board_list_stations. Units: PH = modules. Read-only.",
+      { cls: CLS, days: DAYS }, ["cls"],
+      function (i) { i = i || {}; return call("station_overview", join(q("cls", i.cls), q("days", i.days))); });
+
+  reg("board_yield_summary",
+      "Line-wide yield and output in the COMPANY caliber (Qlik first-fail): stations in line order "
+      + "plus the 7 rolled-throughput-yield KPIs. Use kpis.OVERALL.pct when asked for 'line yield'. "
+      + "Never sum per-station units. A null pct means no data, NEVER 100%. Per-machine yield is a "
+      + "different raw caliber and will not match. Units: PH = modules. Read-only.",
+      { days: DAYS }, [], function (i) { return call("yield_summary", q("days", (i || {}).days)); });
+
+  reg("board_equipment_downtime",
+      "Work-order downtime and repairs over the last N days (1-30). Caliber: cmms work-order hours "
+      + "(interval-union), NOT MES gaps - a machine with no work order shows 0 h here even if it "
+      + "sat idle, and when the work-order source is not connected nothing is reported (that is "
+      + "stated, and does not mean zero downtime). With eid: that machine; without: fleet summary. "
+      + "Units: hours. Read-only.",
+      { eid: EID, days: DAYS }, [],
+      function (i) { i = i || {}; return call("equipment_downtime", join(q("eid", i.eid), q("days", i.days))); });
+
+  reg("board_updown_now",
+      "Current Up/Down board, or one machine's status when eid is given. UP = able to produce "
+      + "(running or idle-ready), DOWN = repair or PM per an open work order, UNKNOWN = not enough "
+      + "signal. Silence is NEVER read as a fault and there is no machine heartbeat source yet. "
+      + "Read-only.",
+      { eid: EID }, [], function (i) { return call("updown_now", q("eid", (i || {}).eid)); });
+})();
+</script>

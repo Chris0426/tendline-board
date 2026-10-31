@@ -1,0 +1,172 @@
+
+
+
+{% import 'v2/_c_icon.html' as ic %}
+
+
+
+
+
+
+
+
+
+{% set P = panel %}
+<div class="eq-drill dx-panel">
+  <div class="eq-drill-h">
+    <span class="t">{{ ic.wrench() }}{{ t.eq_dx_title }} · {{ (P.name if P else eid) }}
+      <span style="color:var(--mut);font-weight:600">({{ eid }})</span></span>
+    {% if P and P.status in ('ok','demo') %}
+      {% if P.demo %}<span class="dx-badge demo">⚠ {{ t.eq_dx_demo }}</span>
+      {% else %}<span class="dx-badge live">✓ {{ t.eq_dx_live }}</span>{% endif %}
+    {% endif %}
+    <a class="close" onclick="var s=this.closest('.eq-drillslot'); if(s) s.innerHTML='';">{{ t.eq_close }} ✕</a>
+  </div>
+
+  
+  {% if err %}
+    <div class="dx-unavail">{{ t.eq_dx_unavail }} <code>{{ err }}</code></div>
+  {% elif not P or P.status not in ('ok','demo') %}
+    {% set st = (P.status if P else 'unavailable') %}
+    <div class="dx-unavail">
+      {% if st == 'snapshot' %}{{ t.eq_dx_snapshot }}
+      {% elif st == 'not_configured' %}{{ t.eq_dx_notconf }}
+      {% else %}{{ t.eq_dx_unavail }}{% if P and P.reason %} <span class="mut">({{ t.eq_dx_reason }}: {{ P.reason }})</span>{% endif %}{% endif %}
+    </div>
+  {% else %}
+
+  
+  <div class="dx-sub">{{ t.eq_dx_win }}: {{ P.days }}d{% if P.mode %} · {{ t.eq_dx_mode }}: {{ P.mode }}{% endif %}</div>
+
+  
+  {% if P.now and P.now.bucket %}
+  <div class="dx-sec">
+    <h4>{{ t.eq_dx_state }}</h4>
+    {% if P.now.bucket == 'down' %}
+      <span class="dx-nowchip down"><span class="d"></span>{{ t.eq_dx_state_down }}
+        {% if P.now.state %}<small>· {{ state_label(P.now.state) }}</small>{% endif %}
+        {% if P.now.wo_no %}<small class="mut">· {% if cmms_wo_base %}<a href="{{ cmms_wo_base }}{{ P.now.wo_no }}" target="_blank" rel="noopener">WO {{ P.now.wo_no }}</a>{% else %}WO {{ P.now.wo_no }}{% endif %}</small>{% endif %}</span>
+    {% elif P.now.bucket == 'dormant' %}
+      
+
+      <span class="dx-nowchip" style="color:var(--st-dormant);border-color:var(--st-dormant)"
+            title="{{ t.eq_av_dormant_tip }}"><span class="d" style="background:transparent;border:1.5px solid var(--st-dormant)"></span>{{ t.eq_now_dormant }}</span>
+    {% elif P.now.verdict == 'up_producing' %}
+      <span class="dx-nowchip up" title="{{ t.eq_now_producing_tip }}"><span class="d"></span>{{ t.eq_now_producing }}</span>
+    {% elif P.now.verdict == 'up_idle' and P.now.mes_last_h is not none %}
+      
+      <span class="dx-nowchip up" title="{{ t.eq_now_idle_tip }}"><span class="d"></span>{{ t.eq_now_idle }}
+        <small class="mut">· {{ t.eq_now_q_age.format(h='%.1f'|format(P.now.mes_last_h)) }}</small></span>
+    {% else %}
+      <span class="dx-nowchip up"><span class="d"></span>{{ t.eq_dx_state_up }}</span>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  
+  {% if P.confirmed and P.confirmed['items'] %}
+  <div class="dx-sec">
+    <h4>{{ t.eq_dx_confirmed }}</h4>
+    {% for it in P.confirmed['items'] %}
+    <div class="dx-d6">
+      {% if it.confirmed %}
+        <span class="dx-code">{{ it.code }}</span>
+        <span class="dx-tag confirmed">{{ t.eq_dx_confirmed_tag }}</span>
+      {% else %}
+        <span class="mut">{{ t.eq_dx_confirmed_none }}</span>
+      {% endif %}
+      {% if it.wo_no %}<span class="mut">· {% if cmms_wo_base %}<a href="{{ cmms_wo_base }}{{ it.wo_no }}" target="_blank" rel="noopener">WO {{ it.wo_no }}</a>{% else %}WO {{ it.wo_no }}{% endif %}</span>{% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  
+  <div class="dx-sec">
+    <h4>{{ t.eq_dx_why }}</h4>
+    {% if P.candidates %}
+      {% for c in P.candidates %}
+      <div class="dx-cand">
+        <div class="l1"><span class="dx-code">{{ c.reason }}</span>
+          {% if c.confidence %}<span class="dx-conf {{ c.confidence }}">{{ conf_label(c.confidence) }}</span>{% endif %}</div>
+        {% if c.summary %}<div class="l2">{{ c.summary }}</div>{% endif %}
+        {% if c.evidence_ref %}<div class="l3 mut">{{ c.evidence_ref }}</div>{% endif %}
+      </div>
+      {% endfor %}
+    {% else %}
+      <div class="dx-none">{{ t.eq_dx_why_none }}</div>
+    {% endif %}
+  </div>
+
+  
+  <div class="dx-sec">
+    <h4>{{ t.eq_dx_eqf }}</h4>
+    {% if P.eqf and P.eqf.dominant_actionable and P.eqf.dominant_actionable.event_code %}
+    <div class="dx-dominant">★ {{ t.eq_dx_dominant }}:
+      <span class="dx-code">{{ P.eqf.dominant_actionable.event_code }}</span></div>
+    {% endif %}
+    {% if P.eqf and P.eqf.events %}
+    <div class="dx-tblwrap">
+    <table class="dx-eqf">
+      <thead><tr>
+        <th style="text-align:left">{{ t.eq_dx_col_code }}</th>
+        <th>{{ t.eq_dx_col_events }}</th><th>{{ t.eq_dx_col_share }}</th>
+        <th style="text-align:left">{{ t.eq_dx_col_seen }}</th>
+        <th style="text-align:left">{{ t.eq_dx_col_state }}</th>
+      </tr></thead>
+      <tbody>
+      {% for e in P.eqf.events %}
+      {% set cal = e.calibration %}
+      <tr class="cal-{{ cal.state }}">
+        <td style="text-align:left"><span class="dx-code">{{ e.code }}</span>
+          {% if e.family %}<small class="mut"> · {{ e.family }}</small>{% endif %}</td>
+        <td class="num">{{ e.n_events if e.n_events is not none else '—' }}</td>
+        <td class="num">{% if e.share_pct is not none %}{{ '%.1f'|format(e.share_pct) }}%{% else %}—{% endif %}</td>
+        <td style="text-align:left" class="mut sm">{{ e.first_seen or '—' }}{% if e.last_seen %} → {{ e.last_seen }}{% endif %}</td>
+        <td style="text-align:left">
+          {% if cal.state == 'actionable' %}<span class="dx-state act">{{ t.eq_dx_actionable }}</span>
+          {% elif cal.state == 'nuisance' %}<span class="dx-state noise">{{ t.eq_dx_nuisance }}</span>
+          {% else %}<span class="dx-state uv">{{ t.eq_dx_unvetted }}</span>{% endif %}
+          {% if cal.source == 'confirmed' %}<span class="dx-tag confirmed">{{ t.eq_dx_confirmed_tag }}</span>{% endif %}
+          {% if cal.conflict %}<span class="dx-tag conflict" title="{{ t.eq_dx_conflict }}">⚠</span>{% endif %}
+          
+          {% if e.diag_hint and e.diag_hint.verdict_hint %}<span class="dx-rohint mut">{{ t.eq_dx_rohint }}: {{ e.diag_hint.verdict_hint }}{% if e.diag_hint.ratio is not none %} ({{ '%.0f'|format(e.diag_hint.ratio * 100) }}%){% endif %}</span>{% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    </div>
+    {% else %}
+      <div class="dx-none">{{ t.eq_dx_eqf_none }}</div>
+    {% endif %}
+  </div>
+
+  
+  {% if P.coverage %}
+  <div class="dx-sec">
+    <h4>{{ t.eq_dx_coverage }}</h4>
+    <div class="dx-cov">
+      {% if P.coverage.ok %}<span class="dx-covchip ok">{{ t.eq_dx_cov_ok }}: {{ P.coverage.ok|join(', ') }}</span>{% endif %}
+      {% if P.coverage.missing %}<span class="dx-covchip miss">{{ t.eq_dx_cov_missing }}: {{ P.coverage.missing|join(', ') }}</span>{% endif %}
+      {% if P.coverage.skipped %}<span class="dx-covchip skip">{{ t.eq_dx_cov_skipped }}: {{ P.coverage.skipped|join(', ') }}</span>{% endif %}
+      {% if P.coverage.ef_unavailable %}<span class="dx-covchip miss">equipment_failure: {{ t.eq_dx_ef_unavail }}</span>
+      {% elif P.coverage.ef_zero %}<span class="dx-covchip skip">equipment_failure: {{ t.eq_dx_ef_zero }}</span>
+      {% elif P.coverage.ef_absent %}<span class="dx-covchip miss">equipment_failure: {{ t.eq_dx_ef_absent }}</span>{% endif %}
+      
+      {% if P.source == 'live' and not P.ef_csv_configured and (P.coverage.ef_absent or P.coverage.ef_unavailable) %}
+      <span class="dx-covchip skip mut">{{ t.eq_dx_ef_nocfg }}</span>{% endif %}
+    </div>
+    {% if P.coverage.warn_only_mes %}
+    <div class="dx-warn">⚠ {{ t.eq_dx_only_mes }}</div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  
+  <div class="dx-foot">
+    {% if P.observed_at %}{{ t.eq_dx_observed }}: {{ P.observed_at }} · {% endif %}{{ t.eq_dx_src }}
+    {% if cmms_wo_base and P.now and P.now.wo_no %}<br><a href="{{ cmms_wo_base }}{{ P.now.wo_no }}" target="_blank" rel="noopener">{{ t.eq_dx_openwo }} WO {{ P.now.wo_no }} ›</a>{% endif %}
+  </div>
+  {% endif %}
+</div>

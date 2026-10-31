@@ -1,0 +1,136 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div class="pm-drill">
+  {% set un = (item.unavailable if item else 'no_item') %}
+  {% set pm = item.pm if (item and not un) else None %}
+  {% set w = (item.wo or {}) if (item and not un) else {} %}
+  <div class="pm-drill-h">
+    <span class="t">
+      
+
+      {% if pm %}{{ pm.task_name or pm.task_id or pm.pm_id }} · {{ pm.asset_name or pm.asset_id }}
+        {%- if pm.area_label %} <span style="color:var(--mut);font-weight:600">({{ pm.area_label }})</span>
+        {%- else %} <span style="color:var(--mut);font-weight:600">({{ t.pm_area_none }})</span>{% endif %}
+      {% else %}{{ pm_id }}{% endif %}
+    </span>
+    
+
+
+    {% if cmms_wo_base and pm and pm.last_wo and w.status == 'ok' %}
+    <a class="pm-cmms" href="{{ cmms_wo_base }}{{ pm.last_wo }}" target="_blank" rel="noopener">↗ {{ t.pm_item_cmms }}</a>
+    {% endif %}
+    
+    <a class="close" onclick="var s=this.closest('.pm-drillslot'); if(s) s.innerHTML='';">{{ t.eq_close }} ✕</a>
+  </div>
+
+  {% if err %}
+    <div class="pm-none">{{ t.sx_err_lead }} {{ err }}</div>
+  {% elif un %}
+    <div class="pm-none">{{ t.pm_item_unavail }} {{ un }}</div>
+  {% else %}
+    
+    <div class="pm-meta">
+      <span>{{ t.pm_item_freq }}: <b>{% if pm.freq_n %}{{ pm.freq_n }} {{ pm.freq_unit or '' }}{% else %}—{% endif %}</b></span>
+      
+
+      <span>{{ t.pm_item_std }}: <b>{{ pm_hu(pm.std_h, 'h') }}</b></span>
+      <span>{{ t.pm_item_grace }}: <b>{{ pm_hu(pm.grace_d, 'd') }}</b></span>
+      <span>{{ t.pm_item_last }}: <b>{{ pm.last_pm or '—' }}</b></span>
+      <span>{{ t.pm_item_next }}: <b>{{ pm.next_due or '—' }}</b></span>
+      <span>{{ t.pm_item_owner }}: <b>{{ pm.owner or t.pm_owner_unassigned }}</b></span>
+      
+
+      <span class="mut">{{ pm.pm_id }}{% if pm.task_id %} · {{ pm.task_id }}{% endif %}</span>
+    </div>
+
+    
+    {% set st = item.steps or {} %}
+    <div class="pm-sub-h">{{ t.pm_item_steps_hdr }}</div>
+    {% if st.status == 'ok' and st.rows %}
+      <table class="pm-steps">
+        <thead><tr><th>{{ t.pm_item_th_seq }}</th><th>{{ t.pm_item_th_desc }}</th><th>{{ t.pm_item_th_parts }}</th></tr></thead>
+        <tbody>
+        
+
+
+
+
+
+
+
+
+
+        {% for s in st.rows %}
+        <tr>
+          <td class="seq">{{ s.proc_seq if s.proc_seq is not none else '—' }}</td>
+          <td>{{ s.description }}</td>
+          <td class="parts">{% for p in (s.parts or []) %}
+            {%- if p.name and cmms_inv_base %}<a class="pm-part" href="{{ cmms_inv_base }}{{ p.item_code|urlencode }}" target="_blank" rel="noopener" title="{{ p.item_code }}">{{ p.name }}</a>
+            {%- elif p.name %}<span class="pm-part-nolink" title="{{ p.item_code }}">{{ p.name }}</span>
+            {%- else %}{{ p.item_code or '—' }}{% endif %} ×{{ p.quantity if p.quantity is not none else '—' }}
+            {%- if not loop.last %} · {% endif %}{% endfor %}</td>
+        </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+      <div class="pm-secnote" style="margin:6px 0 0">{{ t.pm_item_steps_note }}
+        {% if st.item_name_status and st.item_name_status not in ('ok', 'demo') %}
+          {{ t.pm_item_parts_off.format(r=st.item_name_status) }}
+        {%- else %} {{ t.pm_item_parts_note }}{% endif %}</div>
+    {% elif st.status == 'gone' %}
+      <div class="pm-none">{{ t.pm_item_gone }}</div>
+    {% elif st.status == 'off' %}
+      <div class="pm-none">{{ t.pm_item_stepsoff }}</div>
+    {% elif st.status == 'error' %}
+      <div class="pm-none">{{ t.pm_item_steps_err }} {{ st.reason or '' }}</div>
+    {% else %}
+      
+      <div class="pm-none">{{ t.pm_item_nosteps }}</div>
+    {% endif %}
+
+    
+    {% if w.status and w.status != 'none' %}
+    <div class="pm-sub-h">{{ t.pm_item_wo_hdr }}</div>
+      {% if w.status == 'ok' and w.detail %}
+        <div class="pm-meta">
+          <span><b>WO {{ w.detail.wno }}</b></span>
+          <span>{{ w.detail.status }}</span>
+          {% if w.detail.closed_s %}<span>{{ t.pm_item_wo_closed }}: <b>{{ w.detail.closed_s }}</b></span>{% endif %}
+        </div>
+        {% if w.detail.brief %}<div class="pm-secnote" style="margin:0 0 8px">{{ w.detail.brief }}</div>{% endif %}
+        {% if w.detail.hist %}
+          <div class="pm-secnote" style="margin:0">{{ t.pm_item_wo_hist }}:
+            {% for h in w.detail.hist %}{{ h.to_status }} {{ h.changed_at_s }}{% if not loop.last %} → {% endif %}{% endfor %}
+          </div>
+        {% elif w.detail.fallback_span %}
+          
+          <div class="pm-secnote" style="margin:0">{{ t.pm_item_wo_span }} {{ w.detail.fallback_span }}</div>
+        {% endif %}
+      {% elif w.status == 'gone' %}
+        <div class="pm-none">{{ t.pm_item_wogone }}</div>
+      {% elif w.status == 'off' %}
+        <div class="pm-none">{{ t.pm_item_wooff }}</div>
+      {% else %}
+        <div class="pm-none">{{ t.pm_item_wo_err }} {{ w.reason or '' }}</div>
+      {% endif %}
+    {% endif %}
+  {% endif %}
+</div>

@@ -1,0 +1,69 @@
+{
+  "schema_id": "armops.evidence_bundle.v1",
+  "_synthetic": "DEMO 合成資料——非真實證據包；消費端 normalize 應忽略 _ 前綴欄",
+  "bundle_id": "armev:CELL-SAMPLE:EID-SAMPLE:20260706T030341Z:2d8b5c1f-7e4a-4f92-b6d3-1a9c8e0f5b24",
+  "asset_id": "EID-SAMPLE",
+  "cell_id": "CELL-SAMPLE",
+  "trigger": {
+    "kind": "safety_event",
+    "observed_at": "2026-07-06T03:03:41Z"
+  },
+  "edge_clock_at_package": "2026-07-06T03:05:00Z",
+  "sources": [
+    {
+      "source": "controller_log",
+      "status": "ok",
+      "ref": "evidence/CELL-SAMPLE/20260706T030341Z/controller.log",
+      "bytes": 48213,
+      "file_count": 1,
+      "truncated": false,
+      "clock": { "source_clock": "controller", "note": "廠商韌體時鐘，未對 NTP" }
+    },
+    {
+      "source": "vla_inference_log",
+      "status": "ok",
+      "ref": "evidence/CELL-SAMPLE/20260706T030341Z/vla_inference.jsonl",
+      "bytes": 1204577,
+      "file_count": 1,
+      "truncated": true,
+      "clock": { "source_clock": "cell_edge", "note": "含輸入影像 ref＋動作輸出＋置信；環形緩衝溢出、事發前 8 分起截斷" }
+    },
+    {
+      "source": "camera_ring",
+      "status": "ok",
+      "ref": "evidence/CELL-SAMPLE/20260706T030341Z/camera.mp4",
+      "bytes": 39482113,
+      "file_count": 1,
+      "truncated": false,
+      "pre_trigger_s": 30,
+      "post_trigger_s": 30,
+      "clock": { "source_clock": "cell_edge", "note": "環形緩衝" }
+    },
+    {
+      "source": "cell_io_trace",
+      "status": "unavailable",
+      "reason": "io_tracer_not_armed",
+      "ref": null,
+      "bytes": null,
+      "file_count": null,
+      "truncated": false,
+      "clock": { "source_clock": "plc", "note": "誠實標記：missing 非 skipped" }
+    },
+    {
+      "source": "mes_context",
+      "status": "skipped",
+      "reason": "pre_p2_zero_touch",
+      "ref": null,
+      "bytes": null,
+      "file_count": null,
+      "truncated": false,
+      "clock": { "source_clock": "mes_server", "note": "政策性跳過：P2 前對 MES 零接觸" }
+    }
+  ],
+  "coverage": {
+    "ok": ["controller_log", "vla_inference_log", "camera_ring"],
+    "missing": [{ "source": "cell_io_trace", "reason": "io_tracer_not_armed" }],
+    "skipped": [{ "source": "mes_context", "reason": "pre_p2_zero_touch" }]
+  },
+  "observed_at": "2026-07-06T03:05:00Z"
+}

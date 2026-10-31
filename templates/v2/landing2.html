@@ -1,0 +1,28 @@
+{% extends 'v2/_base.html' %}
+
+
+
+
+
+{% block page %}landing{% endblock %}
+{% block title %}Tendline Board — {{ t.ld_title }}{% endblock %}
+{% block head_extra %}<style>:root{ {% for b, c in ld_color.items() %}{% if c %}--ld-{{ b }}:{{ c }};{% endif %}{% endfor %} }</style>{% endblock %}
+{% block body_class %}{{ 'wall' if wall }}{% endblock %}
+{% block nav %}{% set nav_active = 'landing2' %}{% include 'v2/_nav.html' %}{% endblock %}
+{% block main %}
+  
+  
+  {% if demo %}
+  <div class="srcbanner" role="note"><b>{{ t.ld_demo_tag }}</b><span class="why">{{ t.ld_demo_note }}</span></div>
+  {% endif %}{#-#}
+
+  {% if not lay.ok %}
+  <div class="errcard" role="alert"><b>{{ t.ld_err_title }}</b><div class="sub">{{ t.ld_err_note }}</div>
+    <div class="sub"><code>{{ lay.err }}</code></div></div>
+  {% else %}
+  <div id="ld-body" hx-get="/landing2/body?{{ ld_qs }}{% if sel %}&eid={{ sel }}{% endif %}{% if sel_unit %}&unit={{ sel_unit }}{% endif %}{% if filter %}&filter={{ filter }}{% endif %}{% if wall %}&wall=1{% endif %}&ui={{ ui }}"
+       hx-trigger="load" hx-swap="innerHTML">
+    <div class="loading" role="status"><span class="spin" aria-hidden="true"></span>{{ t.ld_loading }}</div>
+  </div>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,25 @@
+{
+  "items": [
+    {
+      "asset_id": "EID-09670",
+      "state": "not_scheduled",
+      "since": "2025-10-24",
+      "reason": "線外查修,暫不排產"
+    },
+    {
+      "asset_id": "EID-27639",
+      "state": "in_production",
+      "since": "2026-03-02",
+      "reason": null
+    },
+    {
+      "asset_id": "EID-27706",
+      "state": "in_production",
+      "since": null,
+      "reason": null
+    }
+  ],
+  "unknown": [
+    "EID-99999"
+  ]
+}

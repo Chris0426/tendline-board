@@ -1,0 +1,712 @@
+
+
+
+
+
+
+  
+
+  {% if sb_err or not m or not m.rows %}
+    <div class="dy-unavail">{{ t.sb_unavail if t.sb_unavail is defined else t.daily_nosignal }}</div>
+    {% if sb_err %}<div class="dy-srcline">{{ t.sx_err_lead if t.sx_err_lead is defined else 'error' }} <code>{{ sb_err }}</code></div>{% endif %}
+  {% else %}
+  {% set H = m.hero %}{% set L = m.line %}
+  
+  {% set pglyph = {'scrap': '⊘', 'rework': '⟳', 'slow': '▽'} %}
+  {% set grpkey = {'assyModule': 'dl_grp_ph', 'assyUnit': 'dl_grp_pc',
+                   'assyPackagedUnit': 'dl_grp_ppc'} %}
+  
+
+
+
+
+  {% set csep = '、' if lang == 'zh' else ', ' %}
+  {% set sentkey = {'plain': 'un_sent_plain', 'clean': 'un_sent_met_clean',
+                    'noruler': 'un_sent_noruler', 'full': 'un_sent_full',
+                    'short': 'un_sent_short'} %}
+  
+  {% if source == 'demo' %}
+  <div class="dy-srcbanner">⚠ {{ t.h_demo_all }}<span class="why">{{ t.h_demo_all_why }}</span></div>
+  {% else %}
+  <div class="dy-honesty">
+    <span class="dy-pill real">✓ {{ t.h_real }}</span>
+    <span class="dy-pill">⚠ {{ t.h_demo_target }}</span>
+    <span class="dy-pill">⚠ {{ t.c_wip }} {{ t.demo_tag }}</span>
+    <span class="why">{{ t.h_why }}</span>
+  </div>
+  {% endif %}
+
+  {% if sb %}<div class="dy-srcline"><span class="live">{{ source|upper }}</span> · MES {{ t.now }} {{ clock(sb.mes_now) }} · {{ t.daily_win_pfx }} {{ win_lbl }}</div>{% endif %}
+  {% if range_unsupported %}<div class="dy-srcbanner">⚠ {{ t.daily_range_unsupported }}</div>{% endif %}
+  
+
+  {% if restday %}<div class="dy-srcline">{{ t.dl_restday.replace('{d}', restday.day) }}{% if restday.n_prod %}
+    {{ t.dl_restday_some.replace('{n}', restday.n_prod|string) }}{% endif %}</div>{% endif %}
+
+  
+  <section class="dy-hero2">
+  <div class="dy-hero">
+    {% if H.n_targeted %}
+    {% set C = 276.46 %}
+    {% set on_len = C * H.n_on / H.n_targeted %}
+    {% set beh_len = C - on_len %}
+    <svg width="116" height="116" viewBox="0 0 112 112" role="img" aria-label="on-target share">
+      <circle cx="56" cy="56" r="44" fill="none" stroke="var(--track)" stroke-width="13"/>
+      {% if on_len > 0 %}
+      <circle cx="56" cy="56" r="44" fill="none" stroke="var(--good)" stroke-width="13"
+              stroke-dasharray="{{ '%.2f'|format([on_len - (3 if beh_len > 0 else 0), 0]|max) }} {{ '%.2f'|format(C) }}"
+              transform="rotate(-90 56 56)"/>
+      {% endif %}
+      {% if beh_len > 0 %}
+      <circle cx="56" cy="56" r="44" fill="none" stroke="var(--bad)" stroke-width="13"
+              stroke-dasharray="{{ '%.2f'|format([beh_len - 3, 0]|max) }} {{ '%.2f'|format(C) }}"
+              stroke-dashoffset="{{ '%.2f'|format(-on_len) }}" transform="rotate(-90 56 56)"/>
+      {% endif %}
+      <text x="56" y="62" text-anchor="middle" font-size="17" font-weight="800"
+            fill="var(--fg)">{{ '%.0f'|format(100 * H.n_on / H.n_targeted) }}%</text>
+    </svg>
+    <div>
+      <div class="dy-hero-k">{{ t.daily_sub }}</div>
+      <div class="dy-hero-fig">{{ H.n_on }}<small> / {{ H.n_targeted }}</small></div>
+      <div class="dy-hero-legend">
+        <span><span class="dot" style="background:var(--good)"></span>{{ H.n_on }} {{ t.legend_on if t.legend_on is defined else 'on target' }}</span>
+        <span><span class="dot" style="background:var(--bad)"></span>{{ H.n_behind }} {{ t.legend_behind if t.legend_behind is defined else 'behind' }}</span>
+        <span><span class="dot" style="background:var(--track)"></span>{{ H.n_nosignal }} {{ t.daily_nosignal }}</span>
+      </div>
+    </div>
+    <div class="dy-hero-side">
+      <div class="dy-hstat"><span class="k">{{ t.l1_behind if t.l1_behind is defined else 'Behind' }}</span>
+        <span class="v {{ 'bad' if H.n_behind else 'good' }}">{{ H.n_behind }}</span></div>
+      {% if H.worst %}
+      {% set _board = (m.rows | selectattr('cls', 'equalto', H.worst.cls) | list | first) %}
+      <div class="dy-hstat"><span class="k">{{ t.worst_lbl }}</span>
+        <span class="v bad" style="font-size:14px"><a href="#row-{{ H.worst.cls }}">{{ _board.display if _board else H.worst.cls }} {{ H.worst.gap }} ›</a></span></div>
+      {% endif %}
+      <div class="dy-hstat"><span class="k">{{ t.c_ot_wip }} <span class="tag demo">{{ t.demo_tag }}</span>
+        <span class="help" tabindex="0">?<span class="tip">{{ t.q_ot_wip }}</span></span></span>
+        <span class="v {{ 'warn' if H.total_ot_wip_h else '' }}">~{{ '%.0f'|format(H.total_ot_wip_h) }} <small>{{ t.hours }}</small></span></div>
+    </div>
+    {% else %}
+    <div style="grid-column:1/-1">
+      <div class="dy-hero-k">{{ t.daily_sub }}</div>
+      <div class="dy-hero-fig mut" style="color:var(--mut)">—</div>
+      <div class="dy-hero-legend"><span>{{ H.n_nosignal }} {{ t.daily_nosignal }}</span></div>
+    </div>
+    {% endif %}
+  </div>
+
+  
+
+
+
+  <div class="dy-loss">
+    {% set HL = H.loss %}
+    {% if HL %}
+    
+
+
+
+
+
+
+    <div class="k">{{ t.un_unused }}
+      <span class="help" tabindex="0">?<span class="tip">{{ t.un_unused_q }}</span></span></div>
+    
+    <div class="big" title="{{ t.un_ruler }}{% if HL.get('n_ruled') is not none %} · {{ HL.get('n_ruled') }}/{{ HL.get('n_ruled') + (HL.get('n_no_ruler') or 0) }}{% endif %}">
+      {%- if HL.get('actionable') is not none -%}
+        ≈{{ "{:,}".format(HL.get('actionable')|round|int) }} <small>{{ t.dl_pcs_unit }}</small>
+      {%- else -%}
+        <span style="color:var(--mut)">—</span>
+      {%- endif %}
+      <span class="help" tabindex="0">?<span class="tip r">{{ t.un_ruler_q }}</span></span></div>
+    {% if HL.ranked and skey %}
+    <div class="dy-cause">
+      {% for c in HL.ranked[:3] %}
+      <span class="dy-chip {{ ('pb p-' ~ c.bucket) if c.acct == 'pcs' else ('tb b-' ~ c.bucket) }}"
+            title="{{ t[pkey[c.bucket]] if c.acct == 'pcs' else t[bkey[c.bucket]] }}">
+        {%- if c.acct == 'pcs' %}{{ pglyph[c.bucket] }} {% endif -%}
+        {{ t[skey[c.bucket]] }} {% if c.acct == 'time' or c.approx %}≈{% endif %}{{ "{:,}".format(c.pcs|round|int) }} {{ t.dl_pcs_unit }}</span>
+      {% endfor %}
+    </div>
+    
+    {% set _t1 = HL.ranked[0] %}
+    {% set _w = (HL.worst or {}).get(_t1.bucket) %}
+    {% if _w and _w.cls %}
+    {% set _board2 = (m.rows | selectattr('cls', 'equalto', _w.cls) | list | first) %}
+    <div class="sub">{{ t[skey[_t1.bucket]] }} · {{ t.dl_hero_worst_at }}
+      <b><a href="#row-{{ _w.cls }}">{{ _board2.display if _board2 else _w.cls }}</a></b>
+      {%- if _w.get('pcs') is not none %} <small>≈{{ "{:,}".format(_w.get('pcs')|round|int) }} {{ t.dl_pcs_unit }}</small>{% endif %}</div>
+    {% endif %}
+    {% endif %}
+    
+    {% if HL.slow_gain %}
+    <div class="mut">▲ {{ t.un_faster }} ≈{{ "{:,}".format(HL.slow_gain|abs|round|int) }} {{ t.dl_pcs_unit }}</div>
+    {% endif %}
+    
+    <div class="presume">
+      <span>{{ t.un_presumed }}
+        <span class="help" tabindex="0">?<span class="tip r">{{ t.un_presumed_q }}</span></span></span>
+      <span class="v">
+        {%- if HL.get('unexplained') is not none %}≈{{ "{:,}".format(HL.get('unexplained')|round|int) }} {{ t.dl_pcs_unit }}{% else %}—{% endif -%}
+        {%- if HL.get('unexplained_h') is not none %} / {{ "{:,}".format(HL.get('unexplained_h')|round|int) }} {{ t.dl_mh }}{% endif -%}
+      </span>
+    </div>
+    
+
+
+    {% if H.sent_line and skey %}
+    {% set S = H.sent_line %}
+    {% set _sk = sentkey.get(S.kind) %}
+    {% set _stpl = t[_sk] if (_sk and _sk in t) else (t.un_sent_short if (S.kind == 'plain' and 'un_sent_short' in t) else none) %}
+    {% if _stpl or S.get('unexp_h') is not none %}
+    <div class="mut">
+      {%- if _stpl -%}
+        {% set _cz = [] %}
+        {%- for _b, _n in (S.causes or []) -%}
+          {%- set _ = _cz.append(t[skey[_b]] ~ ' ≈' ~ "{:,}".format(_n|round|int)) -%}
+        {%- endfor -%}
+        {{ _stpl.replace('{gap}', "{:,}".format((S.get('gap') or 0)|round|int)).replace('{tot}', "{:,}".format((S.get('tot') or 0)|round|int)).replace('{causes}', _cz|join(csep)) }}
+      {%- endif -%}
+      {%- if S.get('unexp_h') is not none and 'un_sent_unexp' in t %}
+        {{ t.un_sent_unexp.replace('{h}', '%.1f'|format(S.get('unexp_h'))).replace('{n}', "{:,}".format((S.get('unexp_n') or 0)|round|int)) }}
+      {%- endif -%}
+    </div>
+    {% endif %}
+    {% endif %}
+    {% else %}
+    
+    <div class="k">{{ t.dl_hero_cause }}
+      <span class="help" tabindex="0">?<span class="tip">{{ t.dl_rank_note }}</span></span></div>
+    {% set TOP = (m.hero_top or {}).get('top') %}
+    {% if TOP %}
+    {% set _ccol = ('p-' ~ TOP.bucket) if TOP.acct == 'pcs'
+                   else ('b-' ~ ('unexp' if TOP.bucket == 'unexplained' else TOP.bucket)) %}
+    <div class="big" style="color:var(--{{ _ccol }})">
+      {{ (t[pkey[TOP.bucket]].split('—')[0]).rstrip() if TOP.acct == 'pcs' else t[bkey[TOP.bucket]] }}
+      {% if TOP.acct == 'time' -%}
+        {{ '%.1f'|format(TOP.mh) }}<small>{{ t.dl_mh_short }}</small> <small>≈{{ "{:,}".format(TOP.pcs|round|int) }} {{ t.dl_pcs_unit }}</small>
+      {%- else -%}
+        {% if TOP.approx %}≈{% endif %}{{ "{:,}".format(TOP.pcs|round|int) }} <small>{{ t.dl_pcs_unit }}</small>
+      {%- endif %}
+    </div>
+    {% if TOP.worst_cls %}
+    {% set _tw = (m.rows | selectattr('cls', 'equalto', TOP.worst_cls) | list | first) %}
+    <div class="sub">{{ t.dl_hero_worst_at }} <b><a href="#row-{{ TOP.worst_cls }}">{{ _tw.display if _tw else TOP.worst_cls }}</a></b></div>
+    {% endif %}
+    
+    {% set ALT = (m.hero_top or {}).get('alt') %}
+    {% if ALT %}
+    <div class="alt">{{ t.dl_hero_pcs_top if ALT.acct == 'pcs' else t.dl_hero_time_top }}:
+      {{ (t[pkey[ALT.bucket]].split('—')[0]).rstrip() if ALT.acct == 'pcs' else t[bkey[ALT.bucket]] }}
+      {% if ALT.acct == 'time' %}{{ '%.1f'|format(ALT.mh) }}{{ t.dl_mh_short }} ≈{{ "{:,}".format(ALT.pcs|round|int) }} {{ t.dl_pcs_unit }}{% else %}{% if ALT.approx %}≈{% endif %}{{ "{:,}".format(ALT.pcs|round|int) }} {{ t.dl_pcs_unit }}{% endif %}</div>
+    {% endif %}
+    {% elif m.attrib_ok and H.worst_cause %}
+    
+    <div class="big" style="color:var(--b-{{ 'unexp' if H.worst_cause[0] == 'unexplained' else H.worst_cause[0] }})">
+      {{ t[bkey[H.worst_cause[0]]] }} {{ '%.1f'|format(H.worst_cause[1]) }}<small>{{ t.dl_mh_short }}</small></div>
+    {% if H.worst_cause_station %}<div class="sub">{{ t.dl_hero_worst_at }} <b>{{ H.worst_cause_station }}</b></div>{% endif %}
+    {% else %}
+    <div class="big" style="color:var(--mut)">—</div>
+    {% endif %}
+    
+    {% if (m.hero_top or {}).get('unranked_mh') %}
+    <div class="mut">{{ t.dl_hero_unranked.replace('{h}', '%.1f'|format(m.hero_top.unranked_mh)) }}</div>
+    {% endif %}
+    {% if m.attrib_ok and H.attrib %}
+    <div class="mut">{{ t.dl_lost }} {{ '%.0f'|format(H.attrib.lost_h) }} {{ t.dl_mh }}
+      {%- if H.attrib.total_mh %} / {{ '%.0f'|format(H.attrib.total_mh) }}{% endif %}
+      <span class="help" tabindex="0">?<span class="tip">{{ t.at_est }}</span></span></div>
+    {% endif %}
+    {% endif %}
+  </div>
+  </section>
+  {% if not m.attrib_ok %}
+  <div class="dy-srcline">{{ t.dl_led_unavail }}{% if m.attrib_reason %} <code>{{ m.attrib_reason }}</code>{% endif %}</div>
+  {% endif %}
+
+  
+  <div class="dy-sec-h"><h2>{{ t.dl_map_hdr }}</h2><span class="meta">{{ t.daily_map_hint }}</span></div>
+  <div class="dy-map">
+    {% set nsm = namespace(grp=None) %}
+    {% for r in m.rows %}
+    {% if nsm.grp is not none and r.mcl != nsm.grp %}<i class="sep"></i>{% endif %}
+    {% set nsm.grp = r.mcl %}
+    {% set cs = 'nosig' if r.no_signal else ('ok' if r.met else ('bad' if r.met == False else 'none')) %}
+    {% set sy = '∅' if r.no_signal else ('✓' if r.met else ('✕' if r.met == False else '–')) %}
+    
+    <a class="dy-mblk {{ cs }}" href="#row-{{ r.cls }}"
+       title="{{ r.ord }}. {{ r.display }}{% if r.display_source == 'derived' %}（{{ t.qk_disp_derived }}）{% endif %} · {{ r.cls }}{% if r.target %} · {{ '%.0f'|format(100.0 * r.output / r.target) }}%{% elif r.no_signal %} · {{ t.daily_nosignal }}{% endif %}">
+      <span class="o">{{ r.ord }} <b class="sy">{{ sy }}</b></span>
+      <span class="nm">{{ r.display }}</span></a>
+    {% endfor %}
+  </div>
+
+  
+  {% if L %}
+  <div class="dy-oee">
+    <span class="lbl">{{ t.oee_line_lbl if t.oee_line_lbl is defined else 'Line OEE' }}</span>
+    <span class="score" style="color:{{ 'var(--good)' if L.oee>=0.6 else ('var(--warn)' if L.oee>=0.4 else 'var(--bad)') }}">{{ '%.0f'|format(L.oee*100) }}%</span>
+    <span class="eq">= <span class="fac">{{ t.kpi_avail_t }} {{ '%.0f'|format(L.availability*100) }}%</span>
+      <span class="op">×</span><span class="fac">{{ t.kpi_effi_t }} {% if L.utilization is not none %}{{ '%.0f'|format(L.utilization*100) }}%{% else %}—{% endif %}</span>
+      <span class="op">×</span><span class="fac">{{ t.kpi_qual_t }} {% if L.quality is not none %}{{ '%.0f'|format(L.quality*100) }}%{% else %}—{% endif %}</span></span>
+    <span class="scope">{{ t.daily_oee_scope }} · {{ t.oee_au_note }}</span>
+  </div>
+  {% endif %}
+
+  
+  <div class="dy-sec-h"><h2>{{ t.dl_tbx_hdr }}</h2><span class="meta">{{ t.dl_tbx_hint }} · {{ win_lbl }}</span></div>
+  {% if not m.unit_ok %}<div class="dy-cover">{{ t.at_p_unavail }}{% if m.unit_reason %} <code>{{ m.unit_reason }}</code>{% endif %}</div>{% endif %}
+  
+
+  <div class="dy-legend dy-leg-top">
+    <span class="grp-lbl">{{ t.dl_leg_hdr }}</span>
+    <span class="grp-lbl">— {{ t.dl_leg_time }}:</span>
+    <span><span class="sw" style="background:var(--b-prod)"></span>{{ t.at_b_producing }}</span>
+    
+
+    <span class="dy-lsub">↳ {{ t.un_split_hdr }}:
+      <span class="sw" style="background:var(--b-prod)"></span>{{ t.un_b_goodh }}
+      <span class="sw" style="background:var(--p-rework)"></span>{{ t.un_b_reworkh }}
+      <span class="sw" style="background:var(--p-scrap)"></span>{{ t.un_b_scraph }}
+      <span class="help" tabindex="0">?<span class="tip">{{ t.un_split_q }}</span></span></span>
+    <span><span class="sw" style="background:var(--b-wo)"></span>{{ t.at_b_wo }}</span>
+    <span><span class="sw" style="background:var(--b-starved)"></span>{{ t.at_b_starved }}</span>
+    <span><span class="sw" style="background:var(--b-blocked)"></span>{{ t.at_b_blocked }}</span>
+    <span><span class="sw" style="background:var(--b-unexp)"></span>{{ t.at_b_unexplained }}</span>
+    <span class="grp-lbl">— {{ t.dl_leg_pcs }}:</span>
+    <span><span class="sw" style="background:var(--p-scrap)"></span>{{ pglyph['scrap'] }} {{ (t.at_p_scrap.split('—')[0]).rstrip() }}
+      <span class="help" tabindex="0">?<span class="tip r">{{ t.dl_leg_scrap_q }}</span></span></span>
+    <span><span class="sw" style="background:var(--p-rework)"></span>{{ pglyph['rework'] }} {{ (t.at_p_rework.split('—')[0]).rstrip() }}
+      <span class="help" tabindex="0">?<span class="tip r">{{ t.dl_leg_rework_q }}</span></span></span>
+    <span><span class="sw" style="background:var(--p-slow)"></span>{{ pglyph['slow'] }} {{ (t.at_p_slow.split('—')[0]).rstrip() }}
+      <span class="help" tabindex="0">?<span class="tip r">{{ t.dl_leg_slow_q }}</span></span></span>
+    
+
+    <span class="dy-lmut">{{ t.dl_leg_note }} — {{ t.un_ruler }}
+      <span class="help" tabindex="0">?<span class="tip r">{{ t.un_ruler_q }}</span></span></span>
+  </div>
+  <div class="dy-list">
+    <div class="dy-mrow hd">
+      <span>{{ t.sb_c_station if t.sb_c_station is defined else 'Station' }}</span>
+      <span>{{ t.c_output }} / {{ t.c_target }} <span class="dy-hdr-demo tag demo">{{ t.demo_tag }}</span></span>
+      <span>{{ t.dl_col_causes }}</span>
+      <span>{{ t.dl_led_col }}</span>
+      <span>{{ t.c_wip }} <span class="dy-hdr-demo tag demo">{{ t.demo_tag }}</span></span>
+      <span style="text-align:right">{{ t.c_ot_wip }} <span class="dy-hdr-demo tag demo">{{ t.demo_tag }}</span></span>
+    </div>
+    {% set nst = namespace(grp=None) %}
+    {% for r in m.rows %}
+    {% if r.mcl != nst.grp %}<div class="dy-mrow grp">{{ t[grpkey[r.mcl]] if r.mcl in grpkey else r.mcl }}</div>{% endif %}
+    {% set nst.grp = r.mcl %}
+    {% set sy = '∅' if r.no_signal else ('✓' if r.met else ('✕' if r.met == False else '–')) %}
+    {% set syc = 'nosig' if r.no_signal else ('ok' if r.met else ('bad' if r.met == False else 'none')) %}
+    {% set att_pct = (100.0 * r.output / r.target) if r.target else 0 %}
+    <details class="dy-drow" id="row-{{ r.cls }}">
+    
+
+
+
+    {% set _sp = r.pcs if (r.pcs and spkey) else none %}
+    {% set _spg = _sp.get('good_h') if _sp else none %}
+    {% set _spr = _sp.get('rework_h') if _sp else none %}
+    {% set _sps = _sp.get('scrap_h') if _sp else none %}
+    {% set _spp = r.led.producing_h if (r.led and not r.led.unmeasurable) else none %}
+    {% set SPOK = (_spg is not none and _spr is not none and _sps is not none
+                   and _spp is not none
+                   and ((_spg + _spr + _sps) - _spp)|abs <= 0.01) %}
+    <summary class="dy-mrow {{ 'nosig' if r.no_signal }}" title="{{ t.dl_detail_open }}">
+      
+
+      <span class="st"><span class="sym {{ syc }}">{{ sy }}</span>
+        <span class="nm"{% if r.display_source == 'derived' %} title="{{ t.qk_disp_derived }}"{% endif %}><a href="/station/{{ r.cls }}?source={{ source }}&days=1&stop_min={{ stop_min|default(15) }}&lang={{ lang }}">{{ r.ord }}. {{ r.display }}</a></span>
+        <span class="id">{{ r.cls }}</span></span>
+      
+      <div>
+        {% if r.target %}
+        
+        <div class="dy-bul"><i style="width:{{ '%.1f'|format([att_pct, 100]|min) }}%"></i></div>
+        <div class="dy-bnum" style="text-align:left"><b>{{ "{:,}".format(r.output) }}</b> / {{ "{:,}".format(r.target) }}
+          {% if r.gap is not none %}<span style="color:{{ 'var(--good)' if r.met else 'var(--bad)' }}">({{ '%+d'|format(r.gap) }})</span>{% endif %}</div>
+        {% elif r.output_withheld %}
+        <div class="dy-bnum" style="text-align:left" title="{{ t.qk_unavail_short }}">{{ t.c_output }}: —</div>
+        {% else %}
+        <div class="dy-bnum" style="text-align:left">{% if r.no_signal %}{{ t.daily_nosignal }}{% else %}{{ t.c_output }}: —{% endif %}</div>
+        {% endif %}
+      </div>
+      
+
+
+      <div class="dy-cause">
+        {% if r.ranked and skey %}
+        
+
+
+
+        
+
+        {% for c in r.ranked[:3] %}
+        <span class="dy-chip {{ ('pb p-' ~ c.bucket) if c.acct == 'pcs' else ('tb b-' ~ c.bucket) }}" data-rk="1"
+              title="{{ t[pkey[c.bucket]] if c.acct == 'pcs' else t[bkey[c.bucket]] }}">
+          {%- if c.acct == 'pcs' %}{{ pglyph[c.bucket] }} {% endif -%}
+          {{ t[skey[c.bucket]] }} {% if c.acct == 'time' or c.approx %}≈{% endif %}{{ "{:,}".format(c.pcs|round|int) }} {{ t.dl_pcs_unit }}</span>
+        {% endfor %}
+        {% else %}
+        
+
+
+        {% for c in r.led_chips or [] %}
+        <span class="dy-chip tb b-{{ c.bucket }}"
+              title="{{ t[bkey[c.bucket]] }} · {{ '%.2f'|format(c.h) }} {{ t.dl_mh }}">
+          {{ t[bkey[c.bucket]] }} {{ '%.1f'|format(c.h) }}{{ t.dl_mh_short }}
+          {%- if c.est %} ≈{{ "{:,}".format(c.est) }} {{ t.dl_pcs_unit }}{% endif %}</span>
+        {% endfor %}
+        {% for p in r.pcs_chips or [] %}
+        <span class="dy-chip pb p-{{ p.bucket }}"
+              title="{{ t[pkey[p.bucket]] }}{% if p.bucket == 'slow' %} · {{ t.at_p_est }}{% endif %}">
+          {{ pglyph[p.bucket] }} {{ (t[pkey[p.bucket]].split('—')[0]).rstrip() }}
+          {% if p.approx %}≈{% endif %}{{ "{:,}".format(p.n) }} {{ t.dl_pcs_unit }}</span>
+        {% endfor %}
+        {% if not r.led_chips and not r.pcs_chips and r.met == False and r.cause %}
+        
+        <span class="dy-chip">{{ t.cause_avail }} {{ r.cause.avail }}</span>
+        <span class="dy-chip">{{ t.cause_effi }} {{ r.cause.effi }}</span>
+        {% if r.cause.has_quality %}<span class="dy-chip">{{ t.cause_yield }} {{ r.cause.yield }}</span>{% endif %}
+        <span class="tag demo">{{ t.demo_tag }}</span>
+        {% endif %}
+        
+
+
+        {% if r.led_presume %}
+        <span class="dy-lmut sm">{{ t.un_presumed }} {{ '%.1f'|format(r.led_presume.h) }}{{ t.dl_mh_short }}
+          {%- if r.led_presume.est %} ≈{{ "{:,}".format(r.led_presume.est) }} {{ t.dl_pcs_unit }}{% endif %}
+          <span class="help" tabindex="0">?<span class="tip r">{{ t.un_presumed_q }}</span></span></span>
+        {% endif %}
+        
+        {% if r.sent and r.sent.kind == 'noruler' %}
+        <span class="dy-lmut sm">{{ t.un_ruler_none }}</span>
+        {% endif %}
+        {% endif %}
+      </div>
+      
+
+      <div>
+        {% if r.led and not r.led.unmeasurable %}
+        {% set LG = r.led %}{% set tot = LG.total_mh or 1 %}
+        
+
+
+
+        
+
+
+        {% set SP = SPOK %}
+        {% if SP %}
+        {% set segs = [('goodh', t[spkey['good_h']], r.pcs.get('good_h')),
+                       ('reworkh', t[spkey['rework_h']], r.pcs.get('rework_h')),
+                       ('scraph', t[spkey['scrap_h']], r.pcs.get('scrap_h')),
+                       ('wo', t.at_b_wo, LG.wo_union_h),
+                       ('starved', t.at_b_starved, LG.starved_h),
+                       ('blocked', t.at_b_blocked, LG.blocked_h),
+                       ('unexplained', t.at_b_unexplained, LG.unexplained_h)] %}
+        {% else %}
+        {% set segs = [('prod', t.at_b_producing, LG.producing_h),
+                       ('wo', t.at_b_wo, LG.wo_union_h),
+                       ('starved', t.at_b_starved, LG.starved_h),
+                       ('blocked', t.at_b_blocked, LG.blocked_h),
+                       ('unexplained', t.at_b_unexplained, LG.unexplained_h)] %}
+        {% endif %}
+        {% set aria = [] %}
+        {%- for cl, lb, v in segs -%}
+          {%- set _ = aria.append(lb ~ ' ' ~ ('%.1f'|format(v) if v is not none else '—')) -%}
+        {%- endfor -%}
+        <div class="dy-stack" role="img" aria-label="{{ aria|join(' · ') }}">
+          {% for cl, lb, v in segs %}
+          {% if v and v > 0 %}
+          <i class="{{ cl }}" style="width:{{ '%.3f'|format(100.0 * v / tot) }}%"
+             title="{{ lb }} · {{ '%.2f'|format(v) }} {{ t.dl_mh }} ({{ '%.0f'|format(100.0 * v / tot) }}%)"></i>
+          {% endif %}
+          {% endfor %}
+        </div>
+        
+
+
+        <div class="dy-bnum" style="text-align:left">{{ t.dl_lost }} <b>{{ '%.1f'|format(LG.lost_h) }}</b> {{ t.dl_mh_short }}
+          {%- if LG.est and r.led_est_show %} <small>≈{{ "{:,}".format(LG.est.lost_total) }}</small>{% endif %}</div>
+        {% elif r.cls not in ast_cls %}
+        
+        <span class="dy-lmut sm">— {{ t.dl_no_eq }}</span>
+        {% elif r.led %}
+        <span class="dy-lmut sm">— {{ t[nkey[r.led_note]] if r.led_note and nkey[r.led_note] else t.dl_led_none }}</span>
+        {% elif m.attrib_ok %}
+        <span class="dy-lmut">{{ t.dl_led_none }}</span>
+        {% else %}
+        <span class="dy-lmut">—</span>
+        {% endif %}
+      </div>
+      
+      <div>
+        {% if r.wip is not none and r.wip_target %}
+        <div class="dy-mini"><i style="width:{{ '%.0f'|format([100.0 * r.wip / r.wip_target, 100]|min) }}%"></i></div>
+        <div class="dy-bnum" style="text-align:left"><b>{{ "{:,}".format(r.wip) }}</b> / {{ "{:,}".format(r.wip_target) }}</div>
+        {% else %}<div class="dy-bnum" style="text-align:left">—</div>{% endif %}
+      </div>
+      
+      <div class="dy-num">{% if r.ot_wip_h is not none %}~{{ '%.1f'|format(r.ot_wip_h) }}{{ t.h_short }}{% else %}<small>—</small>{% endif %}</div>
+    </summary>
+    <div class="dy-dbody">
+      
+
+
+      {% if r.sent and skey %}
+      {% set S = r.sent %}
+      {% set _sk = sentkey.get(S.kind) %}
+      {% set _stpl = t[_sk] if (_sk and _sk in t) else (t.un_sent_short if (S.kind == 'plain' and 'un_sent_short' in t) else none) %}
+      
+
+      {% set _gain = (r.pcs.get('speed_gain_good') is not none) if r.pcs else false %}
+      
+      {% if _stpl or S.get('unexp_h') is not none or _gain %}
+      <div class="sent">
+        {%- if _stpl -%}
+          {% set _cz = [] %}
+          {%- for _b, _n in (S.causes or []) -%}
+            {%- set _ = _cz.append(t[skey[_b]] ~ ' ≈' ~ "{:,}".format(_n|round|int)) -%}
+          {%- endfor -%}
+          {{ _stpl.replace('{gap}', "{:,}".format((S.get('gap') or 0)|round|int)).replace('{tot}', "{:,}".format((S.get('tot') or 0)|round|int)).replace('{causes}', _cz|join(csep)) }}
+        {%- endif -%}
+        {%- if S.get('unexp_h') is not none and 'un_sent_unexp' in t %}
+        <span class="un">{{ t.un_sent_unexp.replace('{h}', '%.1f'|format(S.get('unexp_h'))).replace('{n}', "{:,}".format((S.get('unexp_n') or 0)|round|int)) }}</span>
+        {%- endif -%}
+        
+        {%- if _gain %}
+        <span class="gain">▲ {{ t.un_faster }} +{{ "{:,}".format(r.pcs.get('speed_gain_good')|round|int) }} {{ t.dl_pcs_unit }}</span>
+        {%- endif -%}
+      </div>
+      {% endif %}
+      {% endif %}
+      
+      {% if r.led and not r.led.unmeasurable %}
+      {% set LG = r.led %}
+      <div class="sec"><b>{{ t.at_hdr }}</b> · {{ LG.fleet_n }} × 24h = {{ '%.0f'|format(LG.total_mh) }} {{ t.dl_mh }}</div>
+      <div>
+        {{ t.at_b_producing }} <b>{{ '%.2f'|format(LG.producing_h) }}</b> ·
+        {{ t.at_b_wo }} <b>{{ '%.2f'|format(LG.wo_union_h) }}</b> ·
+        {{ t.at_b_starved }} <b>{{ '%.2f'|format(LG.starved_h) }}</b> ·
+        {{ t.at_b_blocked }} <b>{{ '%.2f'|format(LG.blocked_h) }}</b> ·
+        {{ t.at_b_unexplained }} <b>{{ '%.2f'|format(LG.unexplained_h) }}</b> {{ t.dl_mh }}
+        {% if LG.wo_h %}<br>{{ t.dl_wo_states }}
+          <span class="help" tabindex="0">?<span class="tip r">{{ t.dl_wo_states_q }}</span></span>:
+          {% for st, h in LG.wo_h.items() %}{% if h and h > 0 %}{{ st }} <b>{{ '%.2f'|format(h) }}</b>{{ ' · ' if not loop.last }}{% endif %}{% endfor %}
+        {% endif %}
+        
+
+        {% if LG.wo_overlap_prod_h and LG.wo_overlap_prod_h > 0 %}
+        <br>{{ t.at_overlap }} <b>{{ '%.2f'|format(LG.wo_overlap_prod_h) }}</b> {{ t.dl_mh }}
+          {%- if LG.wo_union_pre_h %} ({{ '%.2f'|format(LG.wo_union_pre_h) }} → {{ '%.2f'|format(LG.wo_union_h) }}){% endif %}
+        {% endif %}
+        {% if LG.diag and LG.diag.off_shift_gated_h and LG.diag.off_shift_gated_h > 0 %}
+        <br>{{ t.at_gate.replace('{h}', '%g'|format(LG.th.active_near_h)) }}
+          (<b>{{ '%.2f'|format(LG.diag.off_shift_gated_h) }}</b> {{ t.dl_mh }})
+        {% endif %}
+        {% if LG.diag and LG.diag.wo_source != 'ok' %}<br>⚠ {{ t.at_note_wo_degraded }}{% endif %}
+        
+
+        {% if LG.est and r.led_est_show %}<br>{{ t.at_est }} ≈{{ "{:,}".format(LG.est.lost_total) }}{% endif %}
+      </div>
+      
+
+      {% if SPOK %}
+      <div class="sec"><b>{{ t.un_split_hdr }}</b>
+        <span class="help" tabindex="0">?<span class="tip r">{{ t.un_split_q }}</span></span> ·
+        {%- for _k in ['good_h', 'rework_h', 'scrap_h'] %}
+        {{ t[spkey[_k]] }} <b>{% if r.pcs.get(_k) is not none %}{{ '%.2f'|format(r.pcs.get(_k)) }}{% else %}—{% endif %}</b>
+        {%- if not loop.last %} ·{% endif %}
+        {%- endfor %} {{ t.dl_mh }}
+      </div>
+      {% endif %}
+      {% elif r.led %}
+      <div class="sec">{{ t[nkey[r.led_note]] if r.led_note and nkey[r.led_note] else t.dl_led_none }}</div>
+      {% elif r.cls not in ast_cls %}
+      <div class="sec">{{ t.dl_no_eq }}</div>
+      {% endif %}
+      
+      {% if r.pcs %}
+      <div class="sec"><b>{{ t.dl_pareto_pcs_sub }}</b> ·
+        {{ pglyph['scrap'] }} {{ t.at_p_scrap }} <b>{% if r.pcs.scrap_n is not none %}{{ "{:,}".format(r.pcs.scrap_n) }}{% else %}—{% endif %}</b> ·
+        {{ pglyph['rework'] }} {{ t.at_p_rework }} <b>{% if r.pcs.rework_n is not none %}{{ "{:,}".format(r.pcs.rework_n) }}{% else %}—{% endif %}</b> ·
+        {{ pglyph['slow'] }} {{ t.at_p_slow }} <b>{% if r.pcs.slow_est_n is not none %}≈{{ "{:,}".format(r.pcs.slow_est_n) }}{% else %}—{% endif %}</b> {{ t.dl_pcs_unit }}
+        <span class="help" tabindex="0">?<span class="tip r">{{ t.at_p_est }}</span></span>
+        
+
+        {% if r.pcs_note %}<span class="dy-lmut">·
+          {%- if r.pcs_note in nkey %} {{ t[nkey[r.pcs_note]] }}
+          {%- elif ('un_note_' ~ r.pcs_note) in t %} {{ t['un_note_' ~ r.pcs_note] }}
+          {%- else %} {{ r.pcs_note }}{% endif %}</span>{% endif %}
+      </div>
+      {% endif %}
+      <div class="sec"><a href="/station/{{ r.cls }}?source={{ source }}&days=1&stop_min={{ stop_min|default(15) }}&lang={{ lang }}">{{ t.dl_detail_open }} › /station</a>
+        {% if r.cls in ast_cls %} · <a href="/equipment?source={{ source }}&lang={{ lang }}">/equipment ›</a>{% endif %}</div>
+    </div>
+    </details>
+    {% endfor %}
+  </div>
+  
+  
+  {% if m.unit_ok and un and un.absorbed_total is not none %}
+  <div class="dy-cover">{{ t.qk_absorb_line.replace('{n}', un.absorbed_total|string) }}{% if un.absorbed_total %} · {{ t.qk_absorb_hint }}{% endif %}</div>
+  {% endif %}
+  
+
+  {% if att and att.diag %}
+  {% if att.diag.rw_axis %}
+  
+  <div class="dy-cover">{{ t.dl_rw_axis }}{% if att.diag.rw_switch %} {{ t.dl_rw_switch }}{% endif %}</div>
+  {% else %}
+  <div class="dy-cover">⚠ {{ t.dl_rw_inert }}</div>
+  {% endif %}
+  {% endif %}
+  
+  {% if att and att.rows %}
+  {% set na_n = att.rows | map(attribute='diag') | select | map(attribute='na_n') | select | sum %}
+  {% set na_wo = att.rows | map(attribute='diag') | select | map(attribute='na_wo_h') | select | sum %}
+  {% if na_n %}
+  <div class="dy-cover dy-lmut">{{ t.dl_rw_na.replace('{n}', na_n|string).replace('{h}', '%.1f'|format(na_wo or 0)) }}</div>
+  {% endif %}
+  {% endif %}
+  
+
+  {% if att and att.diag %}
+  {% if att.diag.n_wo_eids_unassigned %}
+  <div class="dy-cover">⚠ {{ t.dl_unassigned.replace('{n}', att.diag.n_wo_eids_unassigned|string) }}</div>
+  {% endif %}
+  {% if att.diag.n_wo_eids_added %}
+  <div class="dy-cover dy-lmut">{{ t.dl_wo_added.replace('{n}', att.diag.n_wo_eids_added|string) }}</div>
+  {% endif %}
+  {% if att.diag.n_wo_eids_other_station %}
+  <div class="dy-cover dy-lmut">{{ t.dl_wo_other.replace('{n}', att.diag.n_wo_eids_other_station|string) }}</div>
+  {% endif %}
+  {% endif %}
+  
+  <div class="dy-sec-h"><h2>{{ t.dl_pareto_hdr }}</h2></div>
+  <div class="dy-par2">
+    <div>
+      <div class="dy-sub">{{ t.dl_pareto_time_sub }}</div>
+      
+      {% set P = m.pareto30 %}
+      <div class="dy-legend dy-leg-mini">
+        <span><span class="sw" style="background:var(--b-wo)"></span>{{ t.at_b_wo }}</span>
+        <span><span class="sw" style="background:var(--b-starved)"></span>{{ t.at_b_starved }}</span>
+        <span><span class="sw" style="background:var(--b-blocked)"></span>{{ t.at_b_blocked }}</span>
+        <span><span class="sw" style="background:var(--b-unexp)"></span>{{ t.at_b_unexplained }}</span>
+      </div>
+      {% if not P %}
+      <div class="dy-cover">{{ t.dl_pareto_none }}</div>
+      {% else %}
+      <div class="dy-par">
+        <div class="dy-prow hd">
+          <span>{{ t.dl_pareto_c_station }}</span><span>{{ t.dl_pareto_c_top }}</span>
+          <span style="text-align:right">{{ t.dl_pareto_c_lost }}</span>
+        </div>
+        {% for s in P.stations[:12] %}
+        {% set ptot = s.lost_h or 1 %}
+        <div class="dy-prow">
+          <span class="st" title="{{ s.cls }}">{{ s.cls }}</span>
+          <div>
+            <div class="dy-stack" role="img" aria-label="{{ s.cls }}">
+              {% for k, cl, lb in [('wo','wo',t.at_b_wo),
+                                   ('starved','starved',t.at_b_starved),
+                                   ('blocked','blocked',t.at_b_blocked),
+                                   ('unexplained','unexplained',t.at_b_unexplained)] %}
+              {% if s.by_bucket.get(k) and s.by_bucket.get(k) > 0 %}
+              <i class="{{ cl }}" style="width:{{ '%.3f'|format(100.0 * s.by_bucket[k] / ptot) }}%"
+                 title="{{ lb }} · {{ '%.1f'|format(s.by_bucket[k]) }} {{ t.dl_mh }}"></i>
+              {% endif %}
+              {% endfor %}
+            </div>
+            {% if s.top %}<div class="dy-lmut">{{ t[bkey[s.top[0][0]]] }} {{ '%.0f'|format(100.0 * s.top[0][1] / ptot) }}%{{ t.dl_of_lost }} · {{ s.n_days }}d</div>{% endif %}
+          </div>
+          <span class="dy-lnum"><b>{{ '%.0f'|format(s.lost_h) }}</b></span>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="dy-cover">
+        {{ t.at_pareto_cover.replace('{n}', P.n_days|string).replace('{d}', P.days|string).replace('{miss}', P.n_missing|string).replace('{deg}', P.n_degraded|string) }}
+        {% if P.thin %} <b>{{ t.dl_pareto_thin }}</b>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+    <div>
+      <div class="dy-sub">{{ t.dl_pareto_pcs_sub }}</div>
+      <div class="dy-legend dy-leg-mini">
+        <span><span class="sw" style="background:var(--p-scrap)"></span>{{ pglyph['scrap'] }} {{ (t.at_p_scrap.split('—')[0]).rstrip() }}</span>
+        <span><span class="sw" style="background:var(--p-rework)"></span>{{ pglyph['rework'] }} {{ (t.at_p_rework.split('—')[0]).rstrip() }}</span>
+        <span><span class="sw" style="background:var(--p-slow)"></span>{{ pglyph['slow'] }} {{ (t.at_p_slow.split('—')[0]).rstrip() }}</span>
+      </div>
+      {% set PU = m.pareto30_units %}
+      {% if not PU %}
+      <div class="dy-cover">{{ t.dl_pareto_pcs_none }}</div>
+      {% else %}
+      <div class="dy-par">
+        <div class="dy-prow hd">
+          <span>{{ t.dl_pareto_c_station }}</span><span>{{ t.dl_pareto_c_top }}</span>
+          <span style="text-align:right">{{ t.dl_lost }} ({{ t.dl_pcs_unit }})</span>
+        </div>
+        {% for s in PU.stations[:12] %}
+        {% set ptot = s.lost_pcs or 1 %}
+        <div class="dy-prow">
+          <span class="st" title="{{ s.cls }}">{{ s.cls }}</span>
+          <div>
+            <div class="dy-stack" role="img" aria-label="{{ s.cls }}">
+              {% for k in ['scrap', 'rework', 'slow'] %}
+              {% if s.by_bucket[k] and s.by_bucket[k] > 0 %}
+              <i class="{{ k }}" style="width:{{ '%.3f'|format(100.0 * s.by_bucket[k] / ptot) }}%"
+                 title="{{ (t[pkey[k]].split('—')[0]).rstrip() }} · {% if k == 'slow' %}≈{% endif %}{{ '%.0f'|format(s.by_bucket[k]) }} {{ t.dl_pcs_unit }}"></i>
+              {% endif %}
+              {% endfor %}
+            </div>
+            {% if s.top %}<div class="dy-lmut">{{ pglyph[s.top[0][0]] }} {{ (t[pkey[s.top[0][0]]].split('—')[0]).rstrip() }} {{ '%.0f'|format(100.0 * s.top[0][1] / ptot) }}%{{ t.dl_of_lost }} · {{ s.n_days }}d</div>{% endif %}
+          </div>
+          <span class="dy-lnum"><b>{% if s.by_bucket['slow'] %}≈{% endif %}{{ '%.0f'|format(s.lost_pcs) }}</b></span>
+        </div>
+        {% endfor %}
+      </div>
+      <div class="dy-cover">
+        
+
+        {{ t.at_pareto_cover.replace('{n}', PU.n_days_units|string).replace('{d}', PU.days|string).replace('{miss}', (PU.n_missing + PU.n_days - PU.n_days_units)|string).replace('{deg}', PU.n_degraded|string) }}
+        {% if PU.thin %} <b>{{ t.dl_pareto_thin }}</b>{% endif %}
+      </div>
+      
+
+
+
+
+
+      {% set _mrk = PU.n_station_days_slow_good if PU.n_station_days_slow_good is defined
+                    else none %}
+      {% set _mrn = PU.n_station_days if PU.n_station_days is defined else none %}
+      {% if _mrk is none or _mrn is none %}
+      {% set _mrk = PU.n_days_slow_good if PU.n_days_slow_good is defined else none %}
+      {% set _mrn = PU.n_days_units %}
+      {% endif %}
+      {% if _mrk is not none and _mrn and _mrk < _mrn and 'dl_pareto_mixed_ruler' in t %}
+      <div class="dy-cover">{{ t.dl_pareto_mixed_ruler.replace('{k}', _mrk|string).replace('{n}', _mrn|string) }}</div>
+      {% endif %}
+      {% endif %}
+    </div>
+  </div>
+  
+
+
+  {% if source == 'live' and P and PU and PU.n_days_units < PU.n_days %}
+  <div class="dy-cover">{{ t.dl_pareto_scope }}</div>
+  {% endif %}
+
+  
+  <div class="dy-foot">
+    {% if source != 'demo' %}{{ t.h_real }} · <b>{{ t.h_demo_target }}</b> · {{ t.c_wip }}/{{ t.c_ot_wip }} {{ t.demo_tag }}<br>{% endif %}
+    {% if m.attrib_ok or m.unit_ok %}<b>{{ t.dl_caliber_hdr }}</b>：{% if m.attrib_ok %}{{ t.at_caliber }} {{ t.at_cross }} {{ t.at_stale }}{% endif %}{% if m.unit_ok %} {{ t.at_p_caliber }}{% endif %}<br>{% endif %}
+    
+    <a href="/landing/v1?source={{ source }}&lang={{ lang }}">{{ t.daily_to_overview }} ›</a> · {{ t.daily_map_hint }}
+  </div>
+  {% endif %}
