@@ -1,0 +1,53 @@
+{% extends 'v2/_base.html' %}
+
+
+
+{% import 'v2/_c_icon.html' as ic %}
+{% block page %}station-index{% endblock %}
+{% block title %}Tendline Board — {{ t.st_ix_title }}{% endblock %}
+{% block nav %}
+{% import '_fam_cell.html' as fam %}
+{% set nav_active = '' %}
+{% include 'v2/_nav.html' %}
+{% endblock %}
+{% block main %}
+{% import '_fam_cell.html' as fam %}
+{% set nav_active = '' %}
+  <div class="sx-title" title="{{ t.st_ix_tip }}">{{ t.st_ix_title }}</div>
+  <div class="sx-guide">{{ t.st_ix_guide }}</div>
+  
+
+
+  {% if pane.span or pane.out_span %}
+  <div class="sx-spans">
+    {% if pane.span %}<div class="sx-span">{{ pane.span }}</div>{% endif %}
+    {% if pane.out_span %}<div class="sx-span">{{ pane.out_span }}</div>{% endif %}
+  </div>
+  {% endif %}
+  {% if not pane.stations %}
+  
+  <div class="why">{{ pane.why or t.ld_pn_none }}</div>
+  {% else %}
+  <table class="sxt"><thead><tr>
+    <th>{{ t.ld_pn_station }}</th>
+    <th class="n" title="{{ t.ld_pn_cap_tip }}">{{ t.ld_pn_a }}</th>
+    <th class="n" title="{{ t.ld_pn_cap_tip }}">{{ t.ld_pn_u }}</th>
+    <th class="n" title="{{ t.ld_pn_cap_tip }}">{{ t.ld_pn_q }}</th>
+    <th class="n" title="{{ t.ld_pn_cap_tip }}">{{ t.ld_pn_oee }}</th>
+    <th class="n" title="{% if pane.yday %}{{ t.ld_pn_yout_tip.format(d=pane.yday) }}{% endif %}">{{ t.ld_pn_yout }}</th>
+    <th class="n" title="{{ t.ld_pn_out_tip }}">{{ t.ld_pn_mout }}</th></tr></thead><tbody>
+    {% for s in pane.stations %}
+    <tr><td class="nm"><a href="/station/{{ s.cls }}?source={{ source }}&lang={{ lang }}">{{ pretty_station(s.cls) }}</a></td>
+      <td class="n">{% if s.a is not none %}{{ '%.1f'|format(s.a) }}%{% else %}{{ t.ld_dash }}{% endif %}</td>
+      <td class="n">{% if s.u is not none %}{{ '%.1f'|format(s.u) }}%{% else %}{{ t.ld_dash }}{% endif %}</td>
+      <td class="n">{% if s.q is not none %}{{ '%.1f'|format(s.q) }}%{% else %}{{ t.ld_dash }}{% endif %}</td>
+      <td class="n">{% if s.oee is not none %}{{ '%.1f'|format(s.oee) }}%{% else %}{{ t.ld_dash }}{% endif %}</td>
+      <td class="n">{{ fam.fam_cell(s.y_out, s.y_fam, pane.family_meta.names, t.ld_dash, t.ld_pn_fam_tip) }}</td>
+      <td class="n">{{ fam.fam_cell(s.m_out, s.m_fam, pane.family_meta.names, t.ld_dash, t.ld_pn_fam_tip) }}</td></tr>
+    {% endfor %}
+  </tbody></table>
+  {% endif %}
+{% endblock %}
+{% block foot %}
+
+{% endblock %}

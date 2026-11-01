@@ -1,0 +1,49 @@
+{% extends 'v2/_base.html' %}
+
+
+
+
+
+
+
+
+
+
+{% block page %}health{% endblock %}
+{% block title %}Tendline Board — {{ t.mh_title }}{% endblock %}
+{% block nav %}
+{% set nav_active = 'maint' %}
+{% include 'v2/_nav.html' %}
+{% endblock %}
+{% block main %}
+{% set nav_active = 'maint' %}
+  <div class="mh-head">
+    <h1>{{ t.mh_title }}</h1>
+    <span class="sub">{{ t.mh_sub }}</span>
+  </div>
+
+  <div class="mh-ctl">
+    <a class="mh-back" href="/equipment?source={{ source }}&lang={{ lang }}">{{ t.mh_back }}</a>
+    <span class="mh-wchip">{{ t.mh_win30.format(d=days30) }}</span>
+    <span class="mh-wchip">{{ t.mh_win90.format(d=days90) }}</span>
+  </div>
+
+  
+  <div id="mh-body"
+       hx-get="/equipment/health/body?source={{ source }}&lang={{ lang }}&focus={{ focus }}"
+       hx-trigger="load" hx-swap="innerHTML">
+    <div class="loading"><span class="spin"></span>{{ t.mh_loading }}</div>
+  </div>
+{% endblock %}
+{% block foot %}
+<script>
+
+
+document.body.addEventListener('htmx:afterSwap', function(e){
+  var f = "{{ focus }}";
+  if (!f) return;
+  var el = document.getElementById('mh-' + f);
+  if (el){ el.scrollIntoView({block:'center'}); el.classList.add('mh-hl'); }
+});
+</script>
+{% endblock %}

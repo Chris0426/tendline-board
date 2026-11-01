@@ -1,0 +1,45 @@
+
+
+
+{% if not enabled %}
+<div class="board-conv" id="assistant-conv">
+  <div class="chat-msg chat-msg--sys">{{ t.as_disabled }}</div>
+</div>
+{% else %}
+
+<div id="assistant-sess">{% include "_assistant_sess.html" %}</div>
+
+<div class="board-conv" id="assistant-conv">
+  {% if is_synth %}<p class="board-disc"><span class="board-src synth">{{ t.source_label_synth }}</span> {{ t.as_synth_note }}</p>{% endif %}<p class="board-disc">{{ t.as_disclaimer }}</p>
+  
+
+
+  
+
+
+  {% for m in messages %}
+    {% if m.role == "user" %}
+  <div class="chat-msg chat-msg--user">{{ m.content }}</div>
+    {% else %}
+      {% set turn = m %}{% include "_assistant_turn.html" %}
+    {% endif %}
+  {% endfor %}
+  {% if not messages %}
+  <p class="board-empty">{{ t.as_empty }}</p>
+  {% endif %}
+</div>
+
+
+
+<form class="board-form" id="assistant-form" autocomplete="off"
+      hx-post="/assistant" hx-target="#assistant-conv" hx-swap="beforeend"
+      hx-vals='js:{page_ctx: location.pathname + location.search}'>
+  
+  <input type="hidden" id="assistant-conv-id" name="conversation_id" value="{{ current_id }}">
+  <input type="hidden" name="lang" value="{{ lang }}">
+  <input name="message" required placeholder="{{ t.as_placeholder }}" aria-label="{{ t.as_placeholder }}">
+  <button type="submit" aria-label="{{ t.as_send }}">↑</button>
+</form>
+
+<div id="assistant-endbar">{% include "_assistant_endbar.html" %}</div>
+{% endif %}

@@ -1,0 +1,1207 @@
+
+
+
+
+
+
+
+
+
+{% import 'v2/_c_panel.html' as P %}
+{% import 'v2/_c_scroll.html' as S %}
+{% import 'v2/_c_table.html' as T %}
+{% import 'v2/_c_kpi.html' as K %}
+{% import 'v2/_c_alerts.html' as AL %}
+{% import 'v2/_c_legend.html' as LG %}
+{% import 'v2/_c_icon.html' as ic %}
+{% import '_fam_cell.html' as fam %}
+{% set VX = ld_viewbox.x %}{% set VY = ld_viewbox.y %}
+{% set VW = ld_viewbox.w %}{% set VH = ld_viewbox.h %}
+{% set base = '/landing2?' ~ ld_qs ~ ('&eid=' ~ sel if sel else '') ~ ('&wall=1' if wall else '') %}
+{% set DASH = t.ld_dash %}
+{% set asof = (' ' ~ t.ld_pd_through.format(m=((q.month ~ '-01') if q.month else q.month),
+                                            d=q.through)) if q.through else '' %}
+{% set Q = '?source=' ~ source ~ '&lang=' ~ lang %}
+
+
+{% set cap_sub %}{% if pane_span %}{{ pane_span }}{% endif %}{% endset %}
+{% set out_sub %}{% if pane_out_span %}{{ pane_out_span }}{% endif %}{% endset %}
+{% set ytip %}{% if pane_yday %}{{ t.ld_pn_yout_tip.format(d=pane_yday) }}{% endif %}{% endset %}
+{% set oee_v %}{% if q.oee is not none %}{{ q.oee }}%{% else %}{{ DASH }}{% endif %}{% endset %}
+{% set rty_v %}{% if q.rty is not none %}{{ q.rty }}%{% else %}{{ DASH }}{% endif %}{% endset %}
+
+{% if not lay.ok %}
+<div class="errcard" role="alert"><b>{{ t.ld_err_title }}</b>
+  <div class="sub">{{ t.ld_err_note }}</div>
+  <div class="sub"><code>{{ lay.err }}</code></div></div>
+{% else %}
+
+
+
+
+{% set panes_html %}
+<div class="ld-panes">
+  {% call P.panel(t.ld_pn_cap, tip=t.ld_pn_cap_tip ~ asof, sub=cap_sub|trim, go_href='/station' ~ Q, go_label=t.ld_pn_cap, cls='pane') %}
+  {% call S.scroll(t.ld_pn_cap) %}
+    {% if pane_why %}<div class="qwhy pnwhy">{{ pane_why }}</div>
+    {% elif not pane_st %}<div class="qwhy pnwhy">{{ t.ld_pn_none }}</div>
+    {% else %}
+    {% call T.table([{'label': t.ld_pn_station}, {'label': t.ld_pn_a, 'cls': 'n'}, {'label': t.ld_pn_u, 'cls': 'n'},
+                     {'label': t.ld_pn_q, 'cls': 'n'}, {'label': t.ld_pn_oee, 'cls': 'n'}]) %}
+      {% for s in pane_st %}
+      <tr><td class="nm" title="{{ pretty_station(s.cls) }}"><a href="/station/{{ s.cls }}{{ Q }}">{{ pretty_station(s.cls) }}</a></td>
+        <td class="n">{% if s.a is not none %}{{ '%.1f'|format(s.a) }}%{% else %}{{ DASH }}{% endif %}</td>
+        <td class="n">{% if s.u is not none %}{{ '%.1f'|format(s.u) }}%{% else %}{{ DASH }}{% endif %}</td>
+        <td class="n">{% if s.q is not none %}{{ '%.1f'|format(s.q) }}%{% else %}{{ DASH }}{% endif %}</td>
+        <td class="n">{% if s.oee is not none %}{{ '%.1f'|format(s.oee) }}%{% else %}{{ DASH }}{% endif %}</td></tr>
+      {% endfor %}
+    {% endcall %}
+    {% endif %}
+  {% endcall %}
+  {% endcall %}
+
+  {% call P.panel(t.ld_pn_out, tip=t.ld_pn_out_tip ~ asof, sub=out_sub|trim, go_href=('' if is_synth else '/output' ~ Q), go_label=t.ld_pn_out, cls='pane') %}{% if pane_pt %}
+  <div class="pntgt"><span class="pttxt" title="{{ pane_pt.txt }} — {{ pane_pt.tip }}">{{ pane_pt.txt }}</span>
+    {% if pane_pt.chip %}<span class="ptchip" title="{{ pane_pt.chip }}">{{ pane_pt.chip }}</span>{% endif %}</div>{% endif %}
+  {% call S.scroll(t.ld_pn_out) %}
+    {% if pane_why %}<div class="qwhy pnwhy">{{ pane_why }}</div>
+    {% elif not pane_st %}<div class="qwhy pnwhy">{{ t.ld_pn_none }}</div>
+    {% else %}
+    
+    {% call T.table([{'label': t.ld_pn_station},
+                     {'label': t.ld_pn_yout, 'cls': 'n', 'tip': ytip|trim},
+                     {'label': t.ld_pn_mout, 'cls': 'n', 'tip': pane_span}]) %}
+      {% for s in pane_st %}
+      <tr><td class="nm" title="{{ pretty_station(s.cls) }}"><a href="/station/{{ s.cls }}{{ Q }}">{{ pretty_station(s.cls) }}</a></td>
+        <td class="n">{{ fam.fam_cell(s.y_out, s.y_fam, family_meta.names, DASH, t.ld_pn_fam_tip) }}</td>
+        <td class="n">{{ fam.fam_cell(s.m_out, s.m_fam, family_meta.names, DASH, t.ld_pn_fam_tip) }}</td></tr>
+      {% endfor %}
+    {% endcall %}
+    {% endif %}
+  {% endcall %}
+  {% endcall %}
+
+  {% call P.panel(t.ld_pn_fix, tip=t.ld_pn_fix_tip, go_href='/equipment' ~ Q, go_label=t.ld_pn_fix,
+                  count=((fix_rows|length) if (ui == '2' and fix_why != 'warming' and fix_rows) else none), cls='pane') %}
+  {% call S.scroll(t.ld_pn_fix) %}
+    {% if fix_why == 'warming' %}<div class="qwhy pnwhy">{{ t.ld_pn_warming }}</div>
+    {% elif not fix_rows %}<div class="qwhy pnwhy">{{ t.ld_pn_none }}</div>
+    {% else %}
+    {% call T.table([{'label': t.ld_pn_machine}, {'label': t.ld_pn_mes, 'tip': t.ld_pn_mes_tip},
+                     {'label': t.ld_pn_for, 'cls': 'n'}]) %}
+      {% for r in fix_rows %}
+      <tr><td class="nm nm2" title="{{ r.eid }} {{ r.name }}"><a href="/machine/{{ r.eid }}{{ Q }}">{{ r.eid }}</a>
+          <span class="mnm" title="{{ r.name }}">{{ r.name }}</span></td>
+        <td title="{{ r.mes_title }}">{{ r.mes_txt }}</td>
+        <td class="n" title="{{ r.wo_title }}">{% if r.wo_link %}{{ t.ld_wo_prefix }} {% if r.wo_link.href %}<a href="{{ r.wo_link.href }}" target="_blank" rel="noopener" title="{{ r.wo_link.title }}">{{ r.wo_link.text }}</a>{% else %}{{ r.wo_link.text }}{% endif %}{% if r.wo_more %} +{{ r.wo_more }}{% endif %} · {% endif %}{{ r.duration_txt }}</td></tr>
+      {% endfor %}
+    {% endcall %}
+    {% endif %}
+  {% endcall %}
+  {% endcall %}
+
+  {% call P.panel(t.ld_q4_head, tip=(t.ld_q4_tip_synth if is_synth else t.ld_q4_tip), go_href=('' if is_synth else '/dispatch' ~ Q), go_label=t.ld_q4_head,
+                  count=((disp_rows|length) if (ui == '2' and disp_why != 'warming' and disp_rows) else none), cls='pane') %}
+  {% call S.scroll(t.ld_q4_head) %}
+    {% if disp_why == 'warming' %}<div class="qwhy pnwhy">{{ t.ld_q4_synth_na if is_synth else t.ld_q4_warming }}</div>
+    {% elif not disp_rows %}<div class="qwhy pnwhy">{{ t.ld_q4_none }}</div>
+    {% else %}
+    {% call T.table([{'label': t.kd_col_kun}, {'label': t.kd_col_lamp}, {'label': t.kd_col_reason},
+                     {'label': t.ld_q4_dry, 'cls': 'n'}]) %}
+      {% for d in disp_rows %}
+      <tr><td class="nm dspk" title="{{ d.title }}"><span class="dspband b{{ d.band }}" aria-hidden="true"></span>{% if is_synth %}{{ d.name }}{% else %}<a href="/dispatch{{ Q }}">{{ d.name }}</a>{% endif %}</td>
+        <td class="dsplamp {{ d.lamp }}" title="{{ d.lamp_text }}">{{ AL.lamp(d.lamp_text, tok=d.lamp) }}</td>
+        <td class="dspwhy" title="{{ d.reason }}">{{ d.reason }}</td>
+        <td class="n dspdry" title="{{ d.dry }}">{{ d.dry }}</td></tr>
+      {% endfor %}
+    {% endcall %}
+    {% endif %}
+  {% endcall %}
+  {% endcall %}
+</div>
+{% endset %}
+
+
+
+
+{% set line_html %}
+<div class="ld-line">
+  {% if q.oee is not none or q.rty is not none %}
+  {{ K.kpi(t.ld_q2_oee, oee_v|trim, tip=t.ld_q2_oee_tip ~ asof) }}
+  {{ K.kpi(t.ld_q2_rty, rty_v|trim, tip=t.ld_q2_rty_tip ~ asof) }}
+  {% elif q.note2 %}<span class="qwhy">{{ q.note2 }}</span>{% endif %}
+  {% if q.l_total is not none %}
+  {{ K.kpi(t.ld_q3_head, '{:,}'.format(q.l_total), unit='PH', tip=t.ld_q3_tip ~ asof,
+           sub=('{:,}'.format(q.l_down) ~ ' ' ~ t.ld_q3_down ~ ' · ' ~ '{:,}'.format(q.l_yield) ~ ' ' ~ t.ld_q3_yield
+                ~ ' · ' ~ '{:,}'.format(q.l_rework) ~ ' ' ~ t.ld_q3_rework), cls='loss') }}
+  {% elif q.note3 %}<span class="qwhy">{{ q.note3 }}</span>{% endif %}{%- if not is_synth %}
+  <a class="pngo ld-go" href="/monthly{{ Q }}">{{ t.ld_q3_go }}{{ ic.arrow() }}</a>{%- endif %}
+</div>
+{% endset %}
+
+
+
+
+{% set feed_html %}
+<h3 class="side-h" id="ldg-feed">{{ t.ld_side_feed }} <span class="board-ag-n num" id="ld-feed-n">{{ feed|length }}</span></h3>
+<div id="ld-feed">
+  {% if feed %}
+  {% for e in feed %}
+  <div class="evrow" data-eid="{{ e.eid }}"><a class="evid" href="{{ e.href }}" title="{{ e.eid }} {{ e.name }}">{{ e.eid }}</a>
+    <span class="evname" title="{{ e.name }}">{{ e.name }}</span>{% if e.wo %}{{ t.ld_wo_prefix }} {% if e.wo.href %}<a class="evwo" href="{{ e.wo.href }}" target="_blank" rel="noopener" title="{{ e.wo.title }}">{{ e.wo.text }}</a>{% else %}<span class="evwo" title="{{ e.wo.title }}">{{ e.wo.text }}</span>{% endif %}{% endif %}
+    <span class="ev" title="{{ e.txt }}">{{ e.txt }}</span><span class="when">{{ e.when }}</span></div>
+  {% endfor %}
+  {% else %}
+  <div class="empty">{{ t.ld_st_warming if st_meta.warming else t.ld_ev_none }}</div>
+  {% endif %}
+</div>
+{% endset %}
+
+{% set longest_html %}
+{% call AL.group(t.ld_side_longest, count=longest|length, cls='g-down', gid='ldg-down') %}
+  {% if longest %}
+  {% for r in longest %}
+  <li class="board-ai srow">{{ AL.lamp(t.ld_lg_down, color=ld_color.down) }}
+    <span class="nm" title="{{ r.name }}">{{ r.name }}</span>
+    {% if not r.placed %}<span class="offplan">{{ t.ld_unplaced_t }}</span>{% endif %}
+    <span class="vv num">{{ r.since_txt }}</span></li>
+  {% endfor %}
+  {% else %}<li class="board-ai empty">{{ t.ld_side_none }}</li>{% endif %}
+{% endcall %}
+{% endset %}
+
+{% set pm_html %}
+{% call AL.group(t.ld_side_pm, count=pm_due|length, cls='g-pm', gid='ldg-pm') %}
+  {% if pm_due %}
+  {% for r in pm_due %}
+  <li class="board-ai srow">{{ AL.lamp(state_label(r.state), color=ld_color[r.bucket]) }}
+    <span class="nm" title="{{ r.name }}">{{ r.name }}</span><span class="vv num">{{ r.eid }}</span></li>
+  {% endfor %}
+  {% else %}<li class="board-ai empty">{{ t.ld_side_none }}</li>{% endif %}
+{% endcall %}
+{% endset %}
+
+{% set main_html %}
+<div class="ld-main">
+  <div class="ld-mapcol">
+    <div class="stage" id="ld-stage">
+      <div class="zctl">
+        <button type="button" id="ld-zin" title="{{ t.ld_zoom_in }}" aria-label="{{ t.ld_zoom_in }}">+</button>
+        <button type="button" id="ld-zout" title="{{ t.ld_zoom_out }}" aria-label="{{ t.ld_zoom_out }}">−</button>
+        <button type="button" id="ld-zreset" hidden>{{ t.ld_reset }}</button>
+        <button type="button" id="ld-wall">{{ t.ld_wall_off if wall else t.ld_wall }}</button>
+      </div>
+      <svg id="ld-svg" viewBox="{{ '%.2f'|format(VX) }} {{ '%.2f'|format(VY) }} {{ '%.2f'|format(VW) }} {{ '%.2f'|format(VH) }}"
+           role="img" aria-label="{{ t.ld_title }}">
+        <g id="ld-g">
+          {% for z in zregions %}
+          <path class="zreg z-{{ z.key }}" d="{{ z.path }}"></path>
+          {% endfor %}
+          {% for h in kun_hulls %}{% if h.path %}
+          <path class="kreg{{ ' sat' if h.satellite }}" data-kun="{{ h.kun }}" d="{{ h.path }}"></path>
+          {% endif %}{% endfor %}
+          {% for f in lay.frames %}
+          <rect class="pframe" x="{{ '%.2f'|format(f.x) }}" y="{{ '%.2f'|format(f.y) }}"
+                width="{{ '%.2f'|format(f.w) }}" height="{{ '%.2f'|format(f.h) }}" rx="1.5"></rect>
+          {% endfor %}
+          {% for r in rows %}
+          {% set col = ld_color[r.bucket] %}
+          <g class="mach z-{{ r.area }}{{ ' pulse' if r.pulse }}{{ ' p24' if r.badge24 }}{{ ' wm' if r.wo_marker }}{{ ' est' if not r.size_real }}{{ ' inf' if r.basis == 'station_lot' }}{{ ' dim' if filter and r.bucket != filter }}{{ ' sel' if sel == r.eid }}"
+             data-eid="{{ r.eid }}" data-b="{{ r.bucket }}" data-kun="{{ r.kun or '' }}" tabindex="0" role="button"
+             aria-label="{{ r.name }} {{ r.eid }} · {{ state_label(r.state) }}{{ t.ld_m_inferred_sfx if r.basis == 'station_lot' else '' }}{{ ' · ' + r.wo_marker_aria if r.wo_marker_aria }}"
+             {% if r.rot %}transform="rotate({{ '%.2f'|format(r.rot) }} {{ '%.2f'|format(r.cx) }} {{ '%.2f'|format(r.cy) }})"{% endif %}>
+            <rect class="body" x="{{ '%.2f'|format(r.x) }}" y="{{ '%.2f'|format(r.y) }}"
+                  width="{{ '%.2f'|format(r.w) }}" height="{{ '%.2f'|format(r.h) }}" rx="1.2"
+                  fill="{{ col if col else 'none' }}" fill-opacity="{{ '0.85' if col else '0' }}"
+                  stroke="{{ col if col else 'var(--mut)' }}"></rect>
+            {% if r.sub_cells %}
+            <g class="subs" data-mode="{{ r.sub_mode }}" data-axis="{{ r.sub_axis }}">
+              {% for c in r.sub_cells %}
+              <rect class="subc{{ ' hollow' if not c.fill }}{{ ' selc' if sel_key == r.eid ~ '|' ~ c.unit }}"
+                    data-unit="{{ c.unit }}" data-key="{{ r.eid }}|{{ c.unit }}"
+                    tabindex="0" role="button" aria-label="{{ c.aria }}"
+                    x="{{ '%.2f'|format(c.x) }}" y="{{ '%.2f'|format(c.y) }}"
+                    width="{{ '%.2f'|format(c.w) }}" height="{{ '%.2f'|format(c.h) }}"
+                    fill="{{ c.fill if c.fill else 'none' }}"
+                    fill-opacity="{{ '0.95' if c.fill else '0' }}"><title>{{ c.title }}</title></rect>
+              {% if c.bucket == 'dorm' %}
+              <circle class="dm" cx="{{ '%.2f'|format(c.x + c.w / 2) }}" cy="{{ '%.2f'|format(c.y + c.h / 2) }}"
+                      r="{{ '%.2f'|format([c.w, c.h]|min * 0.22) }}"></circle>
+              {% endif %}
+              {% endfor %}
+            </g>
+            {% endif %}
+            <rect class="ring" x="{{ '%.2f'|format(r.x - 1.6) }}" y="{{ '%.2f'|format(r.y - 1.6) }}"
+                  width="{{ '%.2f'|format(r.w + 3.2) }}" height="{{ '%.2f'|format(r.h + 3.2) }}" rx="2"></rect>
+            {% if r.badge24 %}
+            <path class="b24" d="M{{ '%.2f'|format(r.x + r.w) }},{{ '%.2f'|format(r.y) }} l-3.2,0 l3.2,3.2 z"></path>
+            {% endif %}
+            {% if r.pulse %}
+            <path class="rmk" d="M{{ '%.2f'|format(r.x + 1) }},{{ '%.2f'|format(r.y + 1) }} l2.6,2.6 M{{ '%.2f'|format(r.x + 3.6) }},{{ '%.2f'|format(r.y + 1) }} l-2.6,2.6"></path>
+            {% endif %}
+            {% if r.wo_marker %}
+            <path class="wm" d="M{{ '%.2f'|format(r.x) }},{{ '%.2f'|format(r.y + r.h) }} l3.2,0 l-3.2,-3.2 z"><title>{{ r.wo_marker_tip }}</title></path>
+            {% endif %}
+            {% if r.bucket == 'dorm' %}
+            <circle class="dm" cx="{{ '%.2f'|format(r.cx) }}" cy="{{ '%.2f'|format(r.cy) }}"
+                    r="{{ '%.2f'|format([r.w, r.h]|min * 0.22) }}"></circle>
+            {% endif %}
+            <text class="mlbl" font-size="4" x="{{ '%.2f'|format(r.cx) }}"
+                  y="{{ '%.2f'|format(r.y + r.h + 4) }}">{{ r.name }}</text>
+          </g>
+          {% endfor %}
+          {% for z in zlabels %}
+          <text class="zlbl z-{{ z.key }}" data-x="{{ '%.2f'|format(z.x) }}" data-y="{{ '%.2f'|format(z.y) }}"
+                x="{{ '%.2f'|format(z.x) }}" y="{{ '%.2f'|format(z.y) }}">{{ z.label }}</text>
+          {% endfor %}
+          
+
+          {% for h in kun_hulls %}{% if h.chip %}
+          <g class="kchip" data-kun="{{ h.kun }}" data-x="{{ '%.2f'|format(h.chip_x) }}" data-y="{{ '%.2f'|format(h.chip_y) }}"
+             tabindex="0" role="button" aria-label="{{ h.chip_title }}"
+             transform="translate({{ '%.2f'|format(h.chip_x) }} {{ '%.2f'|format(h.chip_y) }})">
+            <title>{{ h.chip_title }}</title><rect x="-34" y="-16" width="33" height="15" rx="2"></rect>
+            <circle class="kic" cx="-27.2" cy="-11.4" r="2"></circle><path class="kic" d="M-31,-4 a3.8,3.6 0 0 1 7.6,0"></path>
+            <text x="-21.5" y="-5"><tspan data-ldf="opr">{{ h.staff_text }}</tspan></text>
+          </g>
+          {% endif %}{% endfor %}
+          
+
+          {% for e in env_tags %}
+          <a class="envtag t-{{ e.tone }}" data-sid="{{ e.sid }}"
+             data-x="{{ '%.2f'|format(e.x) }}" data-y="{{ '%.2f'|format(e.y) }}"
+             data-aw="{{ '%.2f'|format(e.anchor_w) }}"
+             transform="translate({{ '%.2f'|format(e.x) }} {{ '%.2f'|format(e.y) }})"
+             href="{{ e.url }}" target="_blank" rel="noopener noreferrer">
+            <title>{{ e.title }}</title>
+            <rect class="pill" x="0" y="0" width="{{ '%.1f'|format(e.w_px) }}"
+                  height="{{ '%.1f'|format(e.h_px) }}" rx="2"></rect>
+            {% if e.tone == 'unknown' %}
+            <path class="slash" d="M2,{{ '%.1f'|format(e.h_px - 2) }} L{{ '%.1f'|format(e.w_px - 2) }},2"></path>
+            {% endif %}
+            <path class="eic" d="M8.5,{{ '%.1f'|format(e.h_px / 2 - 4.5) }} c2.6,3.2 3.9,5 3.9,6.6 a3.9,3.9 0 0 1 -7.8,0 c0,-1.6 1.3,-3.4 3.9,-6.6 z"></path>
+            <text x="15" y="{{ '%.1f'|format(e.h_px - 4.5) }}"><tspan class="val">{{ e.text }}</tspan></text>
+          </a>
+          {% endfor %}
+        </g>
+      </svg>
+      <div class="zhint">{{ t.ld_zoom_hint }}</div>
+    </div>
+
+    
+
+    <div class="legend" id="ld-legend">
+      {% for b in ld_buckets %}
+      <a class="lgi{{ ' on' if filter == b }}" data-lb="{{ b }}" {% if not counts[b] %}hidden{% endif %}
+         href="{{ base }}{{ '' if filter == b else '&filter=' ~ b }}"
+         title="{% if b == 'nomes' %}{{ t.ld_lg_nomes_tip }}{% elif b == 'dorm' %}{{ t.ld_lg_dorm_tip }}{% else %}{{ t.ld_lg_tip.format(b=t['ld_lg_' ~ b]) }}{% endif %}">
+        <span class="lgsw">{% if ld_color[b] %}<span class="qdot" style="background:{{ ld_color[b] }}"></span>
+        {% else %}<span class="qhollow{{ ' dash' if b == 'nomes' }}"></span>{% endif %}{% if b == 'dorm' %}<svg class="lg-dm" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="2.4"/></svg>{% endif %}</span>
+        <span class="lgt">{{ t['ld_lg_' ~ b] }}</span> <b>{{ counts[b] }}</b></a>
+      {% endfor %}
+      {% if filter %}
+      <span class="lgnote">{{ t.ld_lg_showing.format(n=n_shown, total=rows|length) }}</span>
+      <a class="lgi" id="ld-clear" href="{{ base }}">{{ t.ld_lg_clear }}</a>
+      {% endif %}
+      {% if env_chip %}<span class="envchip" id="ld-envchip" title="{{ env_chip_title }}">{{ env_chip }}</span>{% endif %}
+      {% for note in kun_notes %}<span class="lgnote">{{ note }}</span>{% endfor %}
+      {% if not lay.reviewed %}<span class="draftchip" title="{{ t.ld_draft_tip }}">{{ t.ld_draft_chip }}</span>{% endif %}
+      {% if fresh_txt %}
+      <span class="freshchip {{ fresh_tone }}" id="ld-fresh" title="{{ fresh_tip or t.ld_st_tip }}">{{ fresh_txt }}</span>
+      {% endif %}
+    </div>
+    <p class="lgnote ld-pulse">{{ t.ld_lg_pulse }}</p>
+  </div>
+
+  <div class="ld-sidewrap">
+    <aside class="side" id="ld-side">
+      <div id="ld-summary" {% if sel_row %}hidden{% endif %}>
+        <h2 class="side-t">{{ t.ld_side_t }}</h2>
+        {% if ui == '2' %}
+        
+
+
+
+        {% set need = disp_rows|selectattr('lamp', 'equalto', 'need')|list if disp_why != 'warming' else [] %}
+        {% set idle_all = (rows + unplaced)|selectattr('bucket', 'equalto', 'idle')|list %}
+        {% set idle_rows = (idle_all|rejectattr('since_h', 'none')|sort(attribute='since_h', reverse=true)|list)
+                           + (idle_all|selectattr('since_h', 'none')|list) %}
+        
+
+        <nav class="ld-gidx" aria-label="{{ t.ld_side_t }}">
+          <a href="#ldg-down">{{ t.ld_side_longest }} <b class="num">{{ longest|length }}</b></a>
+          <a href="#ldg-pm">{{ t.ld_side_pm }} <b class="num">{{ pm_due|length }}</b></a>
+          {% if need %}<a href="#ldg-need">{{ t.ld_q4_head }} <b class="num">{{ need|length }}</b></a>{% endif %}
+          {% if idle_rows %}<a href="#ldg-idle">{{ t.ld_lg_idle }} <b class="num">{{ idle_rows|length }}</b></a>{% endif %}
+          <a href="#ldg-feed">{{ t.ld_side_feed }} <b class="num" id="ld-gidx-feed">{{ feed|length }}</b></a>
+        </nav>
+        {{ longest_html }}
+        {{ pm_html }}
+        {% if need %}
+        {% call AL.group(t.ld_q4_head, count=need|length, tip=(t.ld_q4_tip_synth if is_synth else t.ld_q4_tip), cls='g-need', gid='ldg-need') %}
+          {% for d in need %}
+          <li class="board-ai srow" title="{{ d.title }}">{{ AL.lamp(d.lamp_text, tok=d.lamp) }}
+            {% if is_synth %}<span class="nm">{{ d.name }}</span>{% else %}<a class="nm" href="/dispatch{{ Q }}">{{ d.name }}</a>{% endif %}<span class="vv">{{ d.dry }}</span></li>
+          {% endfor %}
+        {% endcall %}
+        {% endif %}
+        {% if idle_rows %}
+        {% call AL.group(t.ld_lg_idle, count=idle_rows|length, tip=t.ld_lg_tip.format(b=t.ld_lg_idle), cls='g-idle', gid='ldg-idle') %}
+          {% for r in idle_rows %}
+          <li class="board-ai srow">{{ AL.lamp(t.ld_lg_idle, color=ld_color.idle) }}
+            <span class="nm" title="{{ r.name }}">{{ r.name }}</span>
+            {% if not r.placed %}<span class="offplan">{{ t.ld_unplaced_t }}</span>{% endif %}
+            <span class="vv num">{{ r.since_txt }}</span></li>
+          {% endfor %}
+        {% endcall %}
+        {% endif %}
+        {{ feed_html }}
+        {% else %}
+        {{ feed_html }}
+        {{ longest_html }}
+        {{ pm_html }}
+        {% endif %}
+      </div>
+
+      {% for r in rows %}
+      <div class="mcard" id="mc-{{ r.eid }}" data-eid="{{ r.eid }}"
+           {% if sel != r.eid or sel_unit %}hidden{% endif %}>
+        {% set TG = tag_chip(r.eid) %}
+        <div class="mh panel-title">{{ r.eid }} {{ r.name }}</div>
+        <div class="tipbody">
+          <div class="mh">{{ r.name }}</div>
+          <div class="meid">{{ r.eid }} · {{ r.area_label or r.area }}
+            {% if not r.size_real %}<span class="offplan" title="{{ t.ld_m_est_tip }}">{{ t.ld_m_est }}</span>{% endif %}
+            {% if r.parent_eid %}· {{ t.ld_m_module.format(p=r.parent_eid) }}{% endif %}</div>
+          <div class="stline">
+            <span class="stchip">{% if ld_color[r.bucket] %}<span class="qdot" data-ldf="dot" style="background:{{ ld_color[r.bucket] }}"></span>
+              {% else %}<span class="qhollow" data-ldf="dot"></span>{% endif %}<span data-ldf="state">{{ state_label(r.state) }}{{ t.ld_m_inferred_sfx if r.basis == 'station_lot' else '' }}</span></span>
+            <span class="ptags">{% for c in TG.chips %}<span class="ptag {{ c.css }}"
+              title="{{ t[c.tip_key].format(**c.tip_args) }}">{{ c.letter }}</span>{% endfor %}</span>
+          </div>
+          <div class="kv"><span class="k">{{ t.ld_m_basis }}</span><span class="v" data-ldf="basis">{{ r.basis_txt }}</span><span class="weakchip" data-ldf="weak" {% if r.conf != 'low' %}hidden{% endif %}>{{ t.ld_m_weak }}</span></div>
+          <div class="kv" data-ldf-row="since" {% if r.since_h is none %}hidden{% endif %}><span class="k">{{ t.ld_m_since }}</span><span class="v num" data-ldf="since">{{ r.since_txt }}</span></div>
+          <div class="kv"><span class="k">{{ t.ld_m_mes_last }}</span><span class="v" data-ldf="mes">{{ r.mes_txt }}</span></div>
+          <div class="kv"><span class="k">{{ t.ld_m_recent }}</span><span class="v" data-ldf="recent">{{ r.recent_txt }}</span></div>
+          {% if r.kun_name %}<div class="kv"><span class="k">{{ t.ld_m_kun }}</span><span class="v">{% if is_synth %}{{ r.kun_name }}{% if r.kun_lamp %}（{{ r.kun_lamp }}）{% endif %}{% else %}<a href="/dispatch{{ Q }}" title="{{ r.kun_title }}">{{ r.kun_name }}{% if r.kun_lamp %}（{{ r.kun_lamp }}）{% endif %}</a>{% endif %}</span></div>{% endif %}
+          <div class="kv"><span class="k">{{ t.ld_m_station_month }}</span><span class="v" data-ldf="stationmonth">{{ r.station_month_txt }}</span></div>
+          {% if r.sub_card %}
+          <div class="kv" data-ldf-row="sub"><span class="k">{{ t.ld_m_sub }}</span>
+            <span class="v subrow" data-ldf="sub">{% for c in r.sub_card %}<span class="subi"
+              title="{{ c.title }}" data-unit="{{ c.unit }}" data-key="{{ r.eid }}|{{ c.unit }}"
+              tabindex="0" role="button" aria-label="{{ c.aria }}">{% if c.fill %}<i class="qdot"
+              style="background:{{ c.fill }}"></i>{% else %}<i class="qhollow"></i>{% endif %}{{ c.label }}<b
+              class="subh" data-ldf="subh">{{ c.hours_txt }}</b></span>{% endfor %}</span></div>
+          {% endif %}
+        </div>
+
+        <h3 class="side-h" title="{{ t.ld_m_band_tip }}">{{ t.ld_m_band }}</h3>
+        {% if r.eid_bar %}
+        <div class="band seg">
+          {% for b in r.eid_bar %}<i title="{{ b.title }}"{% if b.color %} style="flex:{{ b.w }};background:{{ b.color }}"{% else %} class="hollow" style="flex:{{ b.w }}"{% endif %}></i>{% endfor %}
+        </div>
+        {% if r.eid_legend %}
+        <div class="bandlg">
+          {% for l in r.eid_legend %}<span class="bandlgi"><i{% if l.color %} style="background:{{ l.color }}"{% else %} class="hollow"{% endif %}></i>{{ l.label }}</span>{% endfor %}
+        </div>
+        {% endif %}
+        {% else %}<div class="empty">{{ r.eid_bar_why }}</div>{% endif %}
+
+        <h3 class="side-h">{{ t.ld_m_wo }}</h3>
+        <div class="eid-wos" id="ld-eid-wos-{{ r.eid }}" data-ld-eid-wos data-eid="{{ r.eid }}">
+          {% if r.eid_wos %}{% for w in r.eid_wos %}
+          <div class="wocard"><details><summary hx-get="/landing2/wo?wno={{ w.no }}&eid={{ r.eid }}&source={{ source }}&lang={{ lang }}"
+              hx-target="#wod-{{ r.eid }}-{{ loop.index }}" hx-swap="innerHTML" hx-trigger="click once"
+              title="{{ t.ld_wo_expand }}">{% if w.link %}{{ w.parts[0] }}<a href="{{ w.link.href }}" target="_blank" rel="noopener" title="{{ w.link.title }}">{{ w.link.text }}</a>{{ w.parts[1] }}{% else %}{{ w.txt }}{% endif %}</summary><div class="wodet" id="wod-{{ r.eid }}-{{ loop.index }}"></div></details></div>
+          {% endfor %}{% else %}<div class="empty">{{ t.ld_m_wo_none_open }}</div>{% endif %}
+        </div>
+
+        <h3 class="side-h">{{ t.ld_m_events }}</h3>
+        <div class="eid-events" id="ld-eid-events-{{ r.eid }}" data-ld-eid-events data-eid="{{ r.eid }}">
+          {% if r.eid_events %}{% for e in r.eid_events %}
+          <div class="pevrow evrow"><span class="evid">{{ e.eid }}</span><span class="evname" title="{{ e.name }}">{{ e.name }}</span>{% if e.wo %}{{ t.ld_wo_prefix }} {% if e.wo.href %}<a class="evwo" href="{{ e.wo.href }}" target="_blank" rel="noopener" title="{{ e.wo.title }}">{{ e.wo.text }}</a>{% else %}<span class="evwo" title="{{ e.wo.title }}">{{ e.wo.text }}</span>{% endif %}{% endif %}<span class="ev" title="{{ e.txt }}">{{ e.txt }}</span><span class="when">{{ e.when }}</span></div>
+          {% endfor %}{% else %}<div class="empty">{{ t.ld_ev_none }}</div>{% endif %}
+        </div>
+
+        <div class="goes">
+          <a href="/machine/{{ r.eid }}{{ Q }}">{{ t.ld_m_go_machine }}{{ ic.arrow() }}</a>
+          {% if r.station_cls %}
+          <a href="/station/{{ r.station_cls }}{{ Q }}">{{ t.ld_m_go_station }}{{ ic.arrow() }}</a>
+          {% endif %}{%- if not is_synth %}
+          <a href="/equipment/diagnose?eid={{ r.eid }}&source={{ source }}&lang={{ lang }}">{{ t.ld_m_go_diag }}{{ ic.arrow() }}</a>{%- endif %}
+        </div>
+        <a class="backlink" href="{{ '/landing2?' ~ ld_qs ~ ('&filter=' ~ filter if filter else '') ~ ('&wall=1' if wall else '') }}">{{ ic.back() }}{{ t.ld_side_back }}</a>
+      </div>
+
+      {% if r.sub_card %}{% for c in r.sub_card %}
+      <div class="ncard" data-key="{{ r.eid }}|{{ c.unit }}" data-eid="{{ r.eid }}"
+           data-unit="{{ c.unit }}"{% if sel_key != r.eid ~ '|' ~ c.unit %} hidden{% endif %}>
+        <a class="backlink nback" data-eid="{{ r.eid }}" title="{{ t.ld_su_back }}"
+           href="{{ '/landing2?' ~ ld_qs ~ '&eid=' ~ r.eid ~ ('&filter=' ~ filter if filter else '') ~ ('&wall=1' if wall else '') }}">{{ ic.back() }}{{ r.name }}</a>
+        <div class="tipbody">
+        <div class="mh panel-title">{{ c.card_title }}</div>
+        <div class="meid">{{ r.eid }} · <span title="{{ c.title }}">{{ c.label }}</span></div>
+        <div class="kv"><span class="k">{{ t.ld_m_state }}</span><span class="v">
+          <span class="stchip">{{ LG.swatch(c.fill, ldf='ndot') }}<span
+            data-ldf="nbucket">{{ c.bucket_label }}</span></span></span></div>
+        <div class="kv"><span class="k">{{ t.ld_m_mes_last }}</span><span class="v num"
+          data-ldf="nlast">{{ c.last_txt }}</span><span class="weakchip" data-ldf="nnodata"
+          {% if c.last_txt != t.ld_dash %}hidden{% endif %}>{{ t.ld_lg_nodata }}</span></div>
+        <div class="kv"><span class="k">{{ t.ld_su_parent }}</span><span class="v"><span
+          data-ldf="state">{{ state_label(r.state) }}</span> · <span data-ldf="basis">{{ r.basis_txt }}</span></span></div>
+        <div class="kv"><span class="k">{{ t.ld_su_wo }}</span><span class="v nwo"
+          data-ldf="nwo" {% if not c.wo_txt %}hidden{% endif %}>{% if c.wo_link and c.wo_parts %}{{ c.wo_parts[0] }}{% if c.wo_link.href %}<a class="evwo" href="{{ c.wo_link.href }}" target="_blank" rel="noopener" title="{{ c.wo_link.title }}">{{ c.wo_link.text }}</a>{% else %}<span class="evwo" title="{{ c.wo_link.title }}">{{ c.wo_link.text }}</span>{% endif %}{{ c.wo_parts[1] }}{% else %}{{ c.wo_txt or '' }}{% endif %}</span><span
+          class="v nwo" data-ldf="nwonone" {% if c.wo_txt %}hidden{% endif %}>{{ t.ld_su_wo_none }}</span></div>
+        </div>
+      </div>
+      {% endfor %}{% endif %}
+      {% endfor %}
+    </aside>
+  </div>
+</div>
+{% endset %}
+
+
+{% if ui == '2' %}
+{{ main_html }}
+{{ line_html }}
+{{ panes_html }}
+{% else %}
+{{ panes_html }}
+{{ main_html }}
+{{ line_html }}
+{% endif %}
+
+
+<div class="ld-foot">
+  <div class="ldroster" {% if n_excluded %}title="{{ t.ld_excluded_tip.format(n=n_excluded, all=n_total + n_excluded) }}"{% endif %}>{{ t.ld_q1_total.format(n=n_total) }}</div>
+  <details class="ldexc">
+    <summary>{{ t.ld_unplaced_t }} · {{ unplaced|length }}</summary>
+    <div class="empty">{{ t.ld_unplaced_note.format(n=unplaced|length) }}</div>
+    <div class="footlist">
+      {% for r in unplaced %}
+      <div class="srow"><span class="nm" title="{{ r.name }}">{{ r.name }}</span><span class="vv">{{ r.eid }}</span></div>
+      {% endfor %}
+    </div>
+  </details>
+  {% if n_excluded %}
+  <details class="ldexc">
+    <summary>{{ t.ld_excluded_t }} · {{ n_excluded }}</summary>
+    <div class="empty">{{ t.ld_excluded_note.format(n=n_excluded) }}</div>
+    <div class="footlist">
+      {% for r in excluded %}
+      <div class="srow"><span class="nm" title="{{ r.name or r.eid }}">{{ r.name or r.eid }}</span><span class="vv">{{ r.eid }}</span></div>
+      {% endfor %}
+    </div>
+  </details>
+  {% endif %}
+</div>
+
+<div id="ld-tip" role="tooltip"></div>
+<script>
+
+
+(function(){ var fd = document.getElementById("ld-feed"), n = document.getElementById("ld-feed-n"),
+      n2 = document.getElementById("ld-gidx-feed");
+  if (!fd || !n || !window.MutationObserver) return;
+  new MutationObserver(function(){ var k = fd.querySelectorAll(".evrow").length;
+    n.textContent = k; if (n2) n2.textContent = k; })
+    .observe(fd, {childList:true}); })();
+ 
+(function(){ var col = document.getElementById("ld-side"), idx = col && col.querySelector(".ld-gidx");
+  if (!idx) return;
+  idx.addEventListener("click", function(ev){
+    var a = ev.target.closest("a"); if (!a) return;
+    var tg = document.getElementById(a.hash.slice(1)); if (!tg) return;
+    if (getComputedStyle(col).overflowY === "visible" || col.scrollHeight <= col.clientHeight) return;
+    ev.preventDefault();
+    col.scrollTop += tg.getBoundingClientRect().top - col.getBoundingClientRect().top - idx.offsetHeight - 4;
+  }); })();
+</script>
+
+
+<script>
+
+
+
+(function(){
+  var stage = document.getElementById("ld-stage");
+  var svg   = document.getElementById("ld-svg");
+  var g     = document.getElementById("ld-g");
+  var side  = document.getElementById("ld-side");
+  var summ  = document.getElementById("ld-summary");
+  var tip   = document.getElementById("ld-tip");
+  if (!stage || !svg || !g) return;
+  var VX = {{ '%.2f'|format(VX) }}, VY = {{ '%.2f'|format(VY) }};
+  var VW = {{ '%.2f'|format(VW) }}, VH = {{ '%.2f'|format(VH) }};
+  
+
+
+  var LBL_MIN_PX = {{ lbl_min_px }}, ZLBL_PX = {{ zlbl_px }}, CHIP_PX = {{ chip_px }};
+  var ENV_PX = {{ env_px }};    
+  
+
+
+
+  var LBL_CHAR_W = {{ lbl_char_w }}, LBL_SLACK_PX = {{ lbl_slack_px }};
+  function labelFits(text, boxPx, fsPx){
+    if (boxPx < LBL_MIN_PX || fsPx <= 0) return false;
+    return String(text || "").length * LBL_CHAR_W * fsPx <= boxPx + LBL_SLACK_PX;
+  }
+  var z = 1, tx = 0, ty = 0, drag = null;
+  var machs  = Array.prototype.slice.call(g.querySelectorAll(".mach"));
+  var zlbls  = Array.prototype.slice.call(g.querySelectorAll(".zlbl"));
+  var kchips = Array.prototype.slice.call(g.querySelectorAll(".kchip"));
+   
+  var kregs  = Array.prototype.slice.call(g.querySelectorAll(".kreg"));
+  var etags  = Array.prototype.slice.call(g.querySelectorAll(".envtag"));
+  var filter = {{ (filter or '')|tojson }};
+  
+
+
+
+  var sel = {{ (sel_key or '')|tojson }};
+  
+
+  var DASH = {{ t.ld_dash|tojson }};
+  function selEid(k){ var i = String(k || "").indexOf("|"); return i < 0 ? (k || "") : k.slice(0, i); }
+  var wall = {{ (1 if wall else 0) }};
+
+  
+
+
+
+
+
+
+
+
+  var Z_MIN = {{ zoom_min }}, Z_MAX = {{ zoom_max }};
+  function clampPan(){
+    var tx0 = (VX + VW) * (1 - z), tx1 = VX * (1 - z);
+    var ty0 = (VY + VH) * (1 - z), ty1 = VY * (1 - z);
+    tx = Math.min(tx1, Math.max(tx0, tx));
+    ty = Math.min(ty1, Math.max(ty0, ty));
+  }
+  
+
+  function pxPerUnit(){
+    var r = svg.getBoundingClientRect();
+    return (r.width > 0 && VW > 0) ? (r.width / VW) * z : 0;
+  }
+   
+  function rescaleAnnotations(){
+    var ppu = pxPerUnit();
+    if (!ppu) return;
+    zlbls.forEach(function(el){
+      el.style.fontSize = (ZLBL_PX / ppu).toFixed(3) + "px";
+      el.style.strokeWidth = (3 / ppu).toFixed(3) + "px";
+    });
+    kchips.forEach(function(el){
+       
+      el.setAttribute("transform", "translate(" + el.dataset.x + " " + el.dataset.y
+                      + ") scale(" + (1 / ppu).toFixed(5) + ")");
+      el.style.fontSize = CHIP_PX + "px";    
+    });
+    
+
+
+
+    etags.forEach(function(el){
+      el.setAttribute("transform", "translate(" + el.dataset.x + " " + el.dataset.y
+                      + ") scale(" + (1 / ppu).toFixed(5) + ")");
+      el.style.fontSize = ENV_PX + "px";
+    });
+  }
+  function apply(){
+    clampPan();
+    g.setAttribute("transform", "translate(" + tx + " " + ty + ") scale(" + z + ")");
+     
+    if (zr) zr.hidden = (z === 1 && tx === 0 && ty === 0);
+    rescaleAnnotations();
+    layoutLabels();
+  }
+  function zoomAt(f, cx, cy){
+    var nz = Math.min(Z_MAX, Math.max(Z_MIN, z * f));
+    if (nz === z) return;
+    var k = nz / z;
+    tx = cx - (cx - tx) * k; ty = cy - (cy - ty) * k; z = nz;
+    if (z === Z_MIN){ tx = 0; ty = 0; }
+    apply();
+  }
+  function svgPt(ev){
+    var r = svg.getBoundingClientRect();
+    return [VX + (ev.clientX - r.left) / r.width * VW,
+            VY + (ev.clientY - r.top) / r.height * VH];
+  }
+  stage.addEventListener("wheel", function(ev){
+    ev.preventDefault();
+    var p = svgPt(ev);
+    zoomAt(ev.deltaY < 0 ? 1.15 : 1 / 1.15, p[0], p[1]);
+  }, {passive:false});
+  stage.addEventListener("pointerdown", function(ev){
+    if (ev.target.closest && ev.target.closest(".mach")) return;
+    if (ev.target.closest && ev.target.closest(".zctl")) return;
+    drag = [ev.clientX, ev.clientY, tx, ty]; stage.classList.add("drag");
+  });
+  window.addEventListener("pointermove", function(ev){
+    if (!drag) return;
+    var r = svg.getBoundingClientRect();
+    tx = drag[2] + (ev.clientX - drag[0]) / r.width * VW;
+    ty = drag[3] + (ev.clientY - drag[1]) / r.height * VH;
+    apply();
+  });
+  window.addEventListener("pointerup", function(){ drag = null; stage.classList.remove("drag"); });
+  
+
+  var rsz = null;
+  window.addEventListener("resize", function(){
+    if (rsz) return;
+    rsz = requestAnimationFrame(function(){ rsz = null; rescaleAnnotations(); layoutLabels(); });
+  });
+  var zin = document.getElementById("ld-zin"), zout = document.getElementById("ld-zout"),
+      zr = document.getElementById("ld-zreset");
+  if (zin)  zin.addEventListener("click", function(){ zoomAt(1.4, VX + VW/2, VY + VH/2); });
+  if (zout) zout.addEventListener("click", function(){ zoomAt(1/1.4, VX + VW/2, VY + VH/2); });
+  if (zr)   zr.addEventListener("click", function(){ z = Z_MIN; tx = 0; ty = 0; apply(); });
+
+  
+
+
+
+  function layoutLabels(){
+    var ppu = pxPerUnit(), fs = 9 / z, fsPx = fs * ppu, kept = [];
+    var order = machs.filter(function(m){ return !m.classList.contains("dim"); })
+                     .map(function(m){
+      var b = m.querySelector("rect.body"), tl = m.querySelector(".mlbl");
+      var w = parseFloat(b.getAttribute("width")), h = parseFloat(b.getAttribute("height"));
+      return {m:m, tl:tl, area:w*h, px: w * ppu, txt: tl.textContent.trim(),
+              cx: parseFloat(b.getAttribute("x")) + w/2,
+              cy: parseFloat(b.getAttribute("y")) + h + fs*1.2,
+              w: (tl.textContent.trim().length * fs * 0.56), h: fs * 1.25};
+    }).filter(function(o){ return ppu > 0 && labelFits(o.txt, o.px, fsPx); })
+      .sort(function(a, b){ return b.area - a.area; });
+    machs.forEach(function(m){ m.classList.add("nolbl"); });
+    stage.classList.add("zl");         
+    order.forEach(function(o){
+      o.tl.setAttribute("font-size", fs.toFixed(2));
+      o.tl.style.strokeWidth = (2.0 / z).toFixed(2) + "px";
+      var x0 = o.cx - o.w/2, x1 = o.cx + o.w/2, y0 = o.cy - o.h, y1 = o.cy;
+      for (var i = 0; i < kept.length; i++){
+        var k = kept[i];
+        if (x0 < k[2] && x1 > k[0] && y0 < k[3] && y1 > k[1]) return;    
+      }
+      kept.push([x0, y0, x1, y1]);
+      o.m.classList.remove("nolbl");
+    });
+  }
+
+   
+  function select(key){
+    sel = key || "";
+    var e = selEid(sel);
+    machs.forEach(function(m){ m.classList.toggle("sel", m.dataset.eid === e); });
+    setKunmates("");
+     
+    side.querySelectorAll(".mcard").forEach(function(c){
+      c.hidden = (c.dataset.eid !== e) || (sel !== e);
+    });
+    side.querySelectorAll(".ncard").forEach(function(c){ c.hidden = (c.dataset.key !== sel); });
+    g.querySelectorAll(".subs rect.subc").forEach(function(c){
+      c.classList.toggle("selc", c.dataset.key === sel);
+    });
+    if (summ) summ.hidden = !!sel;
+    renderFeed(feedAll, e, feedWarming, feedWarmText, feedEmpty, woPrefix);
+    syncUrl();
+  }
+  svg.addEventListener("click", function(ev){
+    
+
+    var c = ev.target.closest("rect.subc");
+    if (c){ ev.stopPropagation();
+            select(c.dataset.key === sel ? selEid(c.dataset.key) : c.dataset.key); return; }
+    var m = ev.target.closest(".mach"); if (!m) return;
+    select(m.dataset.eid === sel ? "" : m.dataset.eid);
+  });
+  svg.addEventListener("keydown", function(ev){
+    if (ev.key !== "Enter" && ev.key !== " ") return;
+    var c = ev.target.closest("rect.subc");
+    if (c){ ev.preventDefault(); ev.stopPropagation();
+            select(c.dataset.key === sel ? selEid(c.dataset.key) : c.dataset.key); return; }
+    var m = ev.target.closest(".mach"); if (!m) return;
+    ev.preventDefault(); select(m.dataset.eid === sel ? "" : m.dataset.eid);
+  });
+  side.addEventListener("click", function(ev){
+     
+    var nb = ev.target.closest(".nback");
+    if (nb){ ev.preventDefault(); select(nb.dataset.eid || ""); return; }
+    var si = ev.target.closest(".subrow .subi");
+    if (si && si.dataset.key){ ev.preventDefault();
+      select(si.dataset.key === sel ? selEid(si.dataset.key) : si.dataset.key); return; }
+    var b = ev.target.closest(".backlink"); if (!b) return;
+    ev.preventDefault(); select("");
+  });
+  side.addEventListener("keydown", function(ev){
+    if (ev.key !== "Enter" && ev.key !== " ") return;
+    var si = ev.target.closest(".subrow .subi"); if (!si || !si.dataset.key) return;
+    ev.preventDefault();
+    select(si.dataset.key === sel ? selEid(si.dataset.key) : si.dataset.key);
+  });
+  document.addEventListener("keydown", function(ev){ if (ev.key === "Escape" && sel) select(""); });
+
+  
+
+
+
+
+
+  function _placeTip(body, x, y){
+    if (!body) return;
+    tip.innerHTML = body.innerHTML;
+    
+
+    tip.querySelectorAll("[tabindex]").forEach(function(el){ el.removeAttribute("tabindex"); });
+    tip.classList.add("show");
+    var r = tip.getBoundingClientRect();
+    var lx = Math.min(x + 14, window.innerWidth - r.width - 10);
+    var ly = Math.min(y + 14, window.innerHeight - r.height - 10);
+    tip.style.left = Math.max(8, lx) + "px";
+    tip.style.top  = Math.max(8, ly) + "px";
+  }
+  function showTip(eid, x, y){
+    var src = document.getElementById("mc-" + eid);
+    if (!src) return;
+    _placeTip(src.querySelector(".tipbody"), x, y);
+  }
+  
+
+
+  function showTipKey(key, x, y){
+    var src = side.querySelector('.ncard[data-key="' + key + '"]');
+    if (!src) return;
+    _placeTip(src.querySelector(".tipbody"), x, y);
+  }
+  svg.addEventListener("pointermove", function(ev){
+    var c = ev.target.closest("rect.subc");
+    if (c){ showTipKey(c.dataset.key, ev.clientX, ev.clientY); return; }
+    var m = ev.target.closest(".mach");
+    if (!m){ tip.classList.remove("show"); return; }
+    showTip(m.dataset.eid, ev.clientX, ev.clientY);
+  });
+  svg.addEventListener("pointerleave", function(){ tip.classList.remove("show"); });
+  svg.addEventListener("focusin", function(ev){
+    var c = ev.target.closest("rect.subc");
+    if (c){ var cr = c.getBoundingClientRect(); showTipKey(c.dataset.key, cr.right, cr.top);
+            return; }
+    var m = ev.target.closest(".mach"); if (!m) return;
+    var r = m.getBoundingClientRect(); showTip(m.dataset.eid, r.right, r.top);
+  });
+  svg.addEventListener("focusout", function(){ tip.classList.remove("show"); });
+
+   
+  var lg = document.getElementById("ld-legend");
+  if (lg) lg.addEventListener("click", function(ev){
+    var a = ev.target.closest(".lgi"); if (!a) return;
+    ev.preventDefault();
+    filter = (a.id === "ld-clear" || a.dataset.lb === filter) ? "" : a.dataset.lb;
+    machs.forEach(function(m){ m.classList.toggle("dim", !!filter && m.dataset.b !== filter); });
+    lg.querySelectorAll(".lgi").forEach(function(x){
+      x.classList.toggle("on", !!filter && x.dataset.lb === filter);
+    });
+    layoutLabels(); syncUrl();
+  });
+
+   
+  var wb = document.getElementById("ld-wall");
+  if (wb) wb.addEventListener("click", function(){
+    wall = wall ? 0 : 1;
+    document.body.classList.toggle("wall", !!wall);
+    wb.textContent = wall ? {{ t.ld_wall_off|tojson }} : {{ t.ld_wall|tojson }};
+    syncUrl();
+  });
+
+   
+  function syncUrl(){
+    try{
+      var p = new URLSearchParams(window.location.search);
+       
+      var se = selEid(sel), su = sel.slice(se.length + 1);
+      if (se) p.set("eid", se); else p.delete("eid");
+      if (su) p.set("unit", su); else p.delete("unit");
+      if (filter) p.set("filter", filter); else p.delete("filter");
+      if (wall) p.set("wall", "1"); else p.delete("wall");
+      history.replaceState(null, "", window.location.pathname + "?" + p.toString());
+    }catch(e){}
+  }
+
+  
+
+  var hint = {{ (hint_eid or '')|tojson }};
+  try{
+    if (hint && !sel && !window.matchMedia("(prefers-reduced-motion: reduce)").matches){
+      var hm = g.querySelector('.mach[data-eid="' + hint + '"]');
+      if (hm){ hm.classList.add("hint"); setTimeout(function(){ hm.classList.remove("hint"); }, 2700); }
+    }
+  }catch(e){}
+
+  
+
+
+
+
+
+
+
+
+
+
+  var POLL = {{ poll_s }} * 1000, POLL_MAX = {{ poll_max_s }} * 1000;
+  var ST_URL = {{ ('/landing/state?source=' ~ source ~ '&lang=' ~ lang
+                  ~ (('&env=' ~ (env_tags|map(attribute='sid')|join(','))) if env_tags else ''))|tojson }};
+  var ST_SCHEMA = {{ ld_state_schema|tojson }};
+  var POLL_ON = {{ 0 if demo else 1 }};
+  var COL = {{ ld_color|tojson }};
+  var backoff = POLL, timer = null;
+  
+
+
+  var feedAll = {{ feed_all|tojson }}, feedEmpty = {{ t.ld_ev_none|tojson }}, woPrefix = {{ t.ld_wo_prefix|tojson }},
+      woNoneOpen = {{ t.ld_m_wo_none_open|tojson }}, woExpand = {{ t.ld_wo_expand|tojson }},
+      panelSource = {{ source|tojson }}, panelLang = {{ lang|tojson }};
+  var feedWarming = {{ (st_meta.warming or false)|tojson }}, feedWarmText = {{ fresh_txt|tojson }};
+  var byEid = {};
+  machs.forEach(function(m){ byEid[m.dataset.eid] = m; });
+
+  
+
+
+
+
+
+
+  var kunSticky = "";
+  function setKunmates(kun){
+    var chosen = kun || kunSticky || ((byEid[sel] || {}).dataset || {}).kun || "";
+    machs.forEach(function(m){ m.classList.toggle("kunmate", !!chosen && m.dataset.kun === chosen); });
+    kchips.forEach(function(c){ c.classList.toggle("kunmate", !!chosen && c.dataset.kun === chosen); });
+    kregs.forEach(function(r){ r.classList.toggle("kunmate", !!chosen && r.dataset.kun === chosen); });
+  }
+  machs.forEach(function(m){
+    m.addEventListener("pointerenter", function(){ setKunmates(m.dataset.kun); });
+    m.addEventListener("pointerleave", function(){ setKunmates(""); });
+    m.addEventListener("focus", function(){ setKunmates(m.dataset.kun); });
+    m.addEventListener("blur", function(){ setKunmates(""); });
+    m.addEventListener("click", function(){ setKunmates(m.dataset.kun); });
+  });
+  kchips.forEach(function(c){
+    var k = c.dataset.kun || "";
+    c.addEventListener("pointerenter", function(){ setKunmates(k); });
+    c.addEventListener("pointerleave", function(){ setKunmates(""); });
+    c.addEventListener("focus", function(){ setKunmates(k); });
+    c.addEventListener("blur", function(){ setKunmates(""); });
+     
+    c.addEventListener("click", function(ev){ ev.stopPropagation(); kunSticky = k; setKunmates(k); });
+    c.addEventListener("keydown", function(ev){
+      if (ev.key === "Enter" || ev.key === " "){ ev.preventDefault(); kunSticky = k; setKunmates(k); }
+    });
+  });
+   
+  svg.addEventListener("click", function(ev){
+    if (ev.target.closest(".kchip") || ev.target.closest(".mach")) return;
+    if (!kunSticky) return;
+    kunSticky = ""; setKunmates("");
+  });
+  document.addEventListener("keydown", function(ev){
+    if (ev.key === "Escape" && kunSticky){ kunSticky = ""; setKunmates(""); }
+  });
+
+  function setF(root, name, txt){
+    var el = root.querySelector('[data-ldf="' + name + '"]');
+    if (el && txt != null) el.textContent = txt;
+  }
+  function renderFeed(items, selected, warming, warmText, emptyText, prefix){
+    var fd = document.getElementById("ld-feed"); if (!fd) return;
+    fd.textContent = "";
+    var shown = (items || []).filter(function(e){ return !selected || e.eid === selected; });
+    if (!shown.length){ var em = document.createElement("div"); em.className = "empty";
+      em.textContent = warming ? (warmText || "") : (emptyText || ""); fd.appendChild(em); return; }
+    shown.forEach(function(e){
+      var row = document.createElement("div"); row.className = "evrow"; row.dataset.eid = e.eid || "";
+      var a = document.createElement("a"); a.className = "evid"; a.href = e.href; a.textContent = e.eid; a.title = (e.eid || "") + " " + (e.name || "");
+      var nm = document.createElement("span"); nm.className = "evname"; nm.textContent = e.name || ""; nm.title = e.name || "";
+      row.appendChild(a); row.appendChild(nm);
+      if (e.wo){ row.appendChild(document.createTextNode((prefix || "") + " "));
+        var w = document.createElement(e.wo.href ? "a" : "span"); w.className = "evwo"; w.textContent = e.wo.text || ""; w.title = e.wo.title || "";
+        if (e.wo.href){ w.href = e.wo.href; w.target = "_blank"; w.rel = "noopener"; } row.appendChild(w); }
+      
+
+      var s = document.createElement("span"); s.className = "ev"; s.textContent = e.txt || ""; s.title = e.txt || "";
+      var when = document.createElement("span"); when.className = "when"; when.textContent = e.when || "";
+      row.appendChild(s); row.appendChild(when); fd.appendChild(row);
+    });
+  }
+  
+
+  function renderPanelWos(panel, items){
+    var box = panel && panel.querySelector("[data-ld-eid-wos]"); if (!box) return;
+    var eid = box.dataset.eid || panel.dataset.eid || "";
+    box.textContent = "";
+    if (!(items || []).length){ var em = document.createElement("div"); em.className = "empty";
+      em.textContent = woNoneOpen; box.appendChild(em); return; }
+    (items || []).forEach(function(w, i){
+      var card = document.createElement("div"); card.className = "wocard";
+      var details = document.createElement("details"), summary = document.createElement("summary");
+      var did = "ld-wod-" + eid + "-" + i, det = document.createElement("div");
+      summary.setAttribute("hx-get", "/landing2/wo?wno=" + encodeURIComponent(w.no || "")
+                           + "&eid=" + encodeURIComponent(eid) + "&source="
+                           + encodeURIComponent(panelSource) + "&lang=" + encodeURIComponent(panelLang));
+      summary.setAttribute("hx-target", "#" + did); summary.setAttribute("hx-swap", "innerHTML");
+      summary.setAttribute("hx-trigger", "click once"); summary.title = woExpand;
+      if (w.link){
+        summary.appendChild(document.createTextNode((w.parts || [])[0] || ""));
+        var link = document.createElement("a"); link.href = w.link.href; link.target = "_blank";
+        link.rel = "noopener"; link.title = w.link.title || ""; link.textContent = w.link.text || "";
+        summary.appendChild(link); summary.appendChild(document.createTextNode((w.parts || [])[1] || ""));
+      } else { summary.textContent = w.txt || ""; }
+      det.className = "wodet"; det.id = did; details.appendChild(summary); details.appendChild(det);
+      card.appendChild(details); box.appendChild(card);
+    });
+    if (window.htmx) window.htmx.process(box);
+  }
+  function renderPanelEvents(panel, items, eid){
+    var box = panel && panel.querySelector("[data-ld-eid-events]"); if (!box) return;
+    box.textContent = "";
+    var shown = (items || []).filter(function(e){ return e.eid === eid; });
+    if (!shown.length){ var em = document.createElement("div"); em.className = "empty";
+      em.textContent = feedEmpty; box.appendChild(em); return; }
+    shown.forEach(function(e){
+      var row = document.createElement("div"); row.className = "pevrow evrow";
+      var id = document.createElement("span"); id.className = "evid"; id.textContent = e.eid || "";
+      var nm = document.createElement("span"); nm.className = "evname"; nm.textContent = e.name || "";
+      nm.title = e.name || ""; row.appendChild(id); row.appendChild(nm);
+      if (e.wo){ row.appendChild(document.createTextNode((woPrefix || "") + " "));
+        var w = document.createElement(e.wo.href ? "a" : "span"); w.className = "evwo";
+        w.textContent = e.wo.text || ""; w.title = e.wo.title || "";
+        if (e.wo.href){ w.href = e.wo.href; w.target = "_blank"; w.rel = "noopener"; } row.appendChild(w); }
+      var s = document.createElement("span"); s.className = "ev"; s.textContent = e.txt || ""; s.title = e.txt || "";
+      var when = document.createElement("span"); when.className = "when"; when.textContent = e.when || "";
+      row.appendChild(s); row.appendChild(when); box.appendChild(row);
+    });
+  }
+  function applyState(d){
+    if (!d || d.schema_id !== ST_SCHEMA) return;
+    (d.machines || []).forEach(function(m){
+      var c = COL[m.bucket] || null;
+      var machineEl = byEid[m.eid];
+      if (machineEl){
+        machineEl.dataset.b = m.bucket;
+        if (m.aria) machineEl.setAttribute("aria-label", m.aria);
+        var body = machineEl.querySelector("rect.body");
+        if (body){
+          body.setAttribute("fill", c || "none");
+          body.setAttribute("fill-opacity", c ? "0.85" : "0");
+          
+
+
+          body.setAttribute("stroke", c || "var(--mut)");
+        }
+        machineEl.classList.toggle("pulse", !!m.pulse);
+        machineEl.classList.toggle("p24", !!m.badge24);
+        
+
+
+        machineEl.classList.toggle("wm", !!m.wo_marker);
+        
+
+        machineEl.classList.toggle("inf", m.basis === "station_lot");
+        machineEl.classList.toggle("dim", !!filter && m.bucket !== filter);
+        
+
+
+        (m.sub || []).forEach(function(s){
+          var cell = machineEl.querySelector('.subs rect.subc[data-unit="' + s.unit + '"]');
+          if (cell){
+            cell.setAttribute("fill", s.fill || "none");
+            cell.setAttribute("fill-opacity", s.fill ? "0.95" : "0");
+            cell.classList.toggle("hollow", !s.fill);
+            
+
+
+            var dm = cell.nextElementSibling;
+            if (!dm || !dm.classList.contains("dm")) dm = null;
+            if (s.bucket === "dorm"){
+              if (!dm){
+                dm = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+                dm.setAttribute("class", "dm");
+                cell.insertAdjacentElement("afterend", dm);
+              }
+              var sx = Number(cell.getAttribute("x")), sy = Number(cell.getAttribute("y")),
+                  sw = Number(cell.getAttribute("width")), sh = Number(cell.getAttribute("height"));
+              dm.setAttribute("cx", sx + sw / 2);
+              dm.setAttribute("cy", sy + sh / 2);
+              dm.setAttribute("r", Math.min(sw, sh) * 0.22);
+            } else if (dm){ dm.remove(); }
+            var ti = cell.querySelector("title");
+            if (ti && s.title != null) ti.textContent = s.title;
+            
+
+            if (s.aria != null) cell.setAttribute("aria-label", s.aria);
+          }
+        });
+      }
+      var card = document.getElementById("mc-" + m.eid);
+      if (card){
+        setF(card, "state", m.state_label);
+        setF(card, "basis", m.basis_txt);
+        var sinceRow = card.querySelector('[data-ldf-row="since"]');
+        if (sinceRow) sinceRow.hidden = !m.since_txt;
+        setF(card, "since", m.since_txt);
+        setF(card, "mes", m.mes_txt);
+        setF(card, "recent", m.recent_txt);
+        setF(card, "stationmonth", m.station_month_txt);
+        var weak = card.querySelector('[data-ldf="weak"]');
+        if (weak) weak.hidden = m.conf !== "low";
+        var dot = card.querySelector('[data-ldf="dot"]');
+        if (dot){ dot.className = c ? "qdot" : "qhollow"; dot.style.background = c || ""; }
+         
+        (m.sub || []).forEach(function(s){
+          var it = card.querySelector('.subrow .subi[data-unit="' + s.unit + '"]');
+          if (!it) return;
+          if (s.title != null) it.title = s.title;
+          if (s.aria != null) it.setAttribute("aria-label", s.aria);
+          var d = it.querySelector("i");
+          if (d){ d.className = s.fill ? "qdot" : "qhollow"; d.style.background = s.fill || ""; }
+           
+          var hb = it.querySelector('[data-ldf="subh"]');
+          if (hb && s.hours_txt != null) hb.textContent = s.hours_txt;
+        });
+      }
+      
+
+
+      side.querySelectorAll('.ncard[data-eid="' + m.eid + '"]').forEach(function(nc){
+        setF(nc, "state", m.state_label);
+        setF(nc, "basis", m.basis_txt);
+      });
+      (m.sub || []).forEach(function(s){
+        var nc = side.querySelector('.ncard[data-key="' + m.eid + "|" + s.unit + '"]');
+        if (!nc) return;
+        var nd = nc.querySelector('[data-ldf="ndot"]');
+        if (nd){ nd.className = s.fill ? "qdot" : "qhollow"; nd.style.background = s.fill || ""; }
+        setF(nc, "nbucket", s.bucket_label);
+        setF(nc, "nlast", s.last_txt);
+        var nn = nc.querySelector('[data-ldf="nnodata"]');
+        if (nn) nn.hidden = (s.last_txt !== DASH);
+        
+
+
+
+
+
+
+
+        var nw = nc.querySelector('[data-ldf="nwo"]'),
+            nwn = nc.querySelector('[data-ldf="nwonone"]');
+        if (nw && nwn){
+          if (s.wo_txt){
+            if (s.wo_parts && s.wo_link){
+              nw.textContent = "";
+              nw.appendChild(document.createTextNode(s.wo_parts[0] || ""));
+              var sw = document.createElement(s.wo_link.href ? "a" : "span");
+              sw.className = "evwo"; sw.textContent = s.wo_link.text || "";
+              sw.title = s.wo_link.title || "";
+              if (s.wo_link.href){ sw.href = s.wo_link.href; sw.target = "_blank"; sw.rel = "noopener"; }
+              nw.appendChild(sw);
+              nw.appendChild(document.createTextNode(s.wo_parts[1] || ""));
+            } else { nw.textContent = s.wo_txt; }
+            nw.hidden = false; nwn.hidden = true;
+          }
+          else { nw.hidden = true; nwn.hidden = false; }
+        }
+      });
+    });
+    if (lg && d.counts) lg.querySelectorAll(".lgi[data-lb]").forEach(function(a){
+      var n = d.counts[a.dataset.lb];
+      if (n == null) return;
+      var b = a.querySelector("b");
+      if (b) b.textContent = n;
+      a.hidden = !n;
+    });
+    var fc = document.getElementById("ld-fresh");
+    if (fc && d.fresh_txt){ fc.textContent = d.fresh_txt;
+                            fc.className = "freshchip " + (d.fresh_tone || "");
+                            
+
+                            if (d.fresh_tip) fc.title = d.fresh_tip; }
+    feedAll = d.feed || [];
+    feedEmpty = d.feed_empty || feedEmpty; woPrefix = d.wo_prefix || woPrefix;
+    feedWarming = !!d.warming; feedWarmText = d.fresh_txt || "";
+    renderFeed(feedAll, sel, !!d.warming, d.fresh_txt || "", feedEmpty, woPrefix);
+    var openPanel = side.querySelector('.mcard:not([hidden])');
+    if (openPanel){
+      var openEid = openPanel.dataset.eid || "";
+      var openMachine = (d.machines || []).filter(function(m){ return m.eid === openEid; })[0];
+      if (openMachine){ renderPanelWos(openPanel, openMachine.wos); renderPanelEvents(openPanel, feedAll, openEid); }
+    }
+    Object.keys(d.kun_operators || {}).forEach(function(k){
+      var chip = g.querySelector('.kchip[data-kun="' + k + '"]'), rec = d.kun_operators[k];
+      if (!chip || !rec) return;
+      var txt = chip.querySelector('[data-ldf="opr"]'), title = chip.querySelector("title");
+      if (txt) txt.textContent = rec.staff_text || "—";
+      if (title) title.textContent = rec.chip_title || "";
+    });{% if env_tags %}
+    
+
+
+
+
+
+    if (d.env && d.env.tags){
+      etags.forEach(function(el){
+        var e = d.env.tags[el.dataset.sid];
+        if (!e) return;
+        el.setAttribute("class", "envtag t-" + e.tone);
+        if (e.url) el.setAttribute("href", e.url);
+        var eti = el.querySelector("title");
+        if (eti && e.title != null) eti.textContent = e.title;
+        var ev = el.querySelector("tspan.val");
+        if (ev && e.text != null) ev.textContent = e.text;
+        var pill = el.querySelector("rect.pill");
+        if (!pill) return;
+        if (Number(e.w_px) > Number(pill.getAttribute("width"))) pill.setAttribute("width", Number(e.w_px).toFixed(1));
+        var ph = Number(pill.getAttribute("height")), pw = Number(pill.getAttribute("width"));
+        var sl = el.querySelector("path.slash");
+        if (e.tone === "unknown"){
+          if (!sl){
+            sl = document.createElementNS("http://www.w3.org/2000/svg", "path");
+            sl.setAttribute("class", "slash");
+            pill.insertAdjacentElement("afterend", sl);
+          }
+          sl.setAttribute("d", "M2," + (ph - 2).toFixed(1) + " L" + (pw - 2).toFixed(1) + ",2");
+        } else if (sl){ sl.remove(); }
+      });
+      var ec = document.getElementById("ld-envchip");
+      if (ec && d.env.chip){ ec.textContent = d.env.chip; ec.title = d.env.chip_title || ""; }
+    }{% endif %}
+    layoutLabels();
+  }
+  function schedule(ms){
+    if (!POLL_ON) return;
+    clearTimeout(timer); timer = setTimeout(tick, ms);
+  }
+  function tick(){
+    if (document.hidden){ schedule(POLL); return; }        
+    fetch(ST_URL, {headers: {"Accept": "application/json"}})
+      .then(function(r){ if (!r.ok) throw new Error("HTTP " + r.status); return r.json(); })
+      .then(function(d){ applyState(d); backoff = POLL; schedule(POLL); })
+      .catch(function(){ backoff = Math.min(POLL_MAX, backoff * 2); schedule(backoff); });
+  }
+  document.addEventListener("visibilitychange", function(){
+    if (!document.hidden && POLL_ON) schedule(1200);       
+  });
+  schedule(POLL);
+
+  apply();
+})();
+</script>
+{% endif %}

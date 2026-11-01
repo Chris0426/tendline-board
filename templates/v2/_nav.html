@@ -1,0 +1,75 @@
+
+
+
+
+
+
+
+
+
+
+
+{% import 'v2/_c_icon.html' as ic %}
+{% set _dqs = ('&days=' ~ days ~ '&stop_min=' ~ stop_min) if (days is defined and stop_min is defined) else '' %}
+{% set _tagqs = tag_qs if tag_qs is defined else '' %}
+<nav class="board-nav" aria-label="Tendline Board">
+  <a class="board-brand" href="/?source={{ source }}&lang={{ lang }}">TENDLINE BOARD</a>
+  <div class="board-tabs">
+    <div class="board-grp" role="group" aria-label="{{ t.nav_grp_prod }}">
+      {% if t.nav_grp_prod != t.nav_capacity %}<span class="board-grp-l" aria-hidden="true">{{ t.nav_grp_prod }}</span>{% endif %}
+      <a class="board-tab{{ ' on' if nav_active=='capacity' }}"{% if nav_active=='capacity' %} aria-current="page"{% endif %} href="/station/{{ cal_cls }}?source={{ source }}&lang={{ lang }}{{ _tagqs }}">{{ t.nav_capacity }}</a>{%- if not is_synth %}
+      <a class="board-tab{{ ' on' if nav_active=='output' }}"{% if nav_active=='output' %} aria-current="page"{% endif %} href="/output?source={{ source }}&lang={{ lang }}">{{ t.nav_output }}</a>{%- endif %}
+      <a class="board-tab{{ ' on' if nav_active=='util' }}"{% if nav_active=='util' %} aria-current="page"{% endif %} href="/utilization?source={{ source }}{{ _dqs }}&lang={{ lang }}{{ _tagqs }}">{{ t.nav_util }}</a>{%- if not is_synth %}
+      
+      <details class="board-more{{ ' on' if nav_active in ('daily','saltmarshweekly','monthly') }}">
+        <summary title="{{ t.nav_reports }}" aria-label="{{ t.nav_reports }}">{{ t.nav_reports }}<svg class="board-caret" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg></summary>
+        <div class="board-mpanel">
+          <a class="board-tab{{ ' on' if nav_active=='daily' }}" href="/daily?source={{ source }}&lang={{ lang }}">{{ t.nav_daily }}</a>
+          
+          <a class="board-tab{{ ' on' if nav_active=='monthly' }}" href="/monthly?source={{ source }}&lang={{ lang }}">{{ t.nav_monthly }}</a>
+        </div>
+      </details>{%- endif %}
+    </div>{%- if not is_synth %}
+    <div class="board-grp" role="group" aria-label="{{ t.nav_grp_proc }}">
+      {% if t.nav_grp_proc != t.nav_yield %}<span class="board-grp-l" aria-hidden="true">{{ t.nav_grp_proc }}</span>{% endif %}
+      <a class="board-tab{{ ' on' if nav_active=='yield' }}"{% if nav_active=='yield' %} aria-current="page"{% endif %} href="/yield?source={{ source }}&lang={{ lang }}">{{ t.nav_yield }}</a>
+      <a class="board-tab{{ ' on' if nav_active=='rework' }}"{% if nav_active=='rework' %} aria-current="page"{% endif %} href="/rework?source={{ source }}&lang={{ lang }}">{{ t.nav_rework }}</a>
+    </div>{%- endif %}
+    <div class="board-grp" role="group" aria-label="{{ t.nav_grp_eq }}">
+      {% if t.nav_grp_eq != t.nav_eqmt %}<span class="board-grp-l" aria-hidden="true">{{ t.nav_grp_eq }}</span>{% endif %}
+      <a class="board-tab{{ ' on' if nav_active in ('eqmt','updown') }}"{% if nav_active in ('eqmt','updown') %} aria-current="page"{% endif %} href="/equipment?source={{ source }}&lang={{ lang }}{{ _tagqs }}">{{ t.nav_eqmt }}</a>
+      <a class="board-tab{{ ' on' if nav_active=='avail' }}"{% if nav_active=='avail' %} aria-current="page"{% endif %} href="/availability?source={{ source }}{{ _dqs }}&lang={{ lang }}{{ _tagqs }}">{{ t.nav_avail }}</a>{%- if not is_synth %}
+      <a class="board-tab{{ ' on' if nav_active=='pm' }}"{% if nav_active=='pm' %} aria-current="page"{% endif %} href="/equipment/pm?source={{ source }}&lang={{ lang }}">{{ t.nav_pm }}</a>
+      <details class="board-more{{ ' on' if nav_active == 'downtime' }}">
+        <summary title="{{ t.nav_reports }}" aria-label="{{ t.nav_reports }}">{{ t.nav_reports }}<svg class="board-caret" viewBox="0 0 10 6" aria-hidden="true"><path d="M1 1l4 4 4-4"/></svg></summary>
+        <div class="board-mpanel">
+          <a class="board-tab{{ ' on' if nav_active=='downtime' }}" href="/equipment/downtime/monthly?source={{ source }}&lang={{ lang }}">{{ t.nav_downtime }}</a>
+        </div>
+      </details>
+      
+      {% if (not is_tunnel) or tunnel_tier in ('aldergrove', 'open') %}
+      
+      
+      {% endif %}{%- endif %}
+    </div>
+    <details class="board-more board-overflow{{ ' on' if nav_active in ('overview','maint','dispatch') }}">
+      <summary title="{{ t.nav_more }}" aria-label="{{ t.nav_more }}">{{ ic.more() }}</summary>
+      <div class="board-mpanel">{%- if not is_synth %}
+        <a class="board-tab{{ ' on' if nav_active=='overview' }}" href="/landing/v1?source={{ source }}{{ _dqs }}&lang={{ lang }}">{{ t.nav_overview }}</a>{%- endif %}
+        <a class="board-tab{{ ' on' if nav_active=='maint' }}" href="/equipment/health?source={{ source }}&lang={{ lang }}">{{ t.nav_maint }}</a>{%- if not is_synth %}
+        <a class="board-tab{{ ' on' if nav_active=='dispatch' }}" href="/dispatch?source={{ source }}&lang={{ lang }}">{{ t.nav_dispatch }}</a>{%- endif %}
+      </div>
+    </details>
+  </div>
+  <div class="board-right">
+    {% if not no_source %}<span class="board-src {{ 'synth' if is_synth else source }}">{{ t.source_label_synth if is_synth else source }}</span>{% endif %}
+    <a class="board-lang" href="{{ lang_href }}">{{ t.lang_other }}</a>
+    <div class="board-seg" role="group" aria-label="{{ t.ui_density_tip }}" title="{{ t.ui_density_tip }}">
+      <a class="{{ 'on' if ui == '15' }}"{% if ui == '15' %} aria-current="true"{% endif %} href="{{ ui_href['15'] }}">{{ t.ui_laptop }}</a>
+      <a class="{{ 'on' if ui == '2' }}"{% if ui == '2' %} aria-current="true"{% endif %} href="{{ ui_href['2'] }}">{{ t.ui_projector }}</a>
+    </div>
+  </div>
+</nav>
+
+{% if assistant_ui %}{% include "_assistant.html" %}{% endif %}
+{% if not is_tunnel %}{% include "_webmcp.html" %}{% endif %}

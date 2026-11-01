@@ -1,0 +1,8 @@
+# Tendline Board 前門儀表板（FastAPI + HTMX，§18 單一前門 / §14.10 呈現層）
+# mes_timeline.py（凍結 v1）的相依：pyodbc（live 查 MES）。
+fastapi>=0.110
+uvicorn[standard]>=0.27
+jinja2>=3.1
+pyodbc>=5.0
+cryptography>=42        # on-box 鏈簽章用（Ed25519/JWS，board_onbox.py；純 stdlib 做不了 Ed25519）
+mcp>=1.28,<2            # PA2：mcp 2.x 改名 FastMCP→MCPServer，board_mcp.py 會 import 失敗，釘 1.x。Hermes sidebar 的 /mcp 唯讀工具面（board_mcp.py；streamable HTTP）

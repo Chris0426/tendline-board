@@ -1,0 +1,368 @@
+
+
+
+{% import 'v2/_c_icon.html' as ic %}
+
+
+
+
+
+
+{% if degraded == 'snapshot' %}
+  <div class="deg">{{ t.mr_snapshot_na }}</div>
+{% elif degraded == 'fixture' %}
+  <div class="deg">{{ t.mr_fixture_err }}</div>
+
+{% elif tab == 'notes' %}
+  
+  <h2>{{ t.mr_n_h }}</h2>
+  <div class="card">
+    <h3>{{ t.mr_n_rate_h }}</h3>
+    <p>{{ t.mr_n_rate_b.format(h=rate_min_h, d=rate_min_days) }}</p>
+    
+    <ul>{% for s in assumptions %}<li>{{ s }}</li>{% endfor %}</ul>
+
+    <h3>{{ t.mr_n_asof_h }}</h3>
+    <p>{{ t.mr_n_asof_b }}</p>
+
+    <h3>{{ t.mr_n_axis_h }}</h3>
+    <p>{{ t.mr_n_axis_b }}</p>
+
+    <h3>{{ t.mr_n_target_h }}</h3>
+    <p>{{ t.mr_n_target_b }}</p>
+
+    <h3>{{ t.mr_n_cov_h }}</h3>
+    <p>{{ t.mr_n_cov_b }}</p>
+
+    <h3>{{ t.mr_n_snap_h }}</h3>
+    <p>{{ t.mr_n_snap_b }}</p>
+
+    <h3>{{ t.mr_n_scope_h }}</h3>
+    <p>{{ t.mr_n_scope_b }}</p>
+
+    <h3>{{ t.mr_n_src_h }}</h3>
+    <p>{{ t.mr_n_src_b.format(t=n_route) }}</p>
+    <p class="mut">{{ t.mr_no_line_rate }}</p>
+  </div>
+
+{% elif tab == 'oee' %}
+  
+
+
+
+
+  
+
+
+  <form class="head noprint" method="get" action="/monthly">
+    <input type="hidden" name="source" value="{{ source }}">
+    <input type="hidden" name="lang" value="{{ lang }}">
+    <input type="hidden" name="month" value="{{ month }}">
+    <input type="hidden" name="tab" value="oee">
+    <label for="mr-scope">{{ t.mr_oee_scope }}</label>
+    <select id="mr-scope" name="cls" title="{{ t.mr_oee_scope_tip }}"
+            onchange="this.form.submit()"
+            style="font:inherit; color:var(--fg); background:var(--panel2);
+                   border:1px solid var(--line); border-radius:3px; padding:3px 7px;
+                   max-width:280px">
+      {% for o in scope_opts %}<option value="{{ o.cls }}"
+        {{ 'selected' if o.on }}>{{ o.label }}</option>{% endfor %}
+    </select>
+    <noscript><button type="submit">{{ t.range_apply }}</button></noscript>
+  </form>
+  <div class="lead">{{ oee_head }}</div>
+  {% if not oee_any %}
+  
+  <div class="note">{{ t.mr_oee_none }}</div>
+  {% else %}
+  <div class="sm">
+    {% for c in charts %}
+    <div class="smc">
+      <div class="k" title="{{ c.tip }}">{{ c.label }}</div>
+      <svg viewBox="0 0 {{ geo.w }} {{ geo.h }}" role="img"
+           aria-label="{{ c.label }}{% for d in c.dots %} · {{ d.month }} {{ d.txt }}{% endfor %}">
+        {% for g in grid %}<line class="gl" x1="{{ geo.x0 }}" y1="{{ g.y }}"
+              x2="{{ geo.x1 }}" y2="{{ g.y }}"/><text class="gt" x="{{ geo.x0 - 5 }}"
+              y="{{ g.y + 3 }}">{{ g.v }}</text>{% endfor %}
+        {% for s in c.segs %}<polyline class="ln" points="{{ s }}"/>{% endfor %}
+        {% for d in c.dots %}<circle class="dt{{ ' ho' if d.hollow }}" cx="{{ d.x }}"
+              cy="{{ d.y }}" r="2.6"><title>{{ d.month }} · {{ d.txt }}{% if d.hollow %} · {{ t.mr_oee_partial_mark }}{% endif %}</title></circle>{% endfor %}
+        {% if c.last %}<text class="vl" x="{{ c.last.lx }}" y="{{ c.last.ly }}">{{ c.last.txt }}</text>
+        {% else %}<text class="na" x="{{ geo.w / 2 }}" y="{{ (geo.y0 + geo.y1) / 2 }}">—</text>{% endif %}
+        {% for x in xs %}<text class="xt" x="{{ x.x }}" y="{{ geo.h - 4 }}">{{ x.txt }}</text>{% endfor %}
+      </svg>
+    </div>
+    {% endfor %}
+  </div>
+
+  
+  <div class="card">
+    <h3>{{ t.mr_oee_tbl }}</h3>
+    <div class="tw">
+      <table>
+        <thead>
+          <tr>
+            <th class="cls">{{ t.mr_oee_col_month }}</th>
+            <th class="num" title="{{ t.mr_col_a_tip }}">{{ t.mr_col_a }}</th>
+            <th class="num" title="{{ t.mr_col_u_tip }}">{{ t.mr_col_u }}</th>
+            <th class="num" title="{{ t.mr_col_y_tip if cls else t.mr_rty_tip }}">{{ t.mr_col_y }}</th>
+            <th class="num" title="{{ t.mr_col_oee_tip }}">{{ t.mr_col_oee }}</th>
+            <th class="num">{{ t[oee_nkey] }}</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for p in series %}
+          <tr>
+            <td class="cls">{{ p.month }}{% if p.partial %}
+              <span class="cov">{{ t.mr_oee_partial_mark }}</span>{% endif %}</td>
+            <td class="num{{ ' mut' if p.a_pct is none }}">{{ pctf(p.a_pct) }}</td>
+            <td class="num{{ ' mut' if p.u_pct is none }}">{{ pctf(p.u_pct) }}</td>
+            <td class="num{{ ' mut' if p.y_pct is none }}">{{ pctf(p.y_pct, 2) }}</td>
+            <td class="num{{ ' mut' if p.oee_pct is none }}">{{ pctf(p.oee_pct) }}</td>
+            <td class="num mut">{{ '—' if p.n is none else p.n }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="mut" style="font-size:11.5px; margin-top:6px">{{ t.mr_oee_axis_note }}</div>
+    {% if oee_thin %}<div class="mut" style="font-size:11.5px">{{ t.mr_oee_thin }}</div>{% endif %}
+    <div class="mut" style="font-size:11.5px">{{ t.mr_rw_since.format(m=rw_since)
+      if rw_since else t.mr_rw_pending }}</div>
+  </div>
+  {% endif %}
+
+{% else %}
+  
+  {% if not rows %}
+  
+
+  
+  {% if product_why %}<div class="note">{{ product_why }}</div>{% else %}
+  <div class="note">{{ t.mr_empty }}</div>{% endif %}
+  {% if partial and (through or as_of) %}<div class="note">{{ t.mr_partial_note.format(d=through)
+     if through else t.mr_partial_none.format(d=as_of) }}</div>{% endif %}
+  {% else %}
+  {% set nm = (line.n_stations or 0) - (line.n_stations_unmeasurable or 0) %}
+  <div class="lead">
+    {% if line.down_equiv_ph is not none %}
+      {{ t.mr_head.format(m=month, nm=nm, ns=(line.n_stations or 0),
+                          tot=ph(line.loss_total_ph), eq=ph(line.down_equiv_ph),
+                          fail=ph(line.qlik_fail), rew=ph(line.rework_n)) }}
+    {% else %}
+      {{ t.mr_head_norate.format(m=month, nm=nm, ns=(line.n_stations or 0),
+                                 fail=ph(line.qlik_fail), rew=ph(line.rework_n)) }}
+    {% endif %}
+  </div>
+  {% if partial and (through or as_of) %}<div class="note">{{ t.mr_partial_note.format(d=through)
+     if through else t.mr_partial_none.format(d=as_of) }}</div>{% endif %}
+  {% if coverage.missing_days %}
+  <div class="note">{{ t.mr_cov.format(n=coverage.n_days_present, m=coverage.n_days_expected) }}
+    · {{ coverage.missing_days|join(', ') }}</div>
+  {% endif %}
+  
+
+
+  {% if coverage.n_days_src_err %}
+  <div class="note">{{ t.mr_cov_srcerr.format(n=coverage.n_days_src_err,
+       d=(coverage.days_src_err or [])|join(', ')) }}</div>
+  {% endif %}
+  
+
+  {% if coverage.rw_pad_mixed %}
+  <div class="note">{{ t.mr_cov_rwpad_mixed }}</div>
+  {% endif %}{% if pt_line %}
+
+
+  <div class="note ptline">{{ pt_line.txt }}{% if pt_line.chip %}
+    <span class="ptchip" title="{{ pt_line.chip }}">{{ pt_line.chip }}</span>{% endif %}</div>{% endif %}
+
+  
+
+
+  <div class="bricks">
+    <div class="brick down">
+      <div class="k">{{ t.mr_brick_down }}</div>
+      <div class="v">{{ hf(line.down_h) }}<small>h</small></div>
+      <div class="s">{{ t.mr_brick_down_sub.format(v=ph(line.down_equiv_ph),
+                                                   n=(line.n_stations_rated or 0),
+                                                   t=(line.n_stations or 0)) }}</div>
+    </div>
+    
+    <div class="brick yield" title="{{ t.mr_no_line_rate }} — {{ t.mr_rty_tip }}">
+      <div class="k">{{ t.mr_brick_yield }}</div>
+      <div class="v">{{ ph(line.qlik_fail) }}<small>{{ unit }}</small></div>
+      <div class="s">{{ t.mr_brick_yield_sub.format(v=pctf(line.rty_pct, 2),
+                                                    n=(line.n_factors or 0),
+                                                    t=(line.n_route or 0)) }}</div>
+    </div>
+    <div class="brick rework" title="{{ t.mr_no_line_rate }}">
+      <div class="k">{{ t.mr_brick_rework }}</div>
+      <div class="v">{{ ph(line.rework_n) }}<small>{{ unit }}</small></div>
+      <div class="s">{{ t.mr_brick_rework_sub }}</div>
+    </div>
+  </div>
+
+  
+  {% set rwtip = t.mr_rw_since.format(m=rw_since) if rw_since else t.mr_rw_pending %}
+  <div class="card">
+    
+
+    
+
+
+
+
+
+    {% macro sh(label) -%}<button type="button" class="sortb" style="font:inherit; color:inherit; background:none; border:0; padding:0; margin:0; cursor:pointer">{{ label }}</button><span class="sorti" aria-hidden="true" style="display:inline-block; width:1em; text-align:center"></span>{%- endmacro %}
+    <div class="tw stk">
+      <table>
+        <thead>
+          <tr>
+            <th class="cls" aria-sort="none">{{ sh(t.mr_col_station) }}</th>
+            <th class="num" title="{{ t.mr_col_days_tip }}" aria-sort="none">{{ sh(t.mr_col_days) }}</th>
+            <th class="num" aria-sort="none">{{ sh(t.mr_col_down_h) }}</th>
+            <th style="text-align:left">{{ t.mr_col_states }}</th>
+            <th class="num" aria-sort="none">{{ sh(t.mr_col_equiv) }}</th>
+            <th class="num" aria-sort="none">{{ sh(t.mr_col_yield) }}</th>
+            <th class="num" aria-sort="none">{{ sh(t.mr_col_rework) }}</th>
+            
+
+            <th class="num" title="{{ t.mr_col_a_tip }} — {{ rwtip }}" aria-sort="none">{{ sh(t.mr_col_a) }}</th>
+            <th class="num" title="{{ t.mr_col_u_tip }} — {{ rwtip }}" aria-sort="none">{{ sh(t.mr_col_u) }}</th>
+            <th class="num" title="{{ t.mr_col_y_tip }}" aria-sort="none">{{ sh(t.mr_col_y) }}</th>
+            <th class="num" title="{{ t.mr_col_oee_tip }} — {{ rwtip }}" aria-sort="none">{{ sh(t.mr_col_oee) }}</th>
+            <th class="num" title="{{ t.mr_col_delta_tip }} — {{ rwtip }}" aria-sort="none">{{ sh(t.mr_col_delta) }}</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for r in rows %}
+          
+
+          <tr class="pick" hx-get="{{ r.detail_url }}" hx-target="#mr-detail"
+              hx-swap="innerHTML" hx-push-url="{{ r.push_url }}">
+            <td class="cls">{{ r.display }}<small>{{ r.cls }}</small>
+              
+
+              
+
+
+              {% if not r.n_measurable and product == 'plover' %}
+              <span class="cov zero"
+                    title="{{ r.unmeas_txt }}">{{ t.mr_unmeasurable }}</span>
+              {% endif %}
+              <a class="stn noprint" href="{{ r.station_url }}"
+                 onclick="event.stopPropagation()">{{ t.mr_station_link }} {{ ic.arrow() }}</a>
+            </td>
+            <td class="num mut">{{ r.n_measurable }}/{{ coverage.n_days_expected }}</td>
+            <td class="num">{{ hf(r.down_h) }}</td>
+            <td>
+              {% if r.down_by_state %}
+              <span class="st" title="{{ t.mr_col_states }} · {{ hf(r.down_h) }} h">
+                {% for k, v in r.down_by_state.items() %}{% if v %}<i
+                  style="width:{{ '%.1f'|format(v / max_down * 150 if max_down else 0) }}px;
+                         background:{{ state_color(k) }}"
+                  title="{{ state_label(k) }} {{ hf(v) }} h"></i>{% endif %}{% endfor %}
+              </span>
+              {% else %}<span class="mut">—</span>{% endif %}
+            </td>
+            <td class="num"
+                title="{{ t.mr_rate_tip.format(r=('%.2f'|format(r.rate_ph_per_h)), n=r.rate_days) if r.rate_ph_per_h is not none else t.mr_norate }}">{{ ph(r.down_equiv_ph) }}</td>
+            <td class="num">{{ ph(r.qlik_fail) }}{% if r.yield_pct is not none %}
+              <span class="mut">({{ pctf(100 - r.yield_pct, 2) }})</span>{% endif %}</td>
+            <td class="num">{{ ph(r.rework_n) }}{% if r.rework_pct is not none %}
+              <span class="mut">({{ pctf(r.rework_pct, 2) }})</span>{% endif %}</td>
+            
+
+
+
+            <td class="num{{ ' mut' if r.a_pct is none }}"{% if r.a_pct is none and r.rw_why %} title="{{ r.rw_why }}"{% endif %}>{{ pctf(r.a_pct) }}</td>
+            <td class="num{{ ' mut' if r.u_pct is none }}"{% if r.u_pct is none and r.rw_why %} title="{{ r.rw_why }}"{% endif %}>{{ pctf(r.u_pct) }}</td>
+            <td class="num">{{ pctf(r.yield_pct, 2) }}</td>
+            <td class="num{{ ' mut' if r.oee_pct is none }}"{% if r.oee_pct is none and r.rw_why %} title="{{ r.rw_why }}"{% endif %}>{{ pctf(r.oee_pct) }}</td>
+            
+            <td class="num{{ ' mut' if r.oee_delta_pp is none }}"{% if prev_month %} title="{{ t.mr_col_delta_tip }}"{% endif %}>{{ dpp(r.oee_delta_pp) }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <script>
+    
+
+
+    (function(){
+      var tbl = document.querySelector('.tw.stk table');
+      if (!tbl || !tbx.tHead || !tbx.tBodies[0] || tbx.getAttribute('data-sort-init')) return;
+      tbx.setAttribute('data-sort-init', '1');
+      var tb = tbx.tBodies[0], heads = tbx.tHead.rows[0].cells;
+      var rows = Array.prototype.slice.call(tb.rows);
+      var cur = {col: -1, dir: 0};
+      function num(s){
+        s = s.replace(/\u2212/g, '-').replace(/^\s+/, '');
+        var m = /^[+-]?\d[\d,]*(?:\.\d+)?/.exec(s);
+        return m ? parseFloat(m[0].replace(/,/g, '')) : null;
+      }
+      function key(tr, c, isText){
+        var td = tr.cells[c];
+        if (!td) return null;
+        if (isText){
+          var n = td.firstChild;
+          while (n && !(n.nodeType === 3 && n.nodeValue.replace(/\s+/g, ''))) n = n.nextSibling;
+          return (n ? n.nodeValue : td.textContent).replace(/^\s+|\s+$/g, '');
+        }
+        return num(td.textContent);
+      }
+      function paint(){
+        for (var i = 0; i < heads.length; i++){
+          var th = heads[i];
+          if (!th.hasAttribute('aria-sort')) continue;
+          var on = (i === cur.col && cur.dir !== 0);
+          th.setAttribute('aria-sort', on ? (cur.dir === 1 ? 'ascending' : 'descending') : 'none');
+          var g = th.querySelector('.sorti');
+          if (g) g.textContent = on ? (cur.dir === 1 ? '\u2191' : '\u2193') : '';
+        }
+      }
+      function apply(){
+        var order;
+        if (cur.dir === 0){
+          order = rows;
+        } else {
+          var isText = (heads[cur.col].className.indexOf('cls') >= 0), d = cur.dir;
+          order = rows.map(function(tr, i){ return {tr: tr, i: i, k: key(tr, cur.col, isText)}; });
+          order.sort(function(a, b){
+            var an = (a.k === null || a.k === ''), bn = (b.k === null || b.k === '');
+            if (an || bn) return an && bn ? a.i - b.i : (an ? 1 : -1);
+            var r = isText ? a.k.localeCompare(b.k, undefined, {numeric: true, sensitivity: 'base'}) : (a.k - b.k);
+            return r ? r * d : a.i - b.i;
+          });
+          order = order.map(function(o){ return o.tr; });
+        }
+        var fr = document.createDocumentFragment();
+        order.forEach(function(tr){ fr.appendChild(tr); });
+        tb.appendChild(fr);
+        paint();
+      }
+      tbx.tHead.addEventListener('click', function(ev){
+        var b = ev.target.closest ? ev.target.closest('.sortb') : null;
+        if (!b) return;
+        var th = b.parentNode, c = th.cellIndex;
+        var first = (th.className.indexOf('cls') >= 0) ? 1 : -1;    
+        if (cur.col !== c){ cur.col = c; cur.dir = first; }
+        else if (cur.dir === first){ cur.dir = -first; }
+        else { cur.dir = 0; }
+        apply();
+      });
+    })();
+    </script>
+    <div class="mut" style="font-size:11.5px; margin-top:6px">{{ t.mr_sortnote }}</div>
+    <div class="mut" style="font-size:11.5px">{{ rwtip }}</div>
+  </div>
+  {% endif %}
+
+  
+
+  <div id="mr-detail" class="card"{% if cls_url %} hx-get="{{ cls_url }}"
+       hx-trigger="load" hx-swap="innerHTML"{% endif %}>
+    <div class="mut">{{ t.mr_detail_hint }}</div></div>
+{% endif %}

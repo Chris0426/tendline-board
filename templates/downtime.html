@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="{{ 'zh-Hant' if lang=='zh' else 'en' }}">
+
+
+
+
+
+
+
+
+
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tendline Board — {{ t.dt_title }}</title>
+<style>
+  :root{
+    color-scheme: light dark;
+    --bg:#f4f6fb; --panel:#ffffff; --panel2:#eef2f8; --line:#d8e0ec; --track:#e6ebf3;
+    --fg:#1b2433; --mut:#5c6b82; --hover:#b9c6db; --unk:#b07d12;
+    --good:#1e7d4f; --warn:#b07d12; --bad:#b3423a; --acc-n:#2563eb; --gapfg:#9aa7bb;
+     
+    --dt-za:#1e293b; --dt-zb:#64748b; --dt-zc:#cbd5e1;
+    --dti-za:#ffffff; --dti-zb:#ffffff; --dti-zc:#1b2433;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b1220; --panel:#141d2e; --panel2:#1b2740; --line:#2a3852; --track:#0e1626;
+      --fg:#e6edf6; --mut:#8aa0bd; --hover:#3a5c86; --unk:#cbb26b;
+      --good:#36c47f; --warn:#cbb26b; --bad:#e0726f; --acc-n:#5b8def; --gapfg:#55657e;
+      --dt-za:#64748b; --dt-zb:#94a3b8; --dt-zc:#e2e8f0;
+      --dti-za:#ffffff; --dti-zb:#1b2433; --dti-zc:#1b2433;
+    }
+  }
+  *{ box-sizing:border-box }
+  body{ margin:0; background:var(--bg); color:var(--fg);
+        font:14px/1.5 "Segoe UI",system-ui,"Microsoft JhengHei",sans-serif }
+  main{ max-width:1360px; margin:0 auto; padding:18px 22px 40px }
+  h1{ font-size:19px; margin:6px 0 2px }
+  .sub{ color:var(--mut); font-size:12.5px; max-width:1000px }
+  .demotag{ font-size:10px; font-weight:800; letter-spacing:1px; color:var(--warn);
+            border:1px solid var(--warn); border-radius:8px; padding:1px 7px; margin-left:8px }
+  .head{ display:flex; flex-wrap:wrap; gap:8px 12px; align-items:center; margin:10px 0 2px;
+         font-size:12.5px; color:var(--mut) }
+  .chips{ display:inline-flex; flex-wrap:wrap; gap:4px }
+  .chips a{ padding:3px 10px; font-size:12.5px; text-decoration:none; color:var(--mut);
+            background:var(--panel); border:1px solid var(--line); border-radius:14px; white-space:nowrap }
+  .chips a:hover{ background:var(--panel2); color:var(--fg) }
+  .chips a.on{ background:var(--acc-n); border-color:var(--acc-n); color:#fff; font-weight:600 }
+  .rng{ display:inline-flex; align-items:center; gap:6px; margin-left:auto; flex-wrap:wrap }
+  .rng select{ font:inherit; font-size:12.5px; color:var(--fg); background:var(--panel);
+               border:1px solid var(--line); border-radius:8px; padding:3px 6px }
+  .rng .capn{ color:var(--warn); font-size:11.5px }
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:12px;
+         padding:12px 16px; margin:14px 0 }
+  .note{ background:var(--panel); border:1px solid var(--line); border-radius:10px;
+         padding:8px 14px; margin:10px 0; font-size:12.5px; color:var(--mut) }
+  .deg{ background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--warn);
+        border-radius:12px; padding:14px 16px; margin:12px 0; font-size:13px }
+  .kpis{ display:flex; flex-wrap:wrap; gap:10px; margin:12px 0 4px }
+  .kpi{ flex:1; min-width:150px; background:var(--panel); border:1px solid var(--line);
+        border-radius:12px; padding:9px 13px; cursor:help }
+  .kpi .k{ color:var(--mut); font-size:12px } .kpi .v{ font-size:22px; font-weight:800;
+        font-variant-numeric:tabular-nums; line-height:1.25 }
+  .kpi .v small{ font-size:12.5px; font-weight:600; color:var(--mut); margin-left:3px }
+  .mixed{ font-size:11.5px; color:var(--warn); margin:2px 2px 0 }
+  .chart{ width:100%; max-width:980px }
+  .chart svg{ width:100%; height:auto; display:block }
+  .chart .grid{ stroke:var(--line); stroke-width:1 }
+  .chart .axl{ fill:var(--mut); font-size:10.5px }
+  .chart .xl{ fill:var(--fg); font-size:11px }
+  .chart .xa{ fill:var(--mut); font-size:10px }
+  .chart .sep{ stroke:var(--mut); stroke-width:1.2; stroke-dasharray:4 3 }
+  .chart .sepn{ fill:var(--mut); font-size:10px }
+  .chart g.sg{ cursor:pointer }
+  .chart g.sg rect{ stroke:var(--panel); stroke-width:1 }
+  .chart g.sg:hover rect, .chart g.sg:focus rect{ stroke:var(--fg); stroke-width:1.5 }
+  .chart .a-za{ fill:var(--dt-za) } .chart .a-zb{ fill:var(--dt-zb) } .chart .a-zc{ fill:var(--dt-zc) }
+  .chart .t-za{ fill:var(--dti-za) } .chart .t-zb{ fill:var(--dti-zb) } .chart .t-zc{ fill:var(--dti-zc) }
+  .chart .sv{ font-size:9.5px; pointer-events:none }
+  .lgd{ display:flex; gap:14px; flex-wrap:wrap; font-size:12px; color:var(--mut); margin:6px 0 0;
+        align-items:center }
+  .lgd i{ display:inline-block; width:18px; height:10px; border-radius:2px; vertical-align:middle;
+          margin-right:5px; border:1px solid var(--line) }
+  .lgd i.a-za{ background:var(--dt-za) } .lgd i.a-zb{ background:var(--dt-zb) }
+  .lgd i.a-zc{ background:var(--dt-zc) }
+  details.twin summary{ cursor:pointer; color:var(--acc-n); font-size:12.5px; margin:8px 0 0 }
+  table{ border-collapse:collapse; font-size:12.5px }
+  th,td{ border-bottom:1px solid var(--line); padding:4px 9px; text-align:right; white-space:nowrap }
+  thead th{ background:var(--panel2); font-weight:600 }
+  th.l, td.l{ text-align:left }
+  td.num{ font-variant-numeric:tabular-nums }
+  .tw{ overflow-x:auto; margin:6px 0 2px }
+  .hint{ color:var(--mut); font-size:12.5px; padding:6px 2px }
+  .ph{ font-weight:700; font-size:14px; margin:2px 0 4px }
+  .rep{ font-size:12.5px; color:var(--mut); margin:0 0 6px }
+  .flag{ font-size:10.5px; border:1px solid var(--gapfg); border-radius:8px; padding:0 6px;
+         color:var(--mut); margin-right:3px; white-space:nowrap }
+  .ai{ font-size:10px; font-weight:800; letter-spacing:.5px; border:1px solid var(--acc-n);
+       color:var(--acc-n); border-radius:7px; padding:0 6px; margin-right:6px }
+  tr.sumr td{ text-align:left; white-space:normal; color:var(--fg); font-size:12.5px;
+              border-bottom:1px solid var(--line); padding:3px 9px 8px 34px }
+  tr.sumr .mutd{ color:var(--mut) }
+  tr.sumr details summary{ cursor:pointer; color:var(--mut); font-size:11.5px; margin-top:3px }
+  tr.sumr dl{ margin:4px 0 0; font-size:12px } tr.sumr dt{ color:var(--mut); font-size:11px }
+  tr.sumr dd{ margin:0 0 4px 0; white-space:pre-wrap }
+  .foot{ background:var(--panel); border:1px solid var(--line); border-radius:12px;
+         padding:10px 16px; margin:18px 0 0; font-size:12.5px; color:var(--mut) }
+  .foot div{ margin:2px 0 }
+  .loading{ display:flex; align-items:center; gap:9px; color:var(--mut); font-size:12.5px; padding:30px 2px }
+  .spin{ width:14px; height:14px; border:2px solid var(--track); border-top-color:var(--mut);
+         border-radius:50%; animation:sp .8s linear infinite }
+  @keyframes sp{ to{ transform:rotate(360deg) } }
+  .trunc{ max-width:240px; overflow:hidden; text-overflow:ellipsis; display:inline-block; vertical-align:bottom }
+</style>
+<script src="/static/htmx.min.js"></script>
+</head>
+<body>
+{% set nav_active = 'downtime' %}
+{% include "_nav.html" %}
+<main>
+  <h1>{{ t.dt_title }}{% if source == 'demo' %}<span class="demotag">DEMO</span>{% endif %}</h1>
+  <div class="sub">{{ t.dt_sub }}</div>
+  {% if not degraded %}
+  
+
+
+  <form class="head" method="get" action="{{ dt_base }}">
+    <span class="chips">
+      {% for o in type_opts %}<a href="{{ o.href }}" class="{{ 'on' if o.on }}">{{ o.label }}</a>{% endfor %}
+    </span>
+    <span class="rng">
+      <label for="dt-from">{{ t.dt_from }}</label>
+      <select id="dt-from" name="from" onchange="this.form.submit()">
+        {% for o in month_opts %}<option value="{{ o.m }}"{{ ' selected' if o.m == sel_from }}>{{ o.label }}</option>{% endfor %}
+      </select>
+      <label for="dt-to">{{ t.dt_to }}</label>
+      <select id="dt-to" name="to" onchange="this.form.submit()">
+        {% for o in month_opts %}<option value="{{ o.m }}"{{ ' selected' if o.m == sel_to }}>{{ o.label }}</option>{% endfor %}
+      </select>
+      {% if cap_note %}<span class="capn" data-cap="1">{{ cap_note }}</span>{% endif %}
+    </span>
+    <input type="hidden" name="source" value="{{ source }}">
+    <input type="hidden" name="lang" value="{{ lang }}">
+    {% if typ != 'all' %}<input type="hidden" name="type" value="{{ typ }}">{% endif %}
+    <noscript><button type="submit">OK</button></noscript>
+  </form>
+  {% endif %}
+  {% if source == 'demo' %}<div class="note">{{ t.dt_demo_note }}</div>{% endif %}
+  {% if degraded %}
+    {% include "_downtime_body.html" %}
+  {% else %}
+  <div id="dt-body" hx-get="{{ body_url }}" hx-trigger="load" hx-swap="innerHTML">
+    <div class="loading"><span class="spin"></span>{{ t.dt_loading }}</div>
+  </div>
+  {% endif %}
+</main>
+</body>
+</html>

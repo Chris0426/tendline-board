@@ -1,0 +1,132 @@
+
+
+
+
+
+
+
+
+
+
+
+
+{% if not m and err %}
+  
+  <div class="err">⚠ {{ t.err_lead }}{{ source }}{{ t.err_tail }}：{{ err }}<br>
+    <span style="font-size:12px">{{ t.err_hint_html | safe }}</span></div>
+{% elif not m %}
+  <div class="tl"><div class="tl-head"><span class="eid">{{ eid }}</span>
+    <span class="desc">{{ t.not_found }}</span></div></div>
+{% else %}
+<div class="tl">
+  <div class="tl-head">
+    <span class="eid">{{ m.eid }}</span>
+    <span class="desc">{{ m.desc or '—' }}</span>
+    
+
+    
+    
+    {% if dormant %}
+    <span class="util" style="color:var(--mut)" title="{{ (t.dl_dormant_tip_av if axis == 'avail' else t.dl_dormant_tip).format(d=dormant_since or '?', r=dormant_reason or '?') }}">
+      {{ t.av_center if axis == 'avail' else t.util }} —</span>
+    {% elif axis == 'avail' %}
+    {% if av_head and av_head.A is not none %}
+    <span class="util" title="{% if av_head.rollup %}{{ (t.av_row_tip_roll if av_rw else t.av_row_tip_roll24).format(h='%.1f'|format(av_head.rw_sec/3600.0), n=av_head.rollup.n_active) }}{% else %}{{ (t.av_row_tip if av_rw else t.av_row_tip24).format(h='%.1f'|format(av_head.rw_sec/3600.0)) }}{% endif %}"><span class="vdot" style="background:{{ 'var(--good)' if av_head.A>=0.9 else ('var(--warn)' if av_head.A>=0.75 else 'var(--bad)') }}" aria-hidden="true"></span>
+      {{ t.av_center }} {{ '%.0f'|format(av_head.A*100) }}%</span>
+    {% else %}
+    <span class="util" style="color:var(--mut)" title="{{ t.av_row_zero_tip if av_head else t.av_row_na_tip }}">
+      {{ t.av_center }} —</span>
+    {% endif %}
+    {% elif rw %}
+    <span class="util"{% if rw_util is none %} style="color:var(--mut)" title="{{ t.u_rw_zero_tip }}"{% endif %}>{% if rw_util is not none %}<span class="vdot" style="background:{{ 'var(--good)' if rw_util>=0.6 else ('var(--warn)' if rw_util>=0.4 else 'var(--bad)') }}" aria-hidden="true"></span>{% endif %}
+      {{ t.util }} {{ ('%.0f'|format(rw_util*100) ~ '%') if rw_util is not none else '—' }}</span>
+    {% else %}
+    <span class="util"><span class="vdot" style="background:{{ 'var(--good)' if m.agg.util>=0.6 else ('var(--warn)' if m.agg.util>=0.4 else 'var(--bad)') }}" aria-hidden="true"></span>
+      {{ t.util }} {{ '%.0f'|format(m.agg.util*100) }}%</span>
+    {% endif %}
+    {% if m.parent_eid %}<div class="meta" style="width:100%">{{ t.bay_of }} {{ m.parent_eid }}{% if m.cov_note %}{% if not is_synth %} · <span class="cov">{{ t.cln_cov_note }}</span>{% endif %}{% endif %}</div>{% endif %}
+    <div class="meta">
+      {{ t.segs }} {{ m.n_seg if m.n_seg is not none else '—' }} ·
+      {{ t.observed }} {{ hms(m.agg.total_sec) }} · {{ t.producing }} {{ hms(m.agg.producing_sec) }} · {{ t.unknown }} {{ hms(m.agg.unknown_sec) }}
+      {% if m.micro_idle_sec %} · micro-idle {{ hms(m.micro_idle_sec) }} {{ t.micro_idle_suffix }}{% endif %}
+    </div>
+  </div>
+
+  {% if rw %}
+  <div class="tl-bar rw">
+    
+    {% if not dormant %}{% for l, w in rw.win %}<i class="rwon" style="left:{{ l }}%; width:{{ w }}%" title="{{ t.u_erw_hdr }}"></i>{% endfor %}{% endif %}
+    {% for s in rw_segs if (s.state or not dormant) %}
+    
+    <span class="seg{{ ' low' if s.conf=='low' }}{{ ' off' if (s.off and s.state) }}{{ ' rwoff' if (s.off and not s.state) }}"
+          style="left:{{ '%.3f'|format(s.left) }}%; width:{{ '%.3f'|format(s.width) }}%;{% if s.state %} background-color:{{ rw_color(s.state) }}{% endif %}"
+          title="{% if s.state %}{{ state_label(s.state) }}（{{ conf_label(s.conf) }}）{% else %}{{ t.u_rw_off }}{% endif %}　{{ clock(s.start) }} → {{ clock(s.end) }}　= {{ hms(s.sec) }}{% if s.note %} · {{ note_label(s.note) }}{% endif %}{% if s.off and s.state %}{{ t.u_rw_out_sfx }}{% elif s.off %} · {{ t.u_rw_off_tip }}{% endif %}"></span>
+    {% endfor %}
+    {% if not dormant %}{% for l, w in rw.uncov %}<i class="rwunc" style="left:{{ l }}%; width:{{ w }}%" title="{{ t.u_rw_uncov_tip }}"></i>{% endfor %}
+    {% for mk in rw.marks %}<i class="rwtick" style="left:{{ mk }}%" title="{{ t.u_rw_mark_tip }}"></i>{% endfor %}{% endif %}
+  </div>
+  <div class="tl-axis">
+    <span>{{ clock(win_start) }}</span>
+    <span>{{ t.now }} {{ clock(win_end) }}</span>
+  </div>
+  
+
+
+  <div class="tl-legend">
+    <span><span class="sw" style="background:{{ rw_color('生產') }}"></span>{{ state_label('生產') }}</span>
+    <span title="{{ t.u_rw_down_tip }}"><span class="sw" style="background:{{ rw_color(RW_DOWN_STATE) }}"></span>{{ state_label(RW_DOWN_STATE) }}</span>
+    <span><span class="sw" style="background:{{ rw_color('該跑沒跑') }}"></span>{{ state_label('該跑沒跑') }}</span>
+    <span title="{{ t.eq_lg_rwon_tip }}"><span class="sw on"></span>{{ t.u_erw_hdr }}</span>
+    <span title="{{ t.u_rw_off_tip }}"><span class="sw" style="background:var(--rw-off)"></span>{{ t.u_rw_off }}</span>
+    <span title="{{ t.u_rw_uncov_tip }}"><span class="sw unc"></span>{{ t.u_rw_uncov }}</span>
+    <span title="{{ t.u_rw_mark_tip }}">┆ {{ t.u_rw_mark_tip }}</span>
+    
+
+    <span title="{{ t.legend_low_tip }}"><span class="sw low" style="background-color:{{ rw_color('該跑沒跑') }}"></span>{{ t.legend_low }}</span>
+    <span title="{{ t.legend_off_tip }}"><span class="sw off" style="background-color:{{ rw_color('生產') }}"></span>{{ t.legend_off }}</span>
+  </div>
+  <div class="tl-rwline">{{ t.u_erw_hdr }} {{ '%.1f'|format(rw.h) }}h · {{ t.producing }} {{ '%.1f'|format(rw_prod_h) }}h{% if m.roster_nosig %} · {{ t.u_roster_nosig }}{% endif %}</div>
+  {% else %}
+  <div class="tl-bar">
+    {% for r in m.records %}
+    <span class="seg {{ 'low' if r.conf=='low' }}"
+          style="width:{{ '%.3f'|format(r.sec / (m.agg.total_sec or 1) * 100) }}%; background-color:{{ state_color(r.state) }}"
+          title="{{ state_label(r.state) }}（{{ conf_label(r.conf) }}）　{{ clock(r.start) }} → {{ clock(r.end) }}　= {{ hms(r.sec) }}{% if r.note %} · {{ note_label(r.note) }}{% endif %}"></span>
+    {% endfor %}
+  </div>
+  <div class="tl-axis">
+    <span>{{ clock(m.records[0].start) if m.records else '' }}</span>
+    <span>{{ t.now }} {{ clock(data.mes_now) }}</span>
+  </div>
+
+  <div class="tl-legend">
+    
+
+    {% for st in m.records | map(attribute='state') | unique if st not in LEGACY_STATES %}
+    <span><span class="sw" style="background:{{ state_color(st) }}"></span>{% if st=='生產' %}{{ t.legend_prod }}{% elif st=='不明' %}{{ t.legend_unknown }}{% else %}{{ state_label(st) }}{% endif %}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="stops">
+    <h4>{{ t.stops_hdr }}</h4>
+    {% set stops = m.records | rejectattr('state','equalto','生產') | list %}
+    {% if not stops %}
+      <div class="stop"><span class="dot" style="background:{{ state_color('生產') }}"></span>{{ t.no_stops }}</div>
+    {% else %}
+      
+
+      {% for r in stops | sort(attribute='sec', reverse=true) %}
+      <div class="stop">
+        <span class="dot" style="background:{{ rw_color(r.state, rw) }}"></span>
+        <b>{{ state_label(r.state) }}</b>
+        {{ clock(r.start) }} → {{ clock(r.end) }}
+        {% if r.work_order_no %}<span class="future">· WO {{ r.work_order_no }}</span>{% endif %}
+        {% if r.note %}<span class="future">· {{ note_label(r.note) }}</span>{% endif %}
+        <span class="dur">{{ hms(r.sec) }}</span>
+      </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+</div>
+{% endif %}

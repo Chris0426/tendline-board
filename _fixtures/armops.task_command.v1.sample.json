@@ -1,0 +1,20 @@
+{
+  "schema_id": "armops.task_command.v1",
+  "_synthetic": "DEMO 合成資料——非真實指令；P3 前本契約只在模擬器內使用；消費端 normalize 應忽略 _ 前綴欄。confirmed_by 在真實部署必須來自認證通道解析（§2.1-2），非 payload 自報",
+  "proposal": {
+    "command_id": "armops:CELL-SAMPLE:EID-SAMPLE:20260706T060000Z:6f1c2a9e-3b7d-4c58-9a21-8e5f0d4b7a10",
+    "asset_id": "EID-SAMPLE",
+    "cell_id": "CELL-SAMPLE",
+    "command": "start_task",
+    "params": {
+      "task_id": "pick_place_demo",
+      "recipe_id": "RECIPE-SAMPLE-01"
+    },
+    "proposed_by": "agent:armops-supervisor",
+    "proposed_at": "2026-07-06T06:00:00Z",
+    "expires_at": "2026-07-06T06:30:00Z",
+    "confirmed_by": "human:user",
+    "confirmed_at": "2026-07-06T06:02:10Z",
+    "source_actor": "human:user"
+  }
+}

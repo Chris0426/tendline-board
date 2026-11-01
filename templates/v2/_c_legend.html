@@ -1,0 +1,7 @@
+
+
+
+{% macro swatch(color='', dash=False, ldf='') -%}
+{%- if color %}<span class="qdot"{% if ldf %} data-ldf="{{ ldf }}"{% endif %} style="background:{{ color }}"></span>
+{%- else %}<span class="qhollow{{ ' dash' if dash }}"{% if ldf %} data-ldf="{{ ldf }}"{% endif %}></span>{% endif -%}
+{%- endmacro %}

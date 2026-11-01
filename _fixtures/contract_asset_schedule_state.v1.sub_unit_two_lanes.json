@@ -1,0 +1,18 @@
+[
+  {
+    "ts_effective": "2026-01-05T16:00:00Z",
+    "effective_date": "2026-01-06",
+    "sub_unit": "nest:2",
+    "state": "not_scheduled",
+    "reason": "待 SALTMARSH 說明",
+    "recorded_at": "2026-09-02T01:00:00Z"
+  },
+  {
+    "ts_effective": "2026-03-16T16:00:00Z",
+    "effective_date": "2026-03-17",
+    "sub_unit": "nest:4",
+    "state": "not_scheduled",
+    "reason": "待 SALTMARSH 說明",
+    "recorded_at": "2026-09-02T01:00:00Z"
+  }
+]

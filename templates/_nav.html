@@ -1,0 +1,225 @@
+
+
+
+
+
+
+
+
+{% set _dqs = ('&days=' ~ days ~ '&stop_min=' ~ stop_min) if (days is defined and stop_min is defined) else '' %}
+{% set _tagqs = tag_qs if tag_qs is defined else '' %}
+<style>
+  .wrnav{ display:flex; align-items:center; gap:8px; padding:9px 22px;
+          border-bottom:1px solid var(--line); background:var(--panel); flex-wrap:wrap }
+  
+
+  .wrnav .brand{ font-size:15px; font-weight:800; letter-spacing:1.2px;
+                 color:var(--fg); margin-right:10px }
+  .wrnav a.brand{ text-decoration:none; cursor:pointer }
+   
+  .wrnav a.brand:hover{ color:var(--hover) }
+  .wrnav a.brand:focus-visible{ outline:2px solid var(--hover); outline-offset:2px;
+                                border-radius:6px }
+  
+
+  .wrnav .ngrp{ display:flex; align-items:center; gap:2px; padding:3px;
+                border:1px solid var(--line); border-radius:12px }
+  .wrnav a.tab{ font-size:13px; padding:5px 13px; border-radius:9px; text-decoration:none;
+                color:var(--mut); border:1px solid transparent }
+  .wrnav a.tab:hover{ background:var(--panel2); color:var(--fg); border-color:var(--line) }
+   
+  .wrnav a.tab.on{ color:var(--fg); font-weight:700; background:var(--panel2); border-color:var(--hover) }
+   
+  .wrnav .grp{ font-size:10px; font-weight:700; letter-spacing:.6px; text-transform:uppercase;
+               color:var(--mut); opacity:.7; margin:0 6px 0 8px; cursor:default; user-select:none }
+  
+
+
+  .wrnav details.more{ position:relative; padding:3px; border:1px solid var(--line);
+                       border-radius:12px }
+  .wrnav details.more>summary{ list-style:none; cursor:pointer; font-size:13px; line-height:1;
+                               padding:6px 13px; border-radius:9px; color:var(--mut);
+                               border:1px solid transparent; user-select:none }
+  .wrnav details.more>summary::-webkit-details-marker{ display:none }   
+  .wrnav details.more>summary::marker{ content:"" }
+  .wrnav details.more>summary:hover{ background:var(--panel2); color:var(--fg);
+                                     border-color:var(--line) }
+   
+  .wrnav details.more.on>summary{ color:var(--fg); font-weight:700; background:var(--panel2);
+                                  border-color:var(--hover) }
+  .wrnav details.more[open]>summary{ background:var(--panel2); color:var(--fg);
+                                     border-color:var(--line) }
+  .wrnav details.more .mpanel{ position:absolute; top:calc(100% + 6px); left:0; z-index:60;
+                               display:flex; flex-direction:column; gap:2px; padding:5px;
+                               min-width:172px; background:var(--panel);
+                               border:1px solid var(--line); border-radius:12px;
+                               box-shadow:0 10px 26px rgba(0,0,0,.18) }
+  .wrnav details.more .mpanel a.tab{ white-space:nowrap }
+  .wrnav .board-right{ margin-left:auto; display:flex; align-items:center; gap:10px }
+  .wrnav .badge{ font-size:11px; padding:2px 8px; border-radius:10px; border:1px solid var(--line); color:var(--mut) }
+  .wrnav .badge.live{ color:var(--good); border-color:var(--good) }
+  .wrnav .badge.demo{ color:var(--unk); border-color:var(--unk) }
+  .wrnav .badge.snapshot{ color:#2f7fc4; border-color:#2f7fc4 }
+  .wrnav .toggle{ font-size:12px; padding:3px 11px; border-radius:13px; border:1px solid var(--line);
+                  color:var(--fg); text-decoration:none; background:var(--panel2) }
+  .wrnav .toggle:hover{ border-color:var(--hover) }
+</style>
+<nav class="wrnav">
+  
+
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+  <a class="brand" href="/?source={{ source }}&lang={{ lang }}">TENDLINE BOARD</a>
+  
+
+
+
+  
+
+
+
+
+
+
+  <span class="ngrp">
+    <span class="grp">{{ t.nav_grp_prod }}</span>
+    
+
+    <a class="tab {{ 'on' if nav_active=='capacity' }}" href="/station/{{ cal_cls }}?source={{ source }}&lang={{ lang }}{{ _tagqs }}">{{ t.nav_capacity }}</a>
+    <a class="tab {{ 'on' if nav_active=='output' }}"  href="/output?source={{ source }}&lang={{ lang }}">{{ t.nav_output }}</a>
+    <a class="tab {{ 'on' if nav_active=='util' }}"    href="/utilization?source={{ source }}{{ _dqs }}&lang={{ lang }}{{ _tagqs }}">{{ t.nav_util }}</a>
+    
+    
+    
+
+    <details class="more {{ 'on' if nav_active in ('daily','saltmarshweekly','monthly') }}">
+      <summary title="{{ t.nav_reports }}" aria-label="{{ t.nav_reports }}">{{ t.nav_reports }} ▾</summary>
+      <div class="mpanel">
+        <a class="tab {{ 'on' if nav_active=='daily' }}"    href="/daily?source={{ source }}&lang={{ lang }}">{{ t.nav_daily }}</a>
+        
+        
+        
+        <a class="tab {{ 'on' if nav_active=='monthly' }}"  href="/monthly?source={{ source }}&lang={{ lang }}">{{ t.nav_monthly }}</a>
+      </div>
+    </details>
+  </span>
+  <span class="ngrp">
+    <span class="grp">{{ t.nav_grp_proc }}</span>
+    <a class="tab {{ 'on' if nav_active=='yield' }}"   href="/yield?source={{ source }}&lang={{ lang }}">{{ t.nav_yield }}</a>
+    <a class="tab {{ 'on' if nav_active=='rework' }}"  href="/rework?source={{ source }}&lang={{ lang }}">{{ t.nav_rework }}</a>
+  </span>
+  <span class="ngrp">
+    <span class="grp">{{ t.nav_grp_eq }}</span>
+    
+    <a class="tab {{ 'on' if nav_active in ('eqmt','updown') }}" href="/equipment?source={{ source }}&lang={{ lang }}{{ _tagqs }}">{{ t.nav_eqmt }}</a>
+    
+
+
+
+    <a class="tab {{ 'on' if nav_active=='avail' }}" href="/availability?source={{ source }}{{ _dqs }}&lang={{ lang }}{{ _tagqs }}">{{ t.nav_avail }}</a>
+    
+    <a class="tab {{ 'on' if nav_active=='pm' }}" href="/equipment/pm?source={{ source }}&lang={{ lang }}">{{ t.nav_pm }}</a>
+    
+
+
+
+    <details class="more {{ 'on' if nav_active == 'downtime' }}">
+      <summary title="{{ t.nav_reports }}" aria-label="{{ t.nav_reports }}">{{ t.nav_reports }} ▾</summary>
+      <div class="mpanel">
+        <a class="tab {{ 'on' if nav_active=='downtime' }}" href="/equipment/downtime/monthly?source={{ source }}&lang={{ lang }}">{{ t.nav_downtime }}</a>
+      </div>
+    </details>
+    
+
+
+
+
+
+    
+
+
+
+    
+
+
+    {% if (not is_tunnel) or tunnel_tier in ('aldergrove', 'open') %}
+    
+    
+    {% endif %}
+  </span>
+  
+
+
+
+
+  <details class="more {{ 'on' if nav_active in ('overview','maint','dispatch') }}">
+    <summary title="{{ t.nav_more }}" aria-label="{{ t.nav_more }}">⋯</summary>
+    <div class="mpanel">
+      
+
+      <a class="tab {{ 'on' if nav_active=='overview' }}" href="/landing/v1?source={{ source }}{{ _dqs }}&lang={{ lang }}">{{ t.nav_overview }}</a>
+      
+      <a class="tab {{ 'on' if nav_active=='maint' }}" href="/equipment/health?source={{ source }}&lang={{ lang }}">{{ t.nav_maint }}</a>
+      
+      <a class="tab {{ 'on' if nav_active=='dispatch' }}" href="/dispatch?source={{ source }}&lang={{ lang }}">{{ t.nav_dispatch }}</a>
+    </div>
+  </details>
+  <span class="board-right">
+    {% if not no_source %}<span class="badge {{ source }}">{{ source }}</span>{% endif %}
+    <a class="toggle" href="{{ lang_href }}">{{ t.lang_other }}</a>
+    <span role="group" aria-label="{{ t.ui_density_tip }}" title="{{ t.ui_density_tip }}">
+      <a class="toggle ver"{% if ui == '15' %} aria-current="true"{% endif %} href="{{ ui_href['15'] }}">{{ t.ui_laptop }}</a>
+      <a class="toggle ver"{% if ui == '2' %} aria-current="true"{% endif %} href="{{ ui_href['2'] }}">{{ t.ui_projector }}</a>
+    </span>
+  </span>
+</nav>
+
+
+<script>
+
+
+
+
+
+(function(){
+  var ds = document.querySelectorAll('nav.wrnav details.more');
+  if (!ds.length) return;
+  Array.prototype.forEach.call(ds, function(d){
+    d.addEventListener('toggle', function(){
+      if (!d.open) return;
+      Array.prototype.forEach.call(ds, function(o){ if (o !== d) o.open = false; });
+    });
+  });
+  document.addEventListener('click', function(e){
+    Array.prototype.forEach.call(ds, function(d){
+      if (d.open && !d.contains(e.target)) d.open = false;
+    });
+  });
+  document.addEventListener('keydown', function(e){
+    if (e.key !== 'Escape') return;
+    Array.prototype.forEach.call(ds, function(d){ if (d.open) d.open = false; });
+  });
+})();
+</script>
+
+{% if assistant_ui %}{% include "_assistant.html" %}{% endif %}
+
+
+
+
+{% if not is_tunnel %}{% include "_webmcp.html" %}{% endif %}

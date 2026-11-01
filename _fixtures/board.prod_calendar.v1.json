@@ -1,0 +1,1077 @@
+{
+  "schema_id": "board.prod_calendar.v1",
+  "_status": "Board＝producer（SPEC-PROD-CALENDAR v0.1／ROADMAP #34）。★ 範圍＝產出端：wire 交付形（SPEC §4）仍是**草案**、凍結在與 cmms QG-3 對版時——本 fixture是 Board 對**算得出來、算得對**的承諾存證，不是對 cmms 的 wire 承諾。★ 合成樣本：EID 用真名冊（_probe_kun_activity.KUN_ROSTER），時刻手擬。",
+  "_generated_by": "★★ golden 的每一個位元＝`core_prod_calendar.build_from_inputs`（→`compute_calendar`）對 `_build_inputs` 實跑產生。**不得手改**——selftest 會重跑並逐位（含鍵序）比對，手改立刻紅。invalid＝合法基底deepcopy 只動一處宣稱缺陷（record 被拒 ∧ _repaired 被收）。重生指令：python core_prod_calendar.py --make-fixture",
+  "provenance": [
+    {
+      "field": "day_boundary / days[].date",
+      "source": "C-PC1 生產日界＝台北 08:00（`SALTMARSH-KUN-STRUCTURE.md` §5.3；午夜界的實測後果＝FINDINGS §8-1 週日假結論）。date＝生產日日期（台北軸日期欄），跨度恰為 [D 00:00Z, D+1 00:00Z)（台北 08:00≡UTC 00:00）"
+    },
+    {
+      "field": "days[].production",
+      "source": "C-PC2 quorum（綑名冊任一 EID 當日有 Production 段；名冊唯一出處＝`_probe_kun_activity.KUN_ROSTER`）＋C-PC3 designation 字面精確比對（FINDINGS §8-2：不分 designation 誤判 4/10 休日）"
+    },
+    {
+      "field": "closures[]",
+      "source": "C-PC5：連續全廠靜默 ≥240 分；閾值實證＝FINDINGS §9（[240,600) 零觀測死區、59 天逐位元同）。邊界＝真實訊號時刻（前段 stpEndTime→後段 stpStartTime），不貼齊班表/日界"
+    },
+    {
+      "field": "coverage",
+      "source": "C-PC8 未涵蓋誠實＋QG-3 ⑤；**尾端語意 2026-08-23 晚 Chris 拍板修訂**（存證＝SPEC-PROD-CALENDAR §10）：from＝首訊號起點∩窗（首端保守不變）、to＝**觀測終點** min(窗尾, generated_at)——查詢窗涵蓋到執行當下 ⇒ 末訊號之後的沉默是觀測到的、不是未觀測（舊語意＝訊號跨度，結構性後果是最新一個生產日永遠不被主張）。零訊號 ⇒ 零寬（from==to）＝什麼都不主張；前緣邊緣日與「尾端沉默未閉合的休息日」不進 days"
+    },
+    {
+      "field": "rest_day_audit[]",
+      "source": "SPEC §3 強制自檢：每個休息生產日附當日全 MES 段盤點（EID/designation/格數；格＝probe 的 10 分鐘 slot）＝designation 漂移與 quorum bug 哨兵"
+    },
+    {
+      "field": "時刻格式",
+      "source": "QG-3 ⑥：MES 台北牆鐘 naive → wire UTC Z，一律走 `core_lastprod_push.taipei_to_utc_dt`/`to_utc_z` 一條路、不另寫"
+    }
+  ],
+  "golden": [
+    {
+      "_scenario": "★ 主劇本（5 日窗）：週型實形縮影。值域形涵蓋＝跨午夜段留在同一生產日（C-PC1）／夜間 3h50m 空窗**不成** closure（A5 保守＝ZC 實形）／用餐 50 分空窗不成 closure／零工期名冊訊號點（EID-27854、M4 鐵則）／Baseline 段不進 quorum（C-PC3）／附屬件（EID-01450）不進 quorum（C-PC2）／整休日 08-12 由 34h15m closure 全蓋／盤點含 roster Engineering 污染（FINDINGS §8-2 形）＋Zone D 機（EID-07905）休日跑段（C-PC2 排除的可見存證）／coverage 兩側邊緣日（08-10 首訊號之前；08-13 **觀測時刻（台北 08-14 06:30）早於其日界 08-14 08:00＝當日還沒過完**）誠實不主張。",
+      "_build_inputs": {
+        "win_start": "2026-08-09T12:00:00",
+        "win_end": "2026-08-14T06:00:00",
+        "generated_at": "2026-08-13T22:30:00Z",
+        "rows": [
+          [
+            "EID-25872",
+            "2026-08-10T08:30:00",
+            "2026-08-10T16:00:00",
+            "Production"
+          ],
+          [
+            "EID-17431",
+            "2026-08-10T16:10:00",
+            "2026-08-11T04:30:00",
+            "Production"
+          ],
+          [
+            "EID-25872",
+            "2026-08-11T08:20:00",
+            "2026-08-11T12:00:00",
+            "Production"
+          ],
+          [
+            "EID-25590",
+            "2026-08-11T12:50:00",
+            "2026-08-11T22:00:00",
+            "Production"
+          ],
+          [
+            "EID-27854",
+            "2026-08-11T13:00:00",
+            "2026-08-11T13:00:00",
+            "Production"
+          ],
+          [
+            "EID-25872",
+            "2026-08-11T14:00:00",
+            "2026-08-11T15:00:00",
+            "Engineering (Baseline)"
+          ],
+          [
+            "EID-01450",
+            "2026-08-11T10:00:00",
+            "2026-08-11T10:30:00",
+            "Production"
+          ],
+          [
+            "EID-17431",
+            "2026-08-12T10:00:00",
+            "2026-08-12T11:00:00",
+            "Engineering (Baseline)"
+          ],
+          [
+            "EID-07905",
+            "2026-08-12T09:00:00",
+            "2026-08-12T09:20:00",
+            "Production"
+          ],
+          [
+            "EID-17431",
+            "2026-08-13T08:15:00",
+            "2026-08-13T16:00:00",
+            "Production"
+          ]
+        ]
+      },
+      "schema_id": "board.prod_calendar.v1",
+      "generated_at": "2026-08-13T22:30:00Z",
+      "day_boundary": "08:00 Asia/Taipei",
+      "coverage": {
+        "from": "2026-08-10T00:30:00Z",
+        "to": "2026-08-13T22:00:00Z"
+      },
+      "days": [
+        {
+          "date": "2026-08-11",
+          "production": true
+        },
+        {
+          "date": "2026-08-12",
+          "production": false
+        }
+      ],
+      "closures": [
+        {
+          "start": "2026-08-11T14:00:00Z",
+          "end": "2026-08-13T00:15:00Z"
+        }
+      ],
+      "rest_day_audit": [
+        {
+          "date": "2026-08-12",
+          "segments": [
+            {
+              "eid": "EID-17431",
+              "designation": "Engineering (Baseline)",
+              "n_segments": 1,
+              "slots": 7
+            },
+            {
+              "eid": "EID-07905",
+              "designation": "Production",
+              "n_segments": 1,
+              "slots": 3
+            }
+          ]
+        }
+      ],
+      "open_silence_from": "2026-08-13T08:00:00Z"
+    },
+    {
+      "_scenario": "★ 降級形（SPEC §8 ④ 指名 case）：窗內零名冊 Production 訊號（只有 Baseline 與附屬件段）⇒ coverage 收成零寬（from==to）、days/closures/盤點全空＝該期間**未涵蓋**、絕不編造成生產或非生產（C-PC8）。",
+      "_build_inputs": {
+        "win_start": "2026-08-10T08:00:00",
+        "win_end": "2026-08-12T08:00:00",
+        "generated_at": "2026-08-12T01:00:00Z",
+        "rows": [
+          [
+            "EID-25872",
+            "2026-08-10T09:00:00",
+            "2026-08-10T10:00:00",
+            "Engineering (Baseline)"
+          ],
+          [
+            "EID-01450",
+            "2026-08-10T11:00:00",
+            "2026-08-10T11:30:00",
+            "Production"
+          ]
+        ]
+      },
+      "schema_id": "board.prod_calendar.v1",
+      "generated_at": "2026-08-12T01:00:00Z",
+      "day_boundary": "08:00 Asia/Taipei",
+      "coverage": {
+        "from": "2026-08-12T00:00:00Z",
+        "to": "2026-08-12T00:00:00Z"
+      },
+      "days": [],
+      "closures": [],
+      "rest_day_audit": []
+    },
+    {
+      "_scenario": "★ 排程實形（**2026-08-23 尾緣語意修訂的存證**；SPEC §10）：每日 08:20 產生、窗尾＝產生時刻，夜班末訊號 06:07（生產日界 08:00 之前）。**舊語意（coverage.to＝末訊號）下最新生產日 08-18 永遠差最後 1h53m 而不被主張**——例會最想看的「昨天」結構性缺席；新語意 to＝觀測終點（台北 08-19 08:20）⇒ 08-18 完整落在 coverage 內、正常主張。同份釘住首端不變（08-16 首訊號 20:00＝該日仍誠實不主張）與 9h30m 夜間 closure。",
+      "_build_inputs": {
+        "win_start": "2026-07-20T08:20:00",
+        "win_end": "2026-08-19T08:20:00",
+        "generated_at": "2026-08-19T00:20:00Z",
+        "rows": [
+          [
+            "EID-25872",
+            "2026-08-16T20:00:00",
+            "2026-08-16T23:00:00",
+            "Production"
+          ],
+          [
+            "EID-25872",
+            "2026-08-17T08:30:00",
+            "2026-08-17T16:00:00",
+            "Production"
+          ],
+          [
+            "EID-17431",
+            "2026-08-17T16:10:00",
+            "2026-08-18T06:07:00",
+            "Production"
+          ],
+          [
+            "EID-25872",
+            "2026-08-18T08:30:00",
+            "2026-08-18T16:00:00",
+            "Production"
+          ],
+          [
+            "EID-17431",
+            "2026-08-18T16:10:00",
+            "2026-08-19T06:07:00",
+            "Production"
+          ]
+        ]
+      },
+      "schema_id": "board.prod_calendar.v1",
+      "generated_at": "2026-08-19T00:20:00Z",
+      "day_boundary": "08:00 Asia/Taipei",
+      "coverage": {
+        "from": "2026-08-16T12:00:00Z",
+        "to": "2026-08-19T00:20:00Z"
+      },
+      "days": [
+        {
+          "date": "2026-08-17",
+          "production": true
+        },
+        {
+          "date": "2026-08-18",
+          "production": true
+        }
+      ],
+      "closures": [
+        {
+          "start": "2026-08-16T15:00:00Z",
+          "end": "2026-08-17T00:30:00Z"
+        }
+      ],
+      "rest_day_audit": [],
+      "open_silence_from": "2026-08-18T22:07:00Z"
+    }
+  ],
+  "invalid": [
+    {
+      "case": "★ coverage 缺 `to` 欄（QG-3 ① 指名變體）。coverage 是承重欄（C-PC8）——缺了它消費端無從分辨「日曆還沒算到」與「那天沒生產」，正是 cmms 停機錨那個病的重演。",
+      "reject_by": "provider_governance",
+      "record": {
+        "schema_id": "board.prod_calendar.v1",
+        "generated_at": "2026-08-13T22:30:00Z",
+        "day_boundary": "08:00 Asia/Taipei",
+        "coverage": {
+          "from": "2026-08-10T00:30:00Z"
+        },
+        "days": [
+          {
+            "date": "2026-08-11",
+            "production": true
+          },
+          {
+            "date": "2026-08-12",
+            "production": false
+          }
+        ],
+        "closures": [
+          {
+            "start": "2026-08-11T14:00:00Z",
+            "end": "2026-08-13T00:15:00Z"
+          }
+        ],
+        "rest_day_audit": [
+          {
+            "date": "2026-08-12",
+            "segments": [
+              {
+                "eid": "EID-17431",
+                "designation": "Engineering (Baseline)",
+                "n_segments": 1,
+                "slots": 7
+              },
+              {
+                "eid": "EID-07905",
+                "designation": "Production",
+                "n_segments": 1,
+                "slots": 3
+              }
+            ]
+          }
+        ],
+        "open_silence_from": "2026-08-13T08:00:00Z"
+      },
+      "_repaired": {
+        "schema_id": "board.prod_calendar.v1",
+        "generated_at": "2026-08-13T22:30:00Z",
+        "day_boundary": "08:00 Asia/Taipei",
+        "coverage": {
+          "from": "2026-08-10T00:30:00Z",
+          "to": "2026-08-13T22:00:00Z"
+        },
+        "days": [
+          {
+            "date": "2026-08-11",
+            "production": true
+          },
+          {
+            "date": "2026-08-12",
+            "production": false
+          }
+        ],
+        "closures": [
+          {
+            "start": "2026-08-11T14:00:00Z",
+            "end": "2026-08-13T00:15:00Z"
+          }
+        ],
+        "rest_day_audit": [
+          {
+            "date": "2026-08-12",
+            "segments": [
+              {
+                "eid": "EID-17431",
+                "designation": "Engineering (Baseline)",
+                "n_segments": 1,
+                "slots": 7
+              },
+              {
+                "eid": "EID-07905",
+                "designation": "Production",
+                "n_segments": 1,
+                "slots": 3
+              }
+            ]
+          }
+        ],
+        "open_silence_from": "2026-08-13T08:00:00Z"
+      }
+    },
+    {
+      "case": "★ closure 邊界順序反轉（start/end 對調；QG-3 ① 指名變體）。時間倒轉的 closure＝配對錯段的 provider bug 形（同 lastprod invalid[10] 那課），吐出即違治理。",
+      "reject_by": "provider_governance",
+      "record": {
+        "schema_id": "board.prod_calendar.v1",
+        "generated_at": "2026-08-13T22:30:00Z",
+        "day_boundary": "08:00 Asia/Taipei",
+        "coverage": {
+          "from": "2026-08-10T00:30:00Z",
+          "to": "2026-08-13T22:00:00Z"
+        },
+        "days": [
+          {
+            "date": "2026-08-11",
+            "production": true
+          },
+          {
+            "date": "2026-08-12",
+            "production": false
+          }
+        ],
+        "closures": [
+          {
+            "start": "2026-08-13T00:15:00Z",
+            "end": "2026-08-11T14:00:00Z"
+          }
+        ],
+        "rest_day_audit": [
+          {
+            "date": "2026-08-12",
+            "segments": [
+              {
+                "eid": "EID-17431",
+                "designation": "Engineering (Baseline)",
+                "n_segments": 1,
+                "slots": 7
+              },
+              {
+                "eid": "EID-07905",
+                "designation": "Production",
+                "n_segments": 1,
+                "slots": 3
+              }
+            ]
+          }
+        ],
+        "open_silence_from": "2026-08-13T08:00:00Z"
+      },
+      "_repaired": {
+        "schema_id": "board.prod_calendar.v1",
+        "generated_at": "2026-08-13T22:30:00Z",
+        "day_boundary": "08:00 Asia/Taipei",
+        "coverage": {
+          "from": "2026-08-10T00:30:00Z",
+          "to": "2026-08-13T22:00:00Z"
+        },
+        "days": [
+          {
+            "date": "2026-08-11",
+            "production": true
+          },
+          {
+            "date": "2026-08-12",
+            "production": false
+          }
+        ],
+        "closures": [
+          {
+            "start": "2026-08-11T14:00:00Z",
+            "end": "2026-08-13T00:15:00Z"
+          }
+        ],
+        "rest_day_audit": [
+          {
+            "date": "2026-08-12",
+            "segments": [
+              {
+                "eid": "EID-17431",
+                "designation": "Engineering (Baseline)",
+                "n_segments": 1,
+                "slots": 7
+              },
+              {
+                "eid": "EID-07905",
+                "designation": "Production",
+                "n_segments": 1,
+                "slots": 3
+              }
+            ]
+          }
+        ],
+        "open_silence_from": "2026-08-13T08:00:00Z"
+      }
+    },
+    {
+      "case": "★ 用餐級空窗（50 分）被宣告成 closure（C-PC5/A5 違反）。<240 分的沉默是運營型暫停（用餐/換線/夜間空窗），判非生產＝天天砍掉真生產側的錯——A5 拍板寧可保守。",
+      "reject_by": "provider_governance",
+      "record": {
+        "schema_id": "board.prod_calendar.v1",
+        "generated_at": "2026-08-13T22:30:00Z",
+        "day_boundary": "08:00 Asia/Taipei",
+        "coverage": {
+          "from": "2026-08-10T00:30:00Z",
+          "to": "2026-08-13T22:00:00Z"
+        },
+        "days": [
+          {
+            "date": "2026-08-11",
+            "production": true
+          },
+          {
+            "date": "2026-08-12",
+            "production": false
+          }
+        ],
+        "closures": [
+          {
+            "start": "2026-08-11T04:00:00Z",
+            "end": "2026-08-11T04:50:00Z"
+          },
+          {
+            "start": "2026-08-11T14:00:00Z",
+            "end": "2026-08-13T00:15:00Z"
+          }
+        ],
+        "rest_day_audit": [
+          {
+            "date": "2026-08-12",
+            "segments": [
+              {
+                "eid": "EID-17431",
+                "designation": "Engineering (Baseline)",
+                "n_segments": 1,
+                "slots": 7
+              },
+              {
+                "eid": "EID-07905",
+                "designation": "Production",
+                "n_segments": 1,
+                "slots": 3
+              }
+            ]
+          }
+        ],
+        "open_silence_from": "2026-08-13T08:00:00Z"
+      },
+      "_repaired": {
+        "schema_id": "board.prod_calendar.v1",
+        "generated_at": "2026-08-13T22:30:00Z",
+        "day_boundary": "08:00 Asia/Taipei",
+        "coverage": {
+          "from": "2026-08-10T00:30:00Z",
+          "to": "2026-08-13T22:00:00Z"
+        },
+        "days": [
+          {
+            "date": "2026-08-11",
+            "production": true
+          },
+          {
+            "date": "2026-08-12",
+            "production": false
+          }
+        ],
+        "closures": [
+          {
+            "start": "2026-08-11T14:00:00Z",
+            "end": "2026-08-13T00:15:00Z"
+          }
+        ],
+        "rest_day_audit": [
+          {
+            "date": "2026-08-12",
+            "segments": [
+              {
+                "eid": "EID-17431",
+                "designation": "Engineering (Baseline)",
+                "n_segments": 1,
+                "slots": 7
+              },
+              {
+                "eid": "EID-07905",
+                "designation": "Production",
+                "n_segments": 1,
+                "slots": 3
+              }
+            ]
+          }
+        ],
+        "open_silence_from": "2026-08-13T08:00:00Z"
+      }
+    },
+    {
+      "case": "★ closures 清空但休息日仍宣告——休日沒被任何 closure 蓋＝一致性由構造保證這條被打破（quorum 為假的日其沉默必 ≥240 分 ⇒ 必有 closure；沒有＝停機憑空消失側）。",
+      "reject_by": "provider_governance",
+      "record": {
+        "schema_id": "board.prod_calendar.v1",
+        "generated_at": "2026-08-13T22:30:00Z",
+        "day_boundary": "08:00 Asia/Taipei",
+        "coverage": {
+          "from": "2026-08-10T00:30:00Z",
+          "to": "2026-08-13T22:00:00Z"
+        },
+        "days": [
+          {
+            "date": "2026-08-11",
+            "production": true
+          },
+          {
+            "date": "2026-08-12",
+            "production": false
+          }
+        ],
+        "closures": [],
+        "rest_day_audit": [
+          {
+            "date": "2026-08-12",
+            "segments": [
+              {
+                "eid": "EID-17431",
+                "designation": "Engineering (Baseline)",
+                "n_segments": 1,
+                "slots": 7
+              },
+              {
+                "eid": "EID-07905",
+                "designation": "Production",
+                "n_segments": 1,
+                "slots": 3
+              }
+            ]
+          }
+        ],
+        "open_silence_from": "2026-08-13T08:00:00Z"
+      },
+      "_repaired": {
+        "schema_id": "board.prod_calendar.v1",
+        "generated_at": "2026-08-13T22:30:00Z",
+        "day_boundary": "08:00 Asia/Taipei",
+        "coverage": {
+          "from": "2026-08-10T00:30:00Z",
+          "to": "2026-08-13T22:00:00Z"
+        },
+        "days": [
+          {
+            "date": "2026-08-11",
+            "production": true
+          },
+          {
+            "date": "2026-08-12",
+            "production": false
+          }
+        ],
+        "closures": [
+          {
+            "start": "2026-08-11T14:00:00Z",
+            "end": "2026-08-13T00:15:00Z"
+          }
+        ],
+        "rest_day_audit": [
+          {
+            "date": "2026-08-12",
+            "segments": [
+              {
+                "eid": "EID-17431",
+                "designation": "Engineering (Baseline)",
+                "n_segments": 1,
+                "slots": 7
+              },
+              {
+                "eid": "EID-07905",
+                "designation": "Production",
+                "n_segments": 1,
+                "slots": 3
+              }
+            ]
+          }
+        ],
+        "open_silence_from": "2026-08-13T08:00:00Z"
+      }
+    },
+    {
+      "case": "★ closure 往前吞掉整個有訊號的生產日（start 提前一整天）——訊號日整日落在 closure 內＝「計畫/推導否定訊號」（C-PC4 單向規則的鏡像；MES 是事實）。",
+      "reject_by": "provider_governance",
+      "record": {
+        "schema_id": "board.prod_calendar.v1",
+        "generated_at": "2026-08-13T22:30:00Z",
+        "day_boundary": "08:00 Asia/Taipei",
+        "coverage": {
+          "from": "2026-08-10T00:30:00Z",
+          "to": "2026-08-13T22:00:00Z"
+        },
+        "days": [
+          {
+            "date": "2026-08-11",
+            "production": true
+          },
+          {
+            "date": "2026-08-12",
+            "production": false
+          }
+        ],
+        "closures": [
+          {
+            "start": "2026-08-10T14:00:00Z",
+            "end": "2026-08-13T00:15:00Z"
+          }
+        ],
+        "rest_day_audit": [
+          {
+            "date": "2026-08-12",
+            "segments": [
+              {
+                "eid": "EID-17431",
+                "designation": "Engineering (Baseline)",
+                "n_segments": 1,
+                "slots": 7
+              },
+              {
+                "eid": "EID-07905",
+                "designation": "Production",
+                "n_segments": 1,
+                "slots": 3
+              }
+            ]
+          }
+        ],
+        "open_silence_from": "2026-08-13T08:00:00Z"
+      },
+      "_repaired": {
+        "schema_id": "board.prod_calendar.v1",
+        "generated_at": "2026-08-13T22:30:00Z",
+        "day_boundary": "08:00 Asia/Taipei",
+        "coverage": {
+          "from": "2026-08-10T00:30:00Z",
+          "to": "2026-08-13T22:00:00Z"
+        },
+        "days": [
+          {
+            "date": "2026-08-11",
+            "production": true
+          },
+          {
+            "date": "2026-08-12",
+            "production": false
+          }
+        ],
+        "closures": [
+          {
+            "start": "2026-08-11T14:00:00Z",
+            "end": "2026-08-13T00:15:00Z"
+          }
+        ],
+        "rest_day_audit": [
+          {
+            "date": "2026-08-12",
+            "segments": [
+              {
+                "eid": "EID-17431",
+                "designation": "Engineering (Baseline)",
+                "n_segments": 1,
+                "slots": 7
+              },
+              {
+                "eid": "EID-07905",
+                "designation": "Production",
+                "n_segments": 1,
+                "slots": 3
+              }
+            ]
+          }
+        ],
+        "open_silence_from": "2026-08-13T08:00:00Z"
+      }
+    },
+    {
+      "case": "★ 休日盤點清空（SPEC §3 強制自檢缺席）。盤點是 designation 漂移與 quorum bug 的雙保險哨兵——少了它，A2（值域閉集）的兜底就不存在。",
+      "reject_by": "provider_governance",
+      "record": {
+        "schema_id": "board.prod_calendar.v1",
+        "generated_at": "2026-08-13T22:30:00Z",
+        "day_boundary": "08:00 Asia/Taipei",
+        "coverage": {
+          "from": "2026-08-10T00:30:00Z",
+          "to": "2026-08-13T22:00:00Z"
+        },
+        "days": [
+          {
+            "date": "2026-08-11",
+            "production": true
+          },
+          {
+            "date": "2026-08-12",
+            "production": false
+          }
+        ],
+        "closures": [
+          {
+            "start": "2026-08-11T14:00:00Z",
+            "end": "2026-08-13T00:15:00Z"
+          }
+        ],
+        "rest_day_audit": [],
+        "open_silence_from": "2026-08-13T08:00:00Z"
+      },
+      "_repaired": {
+        "schema_id": "board.prod_calendar.v1",
+        "generated_at": "2026-08-13T22:30:00Z",
+        "day_boundary": "08:00 Asia/Taipei",
+        "coverage": {
+          "from": "2026-08-10T00:30:00Z",
+          "to": "2026-08-13T22:00:00Z"
+        },
+        "days": [
+          {
+            "date": "2026-08-11",
+            "production": true
+          },
+          {
+            "date": "2026-08-12",
+            "production": false
+          }
+        ],
+        "closures": [
+          {
+            "start": "2026-08-11T14:00:00Z",
+            "end": "2026-08-13T00:15:00Z"
+          }
+        ],
+        "rest_day_audit": [
+          {
+            "date": "2026-08-12",
+            "segments": [
+              {
+                "eid": "EID-17431",
+                "designation": "Engineering (Baseline)",
+                "n_segments": 1,
+                "slots": 7
+              },
+              {
+                "eid": "EID-07905",
+                "designation": "Production",
+                "n_segments": 1,
+                "slots": 3
+              }
+            ]
+          }
+        ],
+        "open_silence_from": "2026-08-13T08:00:00Z"
+      }
+    },
+    {
+      "case": "★ 休日盤點裡出現「名冊 EID ∧ designation='Production'」段——與該日 quorum=false自相矛盾（有這段那天就不是休日）＝quorum 實作出 bug 的長相，哨兵必須攔。",
+      "reject_by": "provider_governance",
+      "record": {
+        "schema_id": "board.prod_calendar.v1",
+        "generated_at": "2026-08-13T22:30:00Z",
+        "day_boundary": "08:00 Asia/Taipei",
+        "coverage": {
+          "from": "2026-08-10T00:30:00Z",
+          "to": "2026-08-13T22:00:00Z"
+        },
+        "days": [
+          {
+            "date": "2026-08-11",
+            "production": true
+          },
+          {
+            "date": "2026-08-12",
+            "production": false
+          }
+        ],
+        "closures": [
+          {
+            "start": "2026-08-11T14:00:00Z",
+            "end": "2026-08-13T00:15:00Z"
+          }
+        ],
+        "rest_day_audit": [
+          {
+            "date": "2026-08-12",
+            "segments": [
+              {
+                "eid": "EID-17431",
+                "designation": "Production",
+                "n_segments": 1,
+                "slots": 7
+              },
+              {
+                "eid": "EID-07905",
+                "designation": "Production",
+                "n_segments": 1,
+                "slots": 3
+              }
+            ]
+          }
+        ],
+        "open_silence_from": "2026-08-13T08:00:00Z"
+      },
+      "_repaired": {
+        "schema_id": "board.prod_calendar.v1",
+        "generated_at": "2026-08-13T22:30:00Z",
+        "day_boundary": "08:00 Asia/Taipei",
+        "coverage": {
+          "from": "2026-08-10T00:30:00Z",
+          "to": "2026-08-13T22:00:00Z"
+        },
+        "days": [
+          {
+            "date": "2026-08-11",
+            "production": true
+          },
+          {
+            "date": "2026-08-12",
+            "production": false
+          }
+        ],
+        "closures": [
+          {
+            "start": "2026-08-11T14:00:00Z",
+            "end": "2026-08-13T00:15:00Z"
+          }
+        ],
+        "rest_day_audit": [
+          {
+            "date": "2026-08-12",
+            "segments": [
+              {
+                "eid": "EID-17431",
+                "designation": "Engineering (Baseline)",
+                "n_segments": 1,
+                "slots": 7
+              },
+              {
+                "eid": "EID-07905",
+                "designation": "Production",
+                "n_segments": 1,
+                "slots": 3
+              }
+            ]
+          }
+        ],
+        "open_silence_from": "2026-08-13T08:00:00Z"
+      }
+    },
+    {
+      "case": "`schema_id` 錯字（`board.prod_cal.v1`）⇒ 拒讀不猜。validator 用字面字串比對、不拿模組常數比對自己（lastprod invalid 同型存證：常數怎麼改都綠＝沒有守衛）。",
+      "reject_by": "consumer",
+      "record": {
+        "schema_id": "board.prod_cal.v1",
+        "generated_at": "2026-08-13T22:30:00Z",
+        "day_boundary": "08:00 Asia/Taipei",
+        "coverage": {
+          "from": "2026-08-10T00:30:00Z",
+          "to": "2026-08-13T22:00:00Z"
+        },
+        "days": [
+          {
+            "date": "2026-08-11",
+            "production": true
+          },
+          {
+            "date": "2026-08-12",
+            "production": false
+          }
+        ],
+        "closures": [
+          {
+            "start": "2026-08-11T14:00:00Z",
+            "end": "2026-08-13T00:15:00Z"
+          }
+        ],
+        "rest_day_audit": [
+          {
+            "date": "2026-08-12",
+            "segments": [
+              {
+                "eid": "EID-17431",
+                "designation": "Engineering (Baseline)",
+                "n_segments": 1,
+                "slots": 7
+              },
+              {
+                "eid": "EID-07905",
+                "designation": "Production",
+                "n_segments": 1,
+                "slots": 3
+              }
+            ]
+          }
+        ],
+        "open_silence_from": "2026-08-13T08:00:00Z"
+      },
+      "_repaired": {
+        "schema_id": "board.prod_calendar.v1",
+        "generated_at": "2026-08-13T22:30:00Z",
+        "day_boundary": "08:00 Asia/Taipei",
+        "coverage": {
+          "from": "2026-08-10T00:30:00Z",
+          "to": "2026-08-13T22:00:00Z"
+        },
+        "days": [
+          {
+            "date": "2026-08-11",
+            "production": true
+          },
+          {
+            "date": "2026-08-12",
+            "production": false
+          }
+        ],
+        "closures": [
+          {
+            "start": "2026-08-11T14:00:00Z",
+            "end": "2026-08-13T00:15:00Z"
+          }
+        ],
+        "rest_day_audit": [
+          {
+            "date": "2026-08-12",
+            "segments": [
+              {
+                "eid": "EID-17431",
+                "designation": "Engineering (Baseline)",
+                "n_segments": 1,
+                "slots": 7
+              },
+              {
+                "eid": "EID-07905",
+                "designation": "Production",
+                "n_segments": 1,
+                "slots": 3
+              }
+            ]
+          }
+        ],
+        "open_silence_from": "2026-08-13T08:00:00Z"
+      }
+    },
+    {
+      "case": "★ #182-P2：`open_silence_from`（尾端未閉合沉默起點）落在觀測終點之後——沉默不可能從還沒觀測到的時刻開始；吐出＝時鐘或 coverage 算錯的 provider bug 形（消費端會拿它判日帳的 `cal_open_tail`，錯了就是整天的分母判錯）。",
+      "reject_by": "provider_governance",
+      "record": {
+        "schema_id": "board.prod_calendar.v1",
+        "generated_at": "2026-08-13T22:30:00Z",
+        "day_boundary": "08:00 Asia/Taipei",
+        "coverage": {
+          "from": "2026-08-10T00:30:00Z",
+          "to": "2026-08-13T22:00:00Z"
+        },
+        "days": [
+          {
+            "date": "2026-08-11",
+            "production": true
+          },
+          {
+            "date": "2026-08-12",
+            "production": false
+          }
+        ],
+        "closures": [
+          {
+            "start": "2026-08-11T14:00:00Z",
+            "end": "2026-08-13T00:15:00Z"
+          }
+        ],
+        "rest_day_audit": [
+          {
+            "date": "2026-08-12",
+            "segments": [
+              {
+                "eid": "EID-17431",
+                "designation": "Engineering (Baseline)",
+                "n_segments": 1,
+                "slots": 7
+              },
+              {
+                "eid": "EID-07905",
+                "designation": "Production",
+                "n_segments": 1,
+                "slots": 3
+              }
+            ]
+          }
+        ],
+        "open_silence_from": "2026-08-14T00:00:00Z"
+      },
+      "_repaired": {
+        "schema_id": "board.prod_calendar.v1",
+        "generated_at": "2026-08-13T22:30:00Z",
+        "day_boundary": "08:00 Asia/Taipei",
+        "coverage": {
+          "from": "2026-08-10T00:30:00Z",
+          "to": "2026-08-13T22:00:00Z"
+        },
+        "days": [
+          {
+            "date": "2026-08-11",
+            "production": true
+          },
+          {
+            "date": "2026-08-12",
+            "production": false
+          }
+        ],
+        "closures": [
+          {
+            "start": "2026-08-11T14:00:00Z",
+            "end": "2026-08-13T00:15:00Z"
+          }
+        ],
+        "rest_day_audit": [
+          {
+            "date": "2026-08-12",
+            "segments": [
+              {
+                "eid": "EID-17431",
+                "designation": "Engineering (Baseline)",
+                "n_segments": 1,
+                "slots": 7
+              },
+              {
+                "eid": "EID-07905",
+                "designation": "Production",
+                "n_segments": 1,
+                "slots": 3
+              }
+            ]
+          }
+        ],
+        "open_silence_from": "2026-08-13T08:00:00Z"
+      }
+    }
+  ],
+  "_note": [
+    "wire 交付形＝SPEC §4 草案（本 fixture 的 golden 形＝其超集：多 rest_day_audit 一欄＝§3 強制自檢隨產出）。傳遞機制（端點/推播/檔）未定＝與 cmms 對版時凍結；屆時盤點欄要不要上 wire、尾端進行中沉默（closure 尚無右邊界）怎麼表達，一併裁。",
+    "★ 邊緣日語意（**2026-08-23 晚修訂尾端**；SPEC §10）：coverage.to＝**觀測終點**＝min(窗尾, generated_at)，不再是末訊號時刻 ⇒ 觀測時刻已越過日界的那個生產日**照常主張**（golden3＝08:20 排程實形），這正是修掉「最新一個生產日永遠缺席」。仍不主張的只有三種：①首訊號之前的前緣日（首端保守不變）②觀測時刻還沒越過日界的「今天」（golden1 尾端形）③尾端沉默未閉合的休息日（closure 缺右邊界）。",
+    "本日曆產出的是「實跑窗／生產時段」——**不是班表**（C-PC10）。G1（SALTMARSH 真排班檔）仍不存在；拿本檔回答「該排幾個人／明天開不開」是它答不了的問題。",
+    "quorum 名冊＝`_probe_kun_activity.KUN_ROSTER` 硬編（A4：Chris 人工維護；漂移哨兵＝probe 的 unknown EID 分流）。附屬件/Zone D 不進 quorum（A8 已拍板；翻案形＝立偽綑）。"
+  ]
+}

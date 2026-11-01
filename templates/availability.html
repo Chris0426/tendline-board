@@ -1,0 +1,352 @@
+<!doctype html>
+
+
+
+
+<html lang="{{ 'zh-Hant' if lang=='zh' else 'en' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tendline Board — {{ t.av_title }}</title>
+<script src="/static/htmx.min.js"></script>
+<style>
+   
+  :root{
+    color-scheme: light dark;
+    --bg:#f4f6fb; --panel:#ffffff; --panel2:#eef2f8; --line:#d8e0ec;
+    --track:#e6ebf3; --fg:#1b2433; --mut:#5c6b82; --hover:#b9c6db;
+    --unk:#b07d12; --good:#1f9d57; --warn:#b07d12; --bad:#c4504f;
+    --ptag:#536f99; --ptag-ink:#ffffff;
+    
+
+    --rw-off:#cbd5e1;
+    --rw-on:#eef4fb;
+    
+
+
+
+    --av-up:#6fae9c;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b1220; --panel:#141d2e; --panel2:#1b2740; --line:#2a3852;
+      --track:#0e1626; --fg:#e6edf6; --mut:#8aa0bd; --hover:#3a5c86;
+      --unk:#cbb26b; --good:#36c47f; --warn:#cbb26b; --bad:#e0726f;
+      --ptag:#9bb7de; --ptag-ink:#0b1220;
+      --rw-off:#0a101c; --rw-on:#2a3b5c;       
+      --av-up:#2f6b59;
+    }
+  }
+  *{ box-sizing:border-box }
+  body{ margin:0; background:var(--bg); color:var(--fg);
+        font:14px/1.5 "Segoe UI",system-ui,"Microsoft JhengHei",sans-serif }
+  main{ max-width:1080px; margin:0 auto; padding:22px }
+  .err{ background:#fce9ee; border:1px solid #e7a9b8; color:#9b2741;
+        padding:12px 16px; border-radius:8px; margin-bottom:18px }
+  @media (prefers-color-scheme: dark){ .err{ background:#3a1620; border-color:#6f1f2f; color:#f0b6c2 } }
+  .coarse{ display:flex; gap:26px; align-items:center; background:var(--panel);
+           border:1px solid var(--line); border-radius:12px; padding:20px 24px; margin-bottom:8px }
+  .donut{ width:180px; height:180px; flex:0 0 auto }
+  .donut-track{ stroke:var(--track) }
+  .donut-c1{ font-size:30px; font-weight:700; fill:var(--fg) }
+  .donut-c2{ font-size:12px; fill:var(--mut) }
+  .headline{ flex:0 0 auto }
+  .headline .big{ font-size:40px; font-weight:700; line-height:1 }
+  .headline .lbl{ color:var(--mut); font-size:12px; margin-top:2px; max-width:280px }
+  .headline .row2{ margin-top:14px }
+  .legend{ flex:1; display:flex; flex-wrap:wrap; gap:6px 18px; align-content:flex-start }
+  .legend .it{ display:flex; align-items:center; gap:7px; font-size:12.5px; min-width:150px }
+  .legend .sw{ width:11px; height:11px; border-radius:2px; flex:0 0 auto }
+  .legend .sec{ color:var(--mut); margin-left:auto }
+  .note{ color:var(--mut); font-size:11.5px; margin:6px 2px 20px }
+  .note.off{ color:#9b6b12 }
+  @media (prefers-color-scheme: dark){ .note.off{ color:#cbb26b } }
+   
+  .fallback{ background:var(--panel); border:1px solid var(--warn); border-left-width:4px;
+        border-radius:9px; padding:10px 14px; margin:2px 2px 14px; color:var(--warn);
+        font-size:12px; line-height:1.55 }
+  h2.sec{ font-size:13px; color:var(--mut); font-weight:600; margin:18px 2px 10px;
+          text-transform:uppercase; letter-spacing:.6px }
+  .row{ display:grid; grid-template-columns:120px 150px 56px 1fr; gap:14px; align-items:center;
+        padding:11px 14px; border:1px solid var(--line); border-radius:9px; margin-bottom:8px;
+        background:var(--panel); cursor:pointer; transition:.12s }
+  .row:hover{ background:var(--panel2); border-color:var(--hover) }
+  .row .eid{ font-weight:600 }
+  .row .desc{ color:var(--mut); font-size:12.5px }
+  .row .util{ font-weight:700; text-align:right; font-variant-numeric:tabular-nums }
+  .strip{ position:relative; height:18px; border-radius:4px; overflow:hidden;
+          background:var(--track); border:1px solid var(--line) }
+  .strip .grid{ position:absolute; top:0; height:100%; width:0;
+                border-left:1px dashed var(--hover); opacity:.5; pointer-events:none }
+  
+
+  .strip.rw{ background:var(--rw-off) }
+  .strip .avon{ position:absolute; top:0; height:100%; background:var(--av-up); z-index:0 }
+  .strip .avdown{ position:absolute; top:0; height:100%; z-index:1 }
+  .strip .rwunc{ position:absolute; top:0; height:100%; z-index:2; background-color:var(--panel);
+        background-image:repeating-linear-gradient(45deg, var(--line) 0 1px, transparent 1px 3px) }
+  .strip .rwtick{ position:absolute; top:0; height:100%; width:0;
+        border-left:1px dashed var(--mut); opacity:.75; z-index:3; pointer-events:none }
+  .avleg{ display:flex; flex-wrap:wrap; gap:6px 16px; align-items:center;
+        color:var(--mut); font-size:11.5px; margin:2px 2px 10px }
+  .avleg .sw{ width:11px; height:11px; border-radius:2px; display:inline-block;
+        margin-right:6px; vertical-align:-1px }
+  .avleg .sw.unc{ background-color:var(--panel); border:1px solid var(--line);
+        background-image:repeating-linear-gradient(45deg, var(--line) 0 1px, transparent 1px 3px) }
+  .avleg .hd{ text-transform:uppercase; letter-spacing:.5px; font-weight:600 }
+  #detail{ margin-top:18px }
+  .hint{ color:var(--mut); font-size:12.5px; padding:14px 2px }
+  .htmx-request.row{ opacity:.6 }
+  .row.child .eid{ font-weight:500; color:var(--mut); font-size:12px }
+  .row.child .eid::before{ content:"└ "; color:var(--line) }
+  .row.child .desc{ font-size:11.5px }
+  .row.child .strip{ opacity:.92 }
+  .band-cap{ color:var(--mut); font-size:11.5px; margin:6px 0 2px; line-height:1.5 }
+  .band-cap .cov{ color:#b07d12 }
+  .mb-axis,.mb-ends{ display:grid; grid-template-columns:120px 150px 56px 1fr; gap:14px;
+        padding:0 15px }
+  .mb-axis{ margin-bottom:4px }
+  .mb-axis-track{ grid-column:4; position:relative; height:13px }
+  .mb-ticklbl{ position:absolute; bottom:0; transform:translateX(-50%);
+        font-size:10.5px; color:var(--mut); white-space:nowrap }
+  .mb-ends{ padding-top:3px }
+  .mb-ends .e{ grid-column:4; display:flex; justify-content:space-between;
+        color:var(--mut); font-size:11px }
+   
+  .trend{ margin-bottom:18px }
+  .trend-track{ position:relative; height:56px; background:var(--track);
+        border:1px solid var(--line); border-radius:8px; overflow:hidden; display:flex;
+        align-items:flex-end; gap:2px; padding:0 2px }
+  .trend-track .tb{ flex:1 1 0; height:100%; border-radius:3px 3px 0 0 }
+  .trend-track .tb.na{ background:repeating-linear-gradient(45deg, var(--line) 0 1px,
+        transparent 1px 4px) }
+  .trend-axis{ display:flex; justify-content:space-between; color:var(--mut);
+        font-size:11px; margin-top:3px; padding:0 2px; font-variant-numeric:tabular-nums }
+  .trend-days{ display:flex; gap:2px; padding:2px 2px 0; color:var(--mut); font-size:10.5px }
+  .trend-days span{ flex:1 1 0; text-align:center }
+   
+  .ctl{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:16px;
+        padding:8px 13px; background:var(--panel); border:1px solid var(--line);
+        border-radius:9px; font-size:12.5px; color:var(--mut) }
+  .ctl input[type=date],.ctl input[type=number]{ font:inherit; color:var(--fg);
+        background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:3px 7px }
+  .ctl .vsep{ width:1px; height:18px; background:var(--line); margin:0 3px }
+  .ctl button{ font:inherit; cursor:pointer; padding:3px 13px; border-radius:6px;
+        border:1px solid var(--line); background:var(--panel2); color:var(--fg) }
+  .ctl button:hover{ border-color:var(--hover) }
+  .ctl .reset{ color:var(--mut); text-decoration:none; padding:3px 8px }
+  .ctl .reset:hover{ color:var(--fg) }
+  .tag-toggle{ display:inline-flex; gap:3px; padding:2px; border:1px solid var(--line); border-radius:9px }
+  .tag-toggle a,.ptag{ font-size:10.5px; font-weight:800; line-height:1; letter-spacing:.5px; text-decoration:none;
+        padding:4px 6px; border:1px solid transparent; border-radius:7px; color:var(--mut) }
+  .tag-toggle a.on,.ptag.observed{ color:var(--ptag-ink); background:var(--ptag); border-color:var(--ptag) }
+  .ptag.default{ color:var(--ptag); background:transparent; border-color:var(--ptag) }
+  
+
+  .ptag.idle{ color:var(--ptag); background:transparent; border-color:var(--ptag) }
+   
+  .ptags{ display:inline-flex; gap:3px; vertical-align:middle }
+  .tag-note{ color:var(--mut); font-size:11.5px; margin:5px 2px 9px }
+</style>
+</head>
+<body>
+{% set lang_href = '?' ~ base_qs ~ '&lang=' ~ ('zh' if lang=='en' else 'en') %}
+{% set nav_active = 'avail' %}
+{% include '_nav.html' %}
+<main>
+  {% if data %}
+  <div style="color:var(--mut);font-size:12px;margin:0 2px 10px">{{ t.av_title }} · {{ t.av_sub }} · MES {{ t.now }} {{ clock(data.mes_now) }} ·
+    {% if win_start_date %}{{ win_start_date }} → {{ win_end_date }}{% else %}{{ t.lookback }} {{ data.days }}d{% endif %} ·
+    {{ t.stop_thr }} {{ data.stop_min }}{{ t.min }}</div>
+  {% endif %}
+  <form class="ctl" method="get" action="/availability">
+    <input type="hidden" name="source" value="{{ source }}">
+    <input type="hidden" name="lang" value="{{ lang }}">
+    {% if tag_param %}<input type="hidden" name="tag" value="{{ tag_param }}">{% endif %}
+    <span>{{ t.sb_c_station }}</span>
+    <select name="cls" onchange="this.form.submit()"
+            style="font:inherit; color:var(--fg); background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:3px 7px; max-width:250px">
+      {% for c in stations %}<option value="{{ c }}" {{ 'selected' if c==cls }}>{{ pretty_station(c) }}</option>{% endfor %}
+    </select>
+    <span class="vsep"></span>
+    <span aria-hidden="true">📅</span>
+    <input type="date" name="start" value="{{ win_start_date }}" max="{{ win_end_date }}">
+    <span>{{ t.range_to }}</span>
+    <input type="date" name="end" value="{{ win_end_date }}">
+    <span class="vsep"></span>
+    <span>{{ t.stop_thr }}</span>
+    <input type="number" name="stop_min" value="{{ stop_min }}" min="1" max="240" step="1" style="width:58px">
+    <span>{{ t.min }}</span>
+    <button type="submit">{{ t.range_apply }}</button>
+    {% if start or end %}<a class="reset" href="?source={{ source }}&stop_min={{ stop_min }}&lang={{ lang }}&cls={{ cls }}{% if tag_param %}&tag={{ tag_param }}{% endif %}">{{ t.range_reset }}</a>{% endif %}
+    <span class="vsep"></span><span class="tag-toggle" aria-label="{{ t.tag_toggle_aria }}">{% for x in tag_controls %}<a class="{{ 'on' if x.active }}" href="{{ x.href }}" title="{{ x.family }}">{{ x.letter }}</a>{% endfor %}</span>
+  </form>
+  {% if err %}
+    <div class="err">⚠ {{ t.err_lead }}{{ source }}{{ t.err_tail }}：{{ err }}<br>
+      <span style="font-size:12px">{{ t.err_hint_html | safe }}</span>
+    </div>
+  {% endif %}
+
+  {% if data %}
+  
+
+  {% if not av_rw %}
+  <div class="fallback">⚠ {{ t.av_fallback_note }}</div>
+  {% endif %}
+
+  {% if av and av.rw_sec %}
+  <section class="coarse">
+    <svg class="donut" viewBox="0 0 180 180" role="img" aria-label="{{ t.av_center }}">
+      <g transform="rotate(-90 90 90)">
+        <circle class="donut-track" cx="90" cy="90" r="{{ donut.r }}" fill="none" stroke-width="{{ donut.w }}"/>
+        {% for s in donut.segments %}
+        <circle cx="90" cy="90" r="{{ donut.r }}" fill="none" stroke="{{ s.color }}" stroke-width="{{ donut.w }}"
+                stroke-dasharray="{{ '%.2f'|format(s.len) }} {{ '%.2f'|format(donut.C) }}"
+                stroke-dashoffset="{{ '%.2f'|format(s.offset) }}">
+          <title>{{ t.av_state_up if s.state == AV_UP_STATE else state_label(s.state) }} {{ hms(s.sec) }}（{{ '%.0f'|format(s.pct) }}%）</title>
+        </circle>
+        {% endfor %}
+      </g>
+      
+
+      <text x="90" y="86" text-anchor="middle" class="donut-c1">{{ ('%.0f'|format(av.A*100) ~ '%') if av.A is not none else '—' }}</text>
+      <text x="90" y="106" text-anchor="middle" class="donut-c2">{{ t.av_center }}</text>
+    </svg>
+
+    <div class="headline">
+      
+
+      <div class="big" style="font-size:26px;color:var(--bad)">{{ hms(av.down_sec) }}</div>
+      <div class="lbl">{{ t.av_down_head }} · {{ t.av_down_lbl if av_rw else t.av_down_lbl24 }}</div>
+      <div class="row2">
+        <div class="big" style="font-size:26px">{{ hms(av.rw_sec) }}</div>
+        <div class="lbl">{{ t.av_rw_head if av_rw else t.av_rw_head24 }} · {{ (t.av_rw_lbl if av_rw else t.av_rw_lbl24).format(k=av.n_machines) }}</div>
+      </div>
+    </div>
+
+    <div class="legend">
+      {% for s in donut.segments %}
+      <div class="it"{% if s.state == AV_UP_STATE %} title="{{ t.av_up_tip if av_rw else t.av_up_tip24 }}"{% endif %}><span class="sw" style="background:{{ s.color }}"></span>{{ t.av_state_up if s.state == AV_UP_STATE else state_label(s.state) }}
+        <span class="sec">{{ hms(s.sec) }} · {{ '%.0f'|format(s.pct) }}%</span></div>
+      {% endfor %}
+    </div>
+  </section>
+  <div class="note">{{ (t.av_donut_cap if av_rw else t.av_donut_cap24).format(k=av.n_machines, h='%.0f'|format(av.rw_sec/3600.0)) }}</div>
+  {% else %}
+  <div class="note off">⚠ {{ t.av_empty if av_rw else t.av_empty24 }}</div>
+  {% endif %}
+
+  <div class="note">{{ (t.av_note if av_rw else t.av_note24) | safe }}</div>
+  
+
+  <div class="note">{{ t.av_disambig }}</div>
+  {% if wo_status in ('snapshot_off', 'not_configured') or (wo_status and wo_status.startswith('error')) %}
+  <div class="note off">⚠ {{ t.wo_off_note }}</div>
+  {% endif %}
+  
+
+  {% if scope_errs %}
+  <div class="note off">⚠ {{ t.eq_scope_degraded.format(n=scope_errs) }}</div>
+  {% endif %}
+  {% if roster_st and roster_st.startswith('error') %}
+  <div class="note off">⚠ {{ t.u_roster_degraded }}</div>
+  {% endif %}
+
+  {% if trend %}
+  <h2 class="sec">{{ t.av_trend_hdr }}</h2>
+  <section class="trend">
+    <div class="trend-track">
+      {% for d in trend %}
+      
+
+      {% set g = av_trend_grad(d) %}
+      {% if g %}
+      <span class="tb" style="background:{{ g }}"
+            title="{{ d.label }}　{{ t.av_center }} {{ '%.0f'|format(d.A*100) }}% · {{ t.av_rw_head if av_rw else t.av_rw_head24 }} {{ hms(d.rw_sec) }} · {{ t.av_down_head }} {{ hms(d.down_sec) }}"></span>
+      {% else %}
+      <span class="tb na" title="{{ d.label }}　{{ t.av_trend_na if av_rw else t.av_trend_na24 }}"></span>
+      {% endif %}
+      {% endfor %}
+    </div>
+    <div class="trend-days">{% for d in trend %}<span>{{ d.label }}</span>{% endfor %}</div>
+    {% if tr_avg is not none %}
+    <div class="trend-axis"><span>{{ t.eff_max }} {{ '%.0f'|format(tr_max*100) }}%</span><span>{{ t.eff_avg }} {{ '%.0f'|format(tr_avg*100) }}%</span><span>{{ t.eff_min }} {{ '%.0f'|format(tr_min*100) }}%</span></div>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <h2 class="sec">{{ t.machines_hdr }}</h2>
+  {% if fleet_tl %}
+  
+
+  {% if tag_filter is defined and tag_filter.active %}<div class="tag-note">{{ t.tag_notice_head.format(n=tag_filter.n, families=tag_filter.label) }} ({% for x in tag_filter.also %}{{ t.tag_notice_also.format(n=x.n, family=x.family) }}; {% endfor %}{{ t.av_tag_notice }})</div>{% endif %}
+  <div class="mb-axis">
+    <div class="mb-axis-track">
+      {% for tk in fleet_tl.ticks %}
+      <span class="mb-ticklbl" style="left:{{ '%.3f'|format(tk.left) }}%">{{ tk.label }}</span>
+      {% endfor %}
+    </div>
+  </div>
+  {% for row in fleet_tl.rows %}
+  <div class="row{{ ' child' if row.is_child }}" hx-get="/machine/{{ row.eid }}?{{ base_qs }}&lang={{ lang }}&page=availability"
+       hx-target="#detail" hx-swap="innerHTML" hx-indicator="this">
+    {% set TG = tag_chip(row.eid) %}<div><div class="eid">{{ row.eid }} <span class="ptags">{% for c in TG.chips %}<span class="ptag {{ c.css }}" title="{{ t[c.tip_key].format(**c.tip_args) }}">{{ c.letter }}</span>{% endfor %}</span></div></div>
+    <div class="desc">{{ row.desc or '—' }}</div>
+    
+
+
+
+
+    {% if row.dormant %}
+    <div class="util" style="color:var(--mut)" title="{{ t.band_dormant_tip.format(d=row.dormant_since or '?', r=row.dormant_reason or '?') }}">◌</div>
+    {% elif row.av is none %}
+    <div class="util" style="color:var(--mut)" title="{{ t.av_row_na_tip }}">—</div>
+    {% elif row.av.A is none %}
+    <div class="util" style="color:var(--mut)" title="{{ t.av_row_zero_tip }}">—</div>
+    {% else %}
+    <div class="util" style="color:{{ 'var(--good)' if row.av.A>=0.9 else ('var(--warn)' if row.av.A>=0.75 else 'var(--bad)') }}"
+         title="{% if row.av.rollup %}{{ (t.av_row_tip_roll if av_rw else t.av_row_tip_roll24).format(h='%.1f'|format(row.av.rw_sec/3600.0), n=row.av.rollup.n_active) }}{% else %}{{ (t.av_row_tip if av_rw else t.av_row_tip24).format(h='%.1f'|format(row.av.rw_sec/3600.0)) }}{% endif %}">{{ '%.0f'|format(row.av.A*100) }}%</div>
+    {% endif %}
+    
+    <div class="strip{{ ' rw' if row.rw }}" title="{{ row.eid }}{% if row.dormant %} · {{ t.band_dormant_tip.format(d=row.dormant_since or '?', r=row.dormant_reason or '?') }}{% elif row.av is none %} · {{ t.av_row_na_tip }}{% endif %}">
+      {% if row.rw and not row.dormant %}{% for l, w in row.rw.win %}<i class="avon" style="left:{{ l }}%; width:{{ w }}%" title="{{ t.av_up_tip if av_rw else t.av_up_tip24 }}"></i>{% endfor %}{% endif %}
+      {% for tk in fleet_tl.ticks %}<i class="grid" style="left:{{ '%.3f'|format(tk.left) }}%"></i>{% endfor %}
+      
+
+      {% for s in (row.av_down if not row.dormant else []) %}
+      
+      <span class="avdown" style="left:{{ '%.3f'|format(s.left) }}%; width:{{ '%.3f'|format(s.width) }}%; background:{{ state_color(s.state) }}{% if s.op is defined %}; opacity:{{ '%.3f'|format(s.op) }}{% endif %}"
+            title="{{ state_label(s.state) }}{% if s.k is defined %} · {{ t.av_band_roll_tip.format(k=s.k, n=s.n, seats=s.seats) }}{% endif %}"></span>
+      {% endfor %}
+      {% if row.rw and not row.dormant %}{% for l, w in row.rw.uncov %}<i class="rwunc" style="left:{{ l }}%; width:{{ w }}%" title="{{ t.u_rw_uncov_tip }}"></i>{% endfor %}
+      {% for m in row.rw.marks %}<i class="rwtick" style="left:{{ m }}%" title="{{ t.u_rw_mark_tip }}"></i>{% endfor %}{% endif %}
+    </div>
+  </div>
+  {% endfor %}
+  
+
+  <div class="avleg">
+    <span class="hd">{{ t.av_legend_hdr }}</span>
+    <span title="{{ t.av_up_tip if av_rw else t.av_up_tip24 }}"><span class="sw" style="background:{{ AV_UP_COLOR }}"></span>{{ t.av_state_up }}</span>
+    
+
+    {% for s in AVAIL_LEGEND_STATES %}
+    <span><span class="sw" style="background:{{ state_color(s) }}"></span>{{ state_label(s) }}</span>
+    {% endfor %}
+    {% if av_rw %}
+    <span title="{{ t.u_rw_off_tip }}"><span class="sw" style="background:var(--rw-off)"></span>{{ t.u_rw_off }}</span>
+    <span title="{{ t.u_rw_uncov_tip }}"><span class="sw unc"></span>{{ t.u_rw_uncov }}</span>
+    <span title="{{ t.u_rw_mark_tip }}">┆ {{ t.u_rw_mark_tip }}</span>
+    {% endif %}
+  </div>
+  <div class="mb-ends"><div class="e"><span>{{ clock(fleet_tl.start) }}</span><span>{{ t.now }} {{ clock(fleet_tl.end) }}</span></div></div>
+  {% if fleet_tl.cap_excluded %}<div class="band-cap">{{ t.util_cap_excl.format(n=fleet_tl.cap_excluded|length, w=fleet_tl.cap_excluded|map(attribute='eid')|join(', '), d=fleet_tl.cap_excluded|map(attribute='since')|join(', ')) }}{% if a11_note %} <span class="cov">· {{ a11_note }}</span>{% endif %}</div>
+  {% elif fleet_tl.has_cap and a11_note %}<div class="band-cap"><span class="cov">{{ a11_note }}</span></div>{% endif %}
+  {% if fleet_tl.has_child %}<div class="band-cap">{{ t.band_child_cap }}{% if fleet_tl.has_cov %}<br><span class="cov">{{ t.cln_cov_note }}</span>{% endif %}</div>{% endif %}
+  {% endif %}
+
+  <div id="detail"><div class="hint">{{ t.drill_hint }}</div></div>
+  {% endif %}
+</main>
+</body>
+</html>

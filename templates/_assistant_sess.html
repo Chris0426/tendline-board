@@ -1,0 +1,13 @@
+
+
+{% if conversations %}
+<div class="board-sess" role="tablist" aria-label="{{ t.as_sessions }}">
+  {% for c in conversations %}
+  <button type="button" role="tab" title="{{ c.title }}"
+          class="{{ 'is-current' if c.id == current_id else '' }}"
+          aria-selected="{{ 'true' if c.id == current_id else 'false' }}"
+          hx-get="/assistant/{{ c.id }}?lang={{ lang }}"
+          hx-target="#assistant-panel" hx-swap="innerHTML">{{ c.title[:26] }}</button>
+  {% endfor %}
+</div>
+{% endif %}

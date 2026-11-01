@@ -1,0 +1,32 @@
+
+
+
+
+
+
+{% if error == "disabled" %}
+<div class="chat-msg chat-msg--sys">{{ t.as_disabled }}</div>
+{% elif error == "limit" %}
+<div class="chat-msg chat-msg--sys chat-msg--err">{{ t.as_limit }}</div>
+{% elif error == "rate" %}
+<div class="chat-msg chat-msg--sys chat-msg--err">{{ t.as_rate }}</div>
+
+
+
+{% elif error == "budget" %}
+<div class="chat-msg chat-msg--sys">{{ t.as_budget }}</div>
+{% elif error %}
+<div class="chat-msg chat-msg--sys chat-msg--err">{{ t.as_error }}</div>
+{% elif turn %}
+<div class="chat-msg chat-msg--user">{{ user_msg }}</div>
+{% include "_assistant_turn.html" %}
+{% endif %}
+
+<input type="hidden" id="assistant-conv-id" name="conversation_id" value="{{ conversation_id }}" hx-swap-oob="true">
+
+
+
+{% if turn and conversation_id %}
+<div id="assistant-sess" hx-swap-oob="true">{% include "_assistant_sess.html" %}</div>
+<div id="assistant-endbar" hx-swap-oob="true">{% include "_assistant_endbar.html" %}</div>
+{% endif %}

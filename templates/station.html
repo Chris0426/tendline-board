@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="{{ 'zh-Hant' if lang=='zh' else 'en' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tendline Board — {{ pretty_station(cls) }}</title>
+<style>
+  :root{ color-scheme: light dark;
+    --bg:#f4f6fb; --panel:#ffffff; --panel2:#eef2f8; --line:#d8e0ec; --track:#e6ebf3;
+    --fg:#1b2433; --mut:#5c6b82; --hover:#b9c6db; --unk:#b07d12; --good:#1f9d57; --warn:#b07d12; --bad:#c4504f; --ptag:#536f99; --ptag-ink:#ffffff; }
+  @media (prefers-color-scheme: dark){ :root{
+    --bg:#0b1220; --panel:#141d2e; --panel2:#1b2740; --line:#2a3852; --track:#0e1626;
+    --fg:#e6edf6; --mut:#8aa0bd; --hover:#3a5c86; --unk:#cbb26b; --good:#36c47f; --warn:#cbb26b; --bad:#e0726f; --ptag:#9bb7de; --ptag-ink:#0b1220; } }
+  *{ box-sizing:border-box }
+  body{ margin:0; background:var(--bg); color:var(--fg); font:14px/1.5 "Segoe UI",system-ui,"Microsoft JhengHei",sans-serif }
+  a{ color:inherit }
+  header{ display:flex; align-items:baseline; gap:14px; padding:14px 22px; border-bottom:1px solid var(--line); background:var(--panel) }
+  header h1{ font-size:17px; margin:0; letter-spacing:.5px }
+  header .sub{ color:var(--mut); font-size:12px }
+  header .right{ margin-left:auto; display:flex; align-items:center; gap:12px }
+  .toggle{ font-size:12px; padding:3px 11px; border-radius:13px; border:1px solid var(--line); color:var(--fg); text-decoration:none; background:var(--panel2) }
+  .toggle:hover{ border-color:var(--hover) }
+  .badge{ font-size:11px; padding:2px 8px; border-radius:10px; border:1px solid var(--line); color:var(--mut) }
+  .badge.live{ color:var(--good); border-color:var(--good) } .badge.demo{ color:var(--unk); border-color:var(--unk) }
+  .badge.snapshot{ color:#2f7fc4; border-color:#2f7fc4 }
+  main{ max-width:1080px; margin:0 auto; padding:20px 22px 40px }
+  .crumb{ font-size:12.5px; color:var(--mut); margin-bottom:6px }
+  .crumb a{ color:var(--good); text-decoration:none; font-weight:600 }
+  .sx-title{ font-size:22px; font-weight:800; letter-spacing:.3px; margin:2px 0 2px }
+  .sx-csub{ color:var(--mut); font-size:12px; font-family:ui-monospace,monospace }
+  
+
+
+
+  .ctl{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:2px 0 14px;
+        padding:8px 13px; background:var(--panel); border:1px solid var(--line);
+        border-radius:9px; font-size:12.5px; color:var(--mut) }
+  .ctl input[type=date]{ font:inherit; color:var(--fg); background:var(--panel2);
+        border:1px solid var(--line); border-radius:6px; padding:3px 7px }
+  .ctl select{ font:inherit; color:var(--fg); background:var(--panel2);
+        border:1px solid var(--line); border-radius:6px; padding:3px 7px; max-width:250px }
+  .ctl .vsep{ width:1px; height:18px; background:var(--line); margin:0 3px }
+  .ctl button{ font:inherit; cursor:pointer; padding:3px 13px; border-radius:6px;
+        border:1px solid var(--line); background:var(--panel2); color:var(--fg) }
+  .ctl button:hover{ border-color:var(--hover) }
+  .ctl .reset{ color:var(--mut); text-decoration:none; padding:3px 8px }
+  .ctl .reset:hover{ color:var(--fg) }
+  .tag-toggle{ display:inline-flex; gap:3px; padding:2px; border:1px solid var(--line); border-radius:9px }
+  .tag-toggle a{ font-size:10.5px; font-weight:800; line-height:1; letter-spacing:.5px;
+        text-decoration:none; padding:4px 6px; border:1px solid transparent;
+        border-radius:7px; color:var(--mut) }
+  .tag-toggle a.on{ color:var(--ptag-ink); background:var(--ptag); border-color:var(--ptag) }
+
+   
+  .axes{ display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:16px 0 6px }
+  @media (max-width:720px){ .axes{ grid-template-columns:repeat(2,1fr) } }
+  .ax{ border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:13px 15px }
+  .ax .k{ font-size:12px; color:var(--mut) } .ax .own{ font-size:10px; color:var(--mut) }
+  .axlink{ color:inherit; text-decoration:none } .axlink:hover{ text-decoration:underline }
+  .ax .v{ font-size:34px; font-weight:800; line-height:1.05; font-variant-numeric:tabular-nums }
+  .ax.oee{ background:var(--panel2) }
+   
+  .ontgt{ display:flex; gap:16px; flex-wrap:wrap; align-items:baseline; margin:10px 2px 2px;
+          font-size:13px; font-variant-numeric:tabular-nums }
+  .ontgt b{ font-size:15px } .neg{ color:var(--bad); font-weight:700 } .pos{ color:var(--good); font-weight:700 }
+  .tag{ font-size:10px; font-weight:700; letter-spacing:.5px; padding:1px 7px; border-radius:9px; border:1px solid var(--unk); color:var(--unk) }
+  .tag.raw{ color:#fff; background:var(--unk) }
+  h2.sec{ font-size:13px; color:var(--mut); font-weight:600; margin:24px 2px 8px; text-transform:uppercase; letter-spacing:.6px }
+   
+  .compbar{ display:flex; height:26px; border-radius:7px; overflow:hidden; border:1px solid var(--line); margin:8px 0 2px }
+  .compbar i{ display:block; height:100% }
+  .complegend{ display:flex; gap:11px; flex-wrap:wrap; margin-top:8px; font-size:11px; color:var(--mut) }
+  .dot{ display:inline-block; width:9px; height:9px; border-radius:2px; vertical-align:middle; margin-right:4px }
+  
+
+
+  .wf{ border:1px solid var(--line); border-radius:11px; background:var(--panel);
+       padding:10px 13px; margin:6px 0 2px }
+  .wf-r{ display:grid; grid-template-columns:minmax(96px,auto) minmax(92px,auto) 1fr;
+         gap:10px; align-items:center; padding:3px 0 }
+  .wf-r .wf-k{ font-size:12.5px; color:var(--mut) }
+  .wf-r .wf-v{ font-size:13px; font-weight:700; text-align:right;
+               font-variant-numeric:tabular-nums }
+  .wf-r.good .wf-k,.wf-r.good .wf-v{ color:var(--fg) } .wf-r.good .wf-v{ font-size:15px }
+  
+
+
+  .wf-r.dorm{ border-bottom:1px dashed var(--line); padding-bottom:6px; margin-bottom:3px }
+  .wf-r.dorm .wf-k,.wf-r.dorm .wf-v,.wf-r.dorm .wf-b{ color:var(--mut) }
+  .wf-r.dorm .wf-b{ height:auto; background:none; font-size:11.5px }
+  .wf-b{ height:14px; border-radius:4px; background:var(--track); overflow:hidden }
+  .wf-b i{ display:block; height:100%; position:relative }
+  .wf-rw{ position:absolute; right:0; top:0; height:100%; display:block;
+          background-image:repeating-linear-gradient(45deg,
+            rgba(255,255,255,.55) 0 3px, rgba(255,255,255,0) 3px 6px) }
+   
+  .wf-r:hover{ background:var(--panel2); border-radius:6px }
+  .axes .ax:hover{ border-color:var(--hover) }
+  .wf-note{ color:var(--mut); font-size:11.5px; margin:4px 0 0 }
+  .help{ cursor:help; color:var(--mut); font-size:11px; margin-left:4px }
+  
+
+
+  .cp-rate{ display:inline-flex; flex-direction:column; gap:1px; margin:8px 0 0;
+            padding:9px 13px; border:1px solid var(--line); border-radius:11px;
+            background:var(--panel2); max-width:100% }
+  .cp-rate .cp-k{ font-size:11.5px; color:var(--mut) }
+  .cp-rate .cp-v{ font-size:26px; font-weight:800; line-height:1.1;
+                  font-variant-numeric:tabular-nums }
+  .cp-rate .cp-v .cp-u{ font-size:13px; font-weight:700; color:var(--mut) }
+  .cp-rate .cp-d{ font-size:11.5px; color:var(--mut) }
+   
+  .tag-note.aonly a{ color:var(--fg); text-decoration:none; border-bottom:1px dotted var(--line);
+                     margin-left:6px }
+  .tag-note.aonly a:hover{ border-bottom-color:var(--fg) }
+   
+  .cause{ padding:11px 13px; background:var(--panel2); border:1px solid var(--line); border-radius:10px; font-size:12.5px; margin:6px 0 }
+  .cause .lead{ color:var(--mut); margin-bottom:7px }
+  .cbar{ display:flex; height:22px; border-radius:6px; overflow:hidden; border:1px solid var(--line) }
+  .cbar i{ display:flex; align-items:center; justify-content:center; color:#fff; font-size:10.5px; font-weight:700 }
+  .cleg{ display:flex; gap:14px; flex-wrap:wrap; margin-top:7px; color:var(--mut) } .cleg b{ color:var(--fg) }
+   
+  table.sc{ width:100%; border-collapse:collapse; font-size:12.5px; background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden }
+  table.sc th,table.sc td{ padding:8px 11px; border-bottom:1px solid var(--line); text-align:left }
+  table.sc th{ color:var(--mut); font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.4px; background:var(--panel2) }
+  table.sc tr:last-child td{ border-bottom:none }
+  table.sc td.num,table.sc th.num{ text-align:right; font-variant-numeric:tabular-nums }
+   
+  table.sc td.ubar{ width:34%; min-width:130px }
+  table.sc td.ubar .ub{ display:flex; height:12px; border-radius:3px; overflow:hidden;
+        border:1px solid var(--line) }
+  table.sc td.ubar .ub i{ display:block; height:100% }
+  @media (max-width:720px){ table.sc td.ubar{ width:auto; min-width:80px } }
+  table.sc td.eid{ font-weight:600 } table.sc td.eid small{ color:var(--mut); font-weight:400; margin-left:6px }
+  .ptag{ font-size:10.5px; font-weight:800; line-height:1; letter-spacing:.5px; padding:3px 6px;
+        border:1px solid transparent; border-radius:7px }
+  .ptag.observed{ color:var(--ptag-ink); background:var(--ptag); border-color:var(--ptag) }
+  .ptag.default{ color:var(--ptag); background:transparent; border-color:var(--ptag) }
+  
+
+  .ptag.idle{ color:var(--ptag); background:transparent; border-color:var(--ptag) }
+   
+  .ptags{ display:inline-flex; gap:3px; vertical-align:middle; margin-left:5px }
+  .tag-note{ color:var(--mut); font-size:11.5px; margin:5px 2px 9px }
+  .pend{ color:var(--mut); font-size:11.5px; margin:9px 2px 0 }
+  .footnote{ color:var(--mut); font-size:11.5px; margin:22px 2px 0; line-height:1.6 }
+  .unavail{ font-size:15px; font-weight:600; color:var(--unk); margin:20px 2px }
+   
+  .loading{ display:flex; align-items:center; gap:9px; color:var(--mut); font-size:12.5px; padding:16px 2px }
+  .spin{ width:14px; height:14px; border:2px solid var(--track); border-top-color:var(--mut); border-radius:50%; animation:sp .8s linear infinite }
+  @keyframes sp{ to{ transform:rotate(360deg) } }
+  .sec-unavail{ color:var(--unk); font-size:13px; font-weight:600; padding:14px 2px }
+</style>
+<script src="/static/htmx.min.js"></script>
+</head>
+<body>
+{% set lang_href = '/station/' ~ cls ~ '?' ~ ov_qs ~ '&lang=' ~ ('zh' if lang=='en' else 'en') ~ tag_qs %}
+
+
+{% set nav_active = 'capacity' %}
+{% include '_nav.html' %}
+<main>
+  
+
+  <div class="crumb"><a href="/landing/v1?{{ ov_qs }}&lang={{ lang }}">{{ t.back_ov }}</a> · {{ t.sx_sub }}</div>
+
+  
+  <div class="sx-title">{{ pretty_station(cls) }}</div>
+  
+
+  <div class="sx-csub">{{ cls }} · {% if start or end %}{{ start or '…' }} → {{ end or '…' }}{% else %}{{ t.p_window }} {{ days }}{{ t.p_days }}{% endif %}</div>
+
+  
+
+
+
+
+  <div class="ctl">
+    <span>{{ t.sb_c_station }}</span>
+    <select aria-label="{{ t.sb_c_station }}"
+            onchange="location.href='/station/'+encodeURIComponent(this.value)+location.search">
+      {% for c in stations %}<option value="{{ c }}" {{ 'selected' if c==cls }}>{{ pretty_station(c) }}</option>{% endfor %}
+    </select>
+    <span class="vsep"></span>
+    <form method="get" action="/station/{{ cls }}"
+          style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+      <input type="hidden" name="source" value="{{ source }}">
+      <input type="hidden" name="lang" value="{{ lang }}">
+      <input type="hidden" name="days" value="{{ days }}">
+      {% if tag_param %}<input type="hidden" name="tag" value="{{ tag_param }}">{% endif %}
+      <span aria-hidden="true">📅</span>
+      <input type="date" name="start" value="{{ start }}" max="{{ end }}">
+      <span>{{ t.range_to }}</span>
+      <input type="date" name="end" value="{{ end }}">
+      <button type="submit">{{ t.range_apply }}</button>
+      {% if start or end %}<a class="reset" href="/station/{{ cls }}?source={{ source }}&days={{ days }}&lang={{ lang }}{{ tag_qs }}">{{ t.range_reset }}</a>{% endif %}
+    </form>
+    <span class="vsep"></span>
+    <span class="tag-toggle" aria-label="{{ t.tag_toggle_aria }}">{% for x in tag_controls %}<a class="{{ 'on' if x.active }}" href="{{ x.href }}" title="{{ x.family }}">{{ x.letter }}</a>{% endfor %}</span>
+  </div>
+
+
+  
+  <div id="sx-overview"
+       hx-get="/station/{{ cls }}/overview?{{ frag_qs }}"
+       hx-trigger="load" hx-swap="innerHTML">
+    <div class="loading"><span class="spin"></span>{{ t.sx_loading }}</div>
+  </div>
+
+  
+  <h2 class="sec">{{ t.sx_units_hdr }}</h2>
+  <div id="sx-units"
+       hx-get="/station/{{ cls }}/units?{{ frag_qs }}"
+       hx-trigger="load" hx-swap="innerHTML">
+    <div class="loading"><span class="spin"></span>{{ t.sx_loading_units }}</div>
+  </div>
+
+  <div class="footnote">{{ t.landing_foot | safe }}</div>
+</main>
+</body>
+</html>

@@ -1,0 +1,176 @@
+
+
+
+
+
+
+{% if not s %}
+<div class="sec-unavail">{{ t.sx_section_unavail }}</div>
+{% if err %}<div class="pend">{{ t.sx_err_lead }} <code>{{ err }}</code></div>{% endif %}
+{% else %}
+
+
+
+
+
+
+
+
+
+{% set _tag_block = tag_unscopable is defined and tag_unscopable %}
+{% set _a_ok = u_ok and s.availability is not none and not _tag_block %}
+{% set _u_ok = u_ok and s.utilization is not none and not _tag_block %}
+{% set _o_ok = u_ok and s.oee is not none and not (tag_on is defined and tag_on) %}
+<div class="axes">
+  <div class="ax"><div class="k"><a class="axlink" href="/availability?cls={{ cls }}&source={{ source }}&lang={{ lang }}{% if tag_param %}&tag={{ tag_param }}{% endif %}" title="{{ t.sx_axis_fleet_tip }}">{{ t.kpi_avail_rw_t if s.rw_axis else t.kpi_avail_t }}</a> <span class="own">· {{ t.owner_f4 }}</span></div>
+    <div class="v" title="{{ t.st_q_avail_rw if s.rw_axis else t.q_avail }}" style="--ax-c:{{ state_color('生產') if _a_ok else 'var(--mut)' }}">{% if _a_ok %}{{ '%.0f'|format(s.availability*100) }}%{% else %}—{% endif %}</div></div>
+  <div class="ax"><div class="k"><a class="axlink" href="/utilization?cls={{ cls }}&source={{ source }}&lang={{ lang }}{% if tag_param %}&tag={{ tag_param }}{% endif %}" title="{{ t.sx_axis_fleet_tip }}">{{ t.kpi_effi_rw_t if s.rw_axis else t.kpi_effi_t }}</a> <span class="own">· {{ t.owner_f3 }}</span></div>
+    <div class="v" title="{{ t.q_effi_rw if s.rw_axis else t.q_effi }}" style="--ax-c:{{ state_color('待機') if _u_ok else 'var(--mut)' }}">{% if _u_ok %}{{ '%.0f'|format(s.utilization*100) }}%{% else %}—{% endif %}</div></div>
+  
+
+  <div class="ax"><div class="k">{% if is_synth %}{{ t.kpi_qual_rw_t if s.rw_axis else t.kpi_qual_t }}{% else %}<a class="axlink" href="/yield?source={{ source }}&lang={{ lang }}" title="{{ t.sx_axis_fleet_tip }}">{{ t.kpi_qual_rw_t if s.rw_axis else t.kpi_qual_t }}</a>{% endif %} <span class="own">· {{ t.owner_f2 }}</span></div>
+    <div class="v" style="--ax-c:{{ 'var(--cap-q)' if s.quality_pct is not none else 'var(--mut)' }}"
+         {% if s.quality_pct is none %}title="{{ t.qk_unavail_short }}"{% endif %}>{% if s.quality_pct is not none %}{{ '%.1f'|format(s.quality_pct) }}%{% else %}—{% endif %}</div></div>
+  <div class="ax oee"><div class="k">OEE</div>
+    <div class="v" title="{{ t.sx_tag_oee_na if (tag_on is defined and tag_on) else (t.st_q_oee_rw if s.rw_axis else t.q_oee) }}" style="--ax-c:{{ ('var(--good)' if s.oee>=0.6 else ('var(--warn)' if s.oee>=0.4 else 'var(--bad)')) if _o_ok else 'var(--mut)' }}">{% if _o_ok %}{{ '%.0f'|format(s.oee*100) }}%{% else %}—{% endif %}</div></div>
+</div>
+
+{% if tag_on is defined and tag_on %}
+<div class="pend" style="font-size:11px">{{ t.sx_tag_yield_note }} · {{ t.sx_tag_oee_na }}{% if _tag_block %} · {{ t.sx_tag_scope_na }}{% endif %}</div>
+{% endif %}
+
+
+{% if s.rw_axis %}
+<div class="pend" style="font-size:11px">{{ t.rw_axis_cap.format(k=(rw_meta.n_machines if rw_meta else 0)) }}{% if rw_meta and rw_meta.switch %} · {{ t.rw_axis_switch }}{% endif %}{% if rw_meta and rw_meta.n_days < rw_meta.n_days_total %} · {{ t.eq_erw_cov.format(n=rw_meta.n_days, m=rw_meta.n_days_total) }}{% endif %}{% if not _a_ok %} · {{ t.rw_axis_na }}{% endif %}</div>
+{% endif %}
+
+
+{% if scope_errs %}<div class="pend" style="font-size:11px">⚠ {{ t.eq_scope_degraded.format(n=scope_errs) }}</div>{% endif %}
+
+
+
+
+{% set _rw_explains = s.rw_axis and (s.rw_planned_sec is not none) and s.rw_planned_sec <= 0 and not zl %}
+
+
+{% if (not u_ok and not _rw_explains and not _tag_block) or err %}<div class="pend">{% if zl %}{{ t.util_unmeasurable_note | safe }}{% elif not _rw_explains and not _tag_block %}{{ t.sx_util_unavail | safe }}{% endif %}{% if err %}<br>{{ t.sx_err_lead }} <code>{{ err }}</code>{% endif %}</div>{% endif %}
+
+
+
+
+
+
+
+{% if s.perf_pending %}<div class="pend"><span style="font-size:11px;font-weight:600;letter-spacing:.5px;padding:1px 7px;border-radius:2px;border:1px solid var(--line);color:var(--mut)">{{ t.pending_tag }}</span> <b>{{ t.perf_t }}</b> · {{ t.perf_pending }}<div style="margin-top:3px;font-size:11px;color:var(--mut)">{{ t.perf_blind }}</div></div>{% endif %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{% if cap %}
+<h2 class="sec">{{ t.cp_hdr }}
+  <span class="help" tabindex="0" title="{{ t.cp_tip_card }}"></span></h2>
+{% set _phk = cap.ph_ok %}
+{% set _base = cap.planned_h if cap.planned_h > 0 else 1.0 %}
+<div class="wf">
+  {% macro row(key, hours, ph, tip, layer) %}
+  <div class="wf-r" data-layer="{{ layer }}">
+    <span class="wf-k">{{ key }}</span>
+    <span class="wf-v" title="{{ '%.1f'|format(hours) }}h">{% if _phk and ph is not none %}{{ "{:,}".format(ph) }} PH{% else %}{{ '%.1f'|format(hours) }} h{% endif %}</span>
+    <span class="wf-b"><i style="width:{{ '%.2f'|format(100.0 * hours / _base) }}%;background:{{ caller() }}" title="{{ tip }}"></i></span>
+  </div>
+  {% endmacro %}
+  
+
+
+
+  {% if cap_dorm %}
+  <div class="wf-r dorm" data-layer="all">
+    <span class="wf-k">{{ t.cp_l_dormant }}</span>
+    <span class="wf-v" title="{{ '%.1f'|format(cap_dorm.loss_h) }}h">{% if cap_dorm.loss_ph is not none %}{{ "{:,}".format(cap_dorm.loss_ph) }} PH{% else %}{{ '%.1f'|format(cap_dorm.loss_h) }} h{% endif %}</span>
+    <span class="wf-b">{{ t.cp_dorm_seats.format(k=cap_dorm.k, n=cap_dorm.active, N=cap_dorm.installed) }}
+      <span class="help" tabindex="0" title="{{ t.cp_tip_dormant }} · {% for st in cap_dorm.seats %}{{ st.id }}{% if st.since %}（{{ st.since }}）{% endif %}{% if not loop.last %} · {% endif %}{% endfor %}"></span>
+    </span>
+  </div>
+  {% endif %}
+  {% call row(t.cp_l_theory, cap.planned_h, cap.theory_ph, t.cp_tip_theory, 'all') %}{{ state_color('生產') }}{% endcall %}
+  {% call row('− ' ~ t.cp_l_down, cap.down_h, cap.down_ph, t.cp_tip_down, 'a') %}{{ rw_color('停機', True) }}{% endcall %}
+  {% call row('− ' ~ (t.cp_l_idle if s.rw_axis else comp_label('未拆分')), cap.idle_h, cap.idle_ph, t.cp_tip_idle, 'u') %}{{ state_color('該跑沒跑') if s.rw_axis else state_color('待機') }}{% endcall %}
+  {% if _phk %}
+  <div class="wf-r" data-layer="q">
+    <span class="wf-k">− {{ t.cp_l_fail }}</span>
+    <span class="wf-v">{{ "{:,}".format(cap.fail_ph) }} PH</span>
+    <span class="wf-b"><i style="width:{{ '%.2f'|format(100.0 * cap.fail_ph / (cap.theory_ph or 1)) }}%;background:var(--cap-q)" title="{{ t.cp_tip_fail }}"></i></span>
+  </div>
+  
+
+
+
+
+
+  <div class="wf-r good" data-layer="all">
+    <span class="wf-k">＝ {{ t.cp_l_good }}</span>
+    <span class="wf-v" title="{{ t.cp_tip_good }}">{{ "{:,}".format(cap.good_ph) }} PH</span>
+    <span class="wf-b"><i style="width:{{ '%.2f'|format(100.0 * ((cap.residual_ph if cap.residual_ph > 0 else 0) / (cap.theory_ph or 1))) }}%;background:{{ state_color('生產') }}" title="{{ t.cp_l_good }}">{% if cap.rework_share %}<b class="wf-rw" style="width:{{ '%.2f'|format(100.0 * cap.rework_share) }}%" title="{{ t.cp_tip_rework }}"></b>{% endif %}</i></span>
+  </div>
+  {% if cap.equiv_ph %}
+  <div class="wf-note">
+    {%- if cap.equiv_ph > 0 %}╲ {{ t.cp_good_plus.format(n="{:,}".format(cap.equiv_ph)) }}
+      <span class="help" tabindex="0" title="{{ t.cp_tip_rework }}{% if cap.rework_ledger_ph is not none %} · {{ t.cp_equiv_ledger.format(n=cap.rework_ledger_ph) }}{% endif %}{% if cap.rework_pct is not none %} · {{ t.cp_rework_in.format(p='%.0f'|format(cap.rework_pct)) }}{% endif %}{% if cap_tag %} · {{ t.cp_equiv_tag_note }}{% endif %}"></span>
+    {%- else %}{{ t.cp_good_minus.format(n="{:,}".format(-cap.equiv_ph)) }}
+      <span class="help" tabindex="0" title="{{ t.cp_tip_faster }}"></span>{% endif %}
+    {%- if cap.resid_flag %} <span class="tag">{{ t.cp_rate_resid }}</span>{% endif %}
+  </div>
+  {% endif %}
+  {% if cap.contradiction %}<div class="wf-note" style="color:var(--bad)">⚠ {{ t.cp_contradiction }}</div>{% endif %}
+  {% endif %}
+</div>
+
+
+
+{% if cap_aonly %}
+<div class="tag-note aonly">{{ t.tag_aonly_chip.format(n=cap_aonly.n, eids=cap_aonly.eids_txt, pct=cap_aonly.pct) }}
+  <span class="help" tabindex="0" title="{{ t.tag_aonly_tip }}"></span>
+  <a href="{{ cap_aonly_href }}">{{ t.tag_aonly_link }}</a></div>
+{% endif %}
+
+
+
+
+
+
+
+<div class="cp-rate">
+  <div class="cp-k">{{ t.cp_rate_tile_t }}
+    <span class="help" tabindex="0" title="{{ t.cp_rate_tip }}{% if cap_rmeta and cap_rmeta.fallback %} · {{ t.cp_rate_fallback.format(n=(cap_rmeta.short or 0), prev=cap_rmeta.month) }}{% endif %}"></span></div>
+  <div class="cp-v">{% if cap.ph_ok %}{{ '%.1f'|format(cap.rate_ph_per_h) }} <span class="cp-u">PH/h</span>{% else %}—{% endif %}</div>
+  <div class="cp-d">
+    {%- if cap.ph_ok %}{{ t.cp_rate_def.format(month=(cap_rmeta.month if cap_rmeta else '—'), n=(cap_rmeta.n_days if cap_rmeta else 0)) }}
+      {%- if cap_tag %} · {{ t.cp_rate_tile_tag.format(pct=cap_tag.kept_pct) }}{% endif %}
+    {%- else %}{{ t.cp_rate_none }}{% endif %}</div>
+</div>
+
+{%- set _cpn = [] %}
+{%- if cap_tag and cap_tag.mode == 'off' %}{% set _ = _cpn.append(t.cp_tag_ph_na.format(pct=cap_tag.pct)) %}
+{%- elif cap_tag %}{% set _ = _cpn.append(t.cp_tag_ph_full.format(pct=cap_tag.pct)) %}{% endif %}
+{%- if qrow and cap.ph_ok %}{% set _ = _cpn.append(t.cp_q_window_note.format(n=days)) %}{% endif %}
+{%- if not s.rw_axis %}{% set _ = _cpn.append(t.cp_inert_note) %}{% endif %}
+{%- if _cpn %}
+<div class="pend" style="font-size:11px">{{ _cpn | join(' · ') }}</div>
+{%- endif %}
+{% endif %}
+{% endif %}

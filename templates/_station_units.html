@@ -1,0 +1,83 @@
+
+
+
+{% if tag_filter is defined and tag_filter.active %}<div class="tag-note">{{ t.tag_notice_head.format(n=tag_filter.n, families=tag_filter.label) }} ({% for x in tag_filter.also %}{{ t.tag_notice_also.format(n=x.n, family=x.family) }}; {% endfor %}{{ t.tag_notice_scope }})</div>{% endif %}
+{% if detail and detail.units %}
+<table class="sc">
+  <thead><tr>
+    <th>{{ t.sx_eid }}</th><th class="num">{{ t.c_output }}</th><th class="num">{{ t.sx_good }}</th>
+    
+
+    <th>{{ t.cp_col_bar }}</th>
+    
+
+    <th class="num">{{ t.kpi_avail_rw_t if detail.rw_axis else t.kpi_avail_t }}</th>
+    <th class="num">{{ t.kpi_effi_rw_t if detail.rw_axis else t.kpi_effi_t }}</th>
+    <th class="num">{{ t.kpi_qual_rw_t if detail.rw_axis else t.kpi_qual_t }}</th>
+    <th class="num">OEE</th>
+  </tr></thead>
+  <tbody>
+  {% for un in detail.units %}
+  {% if un.is_seat %}
+  
+
+
+
+
+
+
+
+
+
+
+
+
+  <tr data-seat="1" style="opacity:.85">
+    <td class="eid"><span style="color:var(--line)">└ </span>{% if un.seat_nest is none %}{{ t.sx_subunit.format(id=un.seat_unit) }}{% else %}{{ t.sx_seat.format(n=un.seat_nest) }}{% endif %}{% if un.seat_orphan %} <small>{{ un.parent_eid }}</small>{% endif %}</td>
+    <td class="num">{% if un.output is not none %}{{ "{:,}".format(un.output) }}{% else %}—{% endif %}</td>
+    <td class="num">{% if un.good is not none %}{{ "{:,}".format(un.good) }}{% else %}—{% endif %}</td>
+    <td class="ubar">{% if un.seat_reason %}<span style="color:var(--mut);font-size:11px"{% if un.seat_last_end %} title="{{ un.seat_last_end }}"{% endif %}>{{ t['sx_seat_reason_' ~ un.seat_reason] }}</span>{% endif %}</td>
+    <td class="num"><span title="{{ t.sx_seat_na_title }}">—</span></td>
+    <td class="num"><span title="{{ t.sx_seat_na_title }}">—</span></td>
+    <td class="num">{% if un.quality_pct is not none %}{{ '%.0f'|format(un.quality_pct) }}%{% else %}—{% endif %}</td>
+    <td class="num" style="font-weight:700"><span title="{{ t.sx_seat_na_title }}">—</span></td>
+  </tr>
+  {% else %}
+  <tr{% if un.parent_eid %} style="opacity:.9"{% endif %}>{% set TG = tag_chip(un.eid) %}
+    <td class="eid">{% if un.parent_eid %}<span style="color:var(--line)">└ </span>{% endif %}{{ un.eid }} <span class="ptags">{% for c in TG.chips %}<span class="ptag {{ c.css }}" title="{{ t[c.tip_key].format(**c.tip_args) }}">{{ c.letter }}</span>{% endfor %}</span>{% if un.desc %}<small>{{ un.desc }}</small>{% endif %}</td>
+    <td class="num">{{ "{:,}".format(un.output) }}</td>
+    <td class="num">{{ "{:,}".format(un.good) }}</td>
+    
+
+    <td class="ubar">{% if un.comp %}<span class="ub">{% for c in un.comp %}<i style="width:{{ '%.2f'|format(c.pct) }}%;background:{{ rw_color(c.state, True) }}" title="{{ comp_label(c.state) }} {{ '%.0f'|format(c.pct) }}%"></i>{% endfor %}</span>{% endif %}</td>
+    
+
+    <td class="num">{% if un.has_util and un.availability is not none %}{{ '%.0f'|format(un.availability*100) }}%{% elif un.util_unmeasurable %}<span title="{{ t.util_unmeasurable_tip }}">—</span>{% elif un.rw_axis %}<span title="{{ t.rw_axis_na }}">—</span>{% else %}—{% endif %}</td>
+    <td class="num">{% if un.has_util and un.utilization is not none %}{{ '%.0f'|format(un.utilization*100) }}%{% elif un.util_unmeasurable %}<span title="{{ t.util_unmeasurable_tip }}">—</span>{% elif un.rw_axis %}<span title="{{ t.rw_axis_na }}">—</span>{% else %}—{% endif %}</td>
+    <td class="num">{% if un.quality_pct is not none %}{{ '%.0f'|format(un.quality_pct) }}%{% else %}—{% endif %}</td>
+    <td class="num" style="font-weight:700">{% if un.oee is not none %}{{ '%.0f'|format(un.oee*100) }}%{% elif un.util_unmeasurable %}<span title="{{ t.util_unmeasurable_tip }}">—</span>{% else %}—{% endif %}</td>
+  </tr>
+  {% endif %}
+  {% endfor %}
+  </tbody>
+</table>
+{% if not detail.has_machine_util %}<div class="pend">{{ t.sx_no_util }}{% if err %}<br>{{ t.sx_err_lead }} <code>{{ err }}</code>{% endif %}</div>{% endif %}
+{% if cov_note %}<div class="pend" style="color:#b07d12">{{ t.cln_cov_note }}</div>{% endif %}
+
+
+
+{% if win_mismatch is defined and win_mismatch %}<div class="pend" style="font-size:11px">{{ t.cp_units_win_note.format(d=days) }}</div>{% endif %}
+
+{% if detail.rw_axis %}<div class="pend" style="font-size:11px">{{ t.rw_axis_cap.format(k=(rw_meta.n_machines if rw_meta else 0)) }} · {{ t.rw_axis_na }}</div>{% endif %}
+
+{% if scope_errs %}<div class="pend" style="font-size:11px">⚠ {{ t.eq_scope_degraded.format(n=scope_errs) }}</div>{% endif %}
+<div class="pend">{{ t.sx_units_nosum }}</div>
+
+
+{% if detail.has_seats %}<div class="pend" style="font-size:11px">{{ t.sx_seat_note }}</div>{% endif %}
+{% elif detail %}
+<div class="pend">{{ t.sx_no_units }}</div>
+{% else %}
+<div class="sec-unavail">{{ t.sx_section_unavail }}</div>
+{% if err %}<div class="pend">{{ t.sx_err_lead }} <code>{{ err }}</code></div>{% endif %}
+{% endif %}

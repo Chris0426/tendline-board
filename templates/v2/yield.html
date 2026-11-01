@@ -1,0 +1,193 @@
+{% extends 'v2/_base.html' %}
+
+
+
+{% block page %}yield{% endblock %}
+{% block title %}Tendline Board — {{ (t.yax_output_t if axis=='output' else t.yax_yield_t) }}{% endblock %}
+{% block nav %}
+{% set lang_href = '/' ~ axis ~ '?' ~ axis_qs ~ '&lang=' ~ ('zh' if lang=='en' else 'en') %}
+{% set nav_active = 'output' if axis=='output' else 'yield' %}
+{% include 'v2/_nav.html' %}
+<div class="product-switch" title="{{ t.qk_prod_tip }}">
+  {% for key, label, href, current in product_links %}
+    {% if current %}<b class="toggle">{{ label }}</b>{% else %}<a class="toggle" href="{{ href }}">{{ label }}</a>{% endif %}{% if not loop.last %}<span class="sep">|</span>{% endif %}
+  {% endfor %}
+</div>
+{% endblock %}
+{% block main %}
+{% set lang_href = '/' ~ axis ~ '?' ~ axis_qs ~ '&lang=' ~ ('zh' if lang=='en' else 'en') %}
+{% set nav_active = 'output' if axis=='output' else 'yield' %}
+  <div style="color:var(--mut);font-size:12px;margin:0 2px 10px">
+    
+    {{ yax_sub_text }} ·
+    <b style="color:var(--fg)">{{ t.p_window }} {{ yb_days }}{{ t.p_days }}</b>{% if grid and grid.win_start %} · {{ clock(grid.win_start) }} → {{ clock(grid.win_end) }}{% endif %}{% if grid and grid.window_from_snapshot %} · <span class="badge snapshot">{{ t.qk_snap_win }}</span>{% endif %}
+  </div>
+  <div class="intro">{{ (t.yax_output_intro if axis=='output' else t.yax_yield_intro) | safe }}</div>
+
+  {% if err %}
+    <div class="err">⚠ {{ t.err_lead }}{{ source }}{{ t.err_tail }}：{{ err }}<br>
+      <span style="font-size:12px">{{ t.yld_unavail_hint | safe }}</span>
+    </div>
+  {% endif %}
+
+  
+  {% if not qk_ok %}
+  <div class="qk-unavail">⚠ <b>{{ t.qk_unavail_short }}</b>
+    {% if grid and grid.unavailable and grid.unavailable.startswith('snapshot') %}
+      — {{ t.qk_snap_unavail | safe }}
+    {% endif %}
+    <div style="color:var(--mut);margin-top:4px">reason: <code>{{ grid.unavailable }}</code></div>
+  </div>
+  {% endif %}
+
+  {% if qk_ok and grid.diag and grid.diag.degraded %}
+  <div class="qk-unavail" style="border-style:solid;border-color:var(--unk)">⚠ {{ t.qk_degraded }}</div>
+  {% endif %}
+
+  {% if qk_ok %}
+  <section class="anchor">
+    {% if axis=='output' %}
+      {% if anchor %}
+      <div>
+        <div class="big">{{ "{:,}".format(anchor.total) }}<span class="help" tabindex="0">?<span class="tip">{{ t.q_output }}</span></span></div>
+        <div class="lbl">{{ anchor.display }} · <span title="{{ anchor.cls }}">{{ anchor.cls }}</span></div>
+      </div>
+      {% set atgt = demo_target(anchor.cls, anchor.total) %}
+      {% if atgt %}{% set agap = anchor.total - atgt %}
+      <div>
+        <div class="lbl">{{ t.yc_target }} <span class="tag demo">{{ t.demo_tag }}</span><span class="help" tabindex="0">?<span class="tip">{{ t.q_target }}</span></span>
+          <b style="font-size:16px;color:var(--fg)">{{ "{:,}".format(atgt) }}</b></div>
+        <div class="lbl">{{ t.yc_gap }}<span class="help" tabindex="0">?<span class="tip">{{ t.q_gap }}</span></span>
+          <b class="{{ 'pos' if agap>=0 else 'neg' }}" style="font-size:16px"><span class="vsym" aria-hidden="true">{{ '▲' if agap>=0 else '▼' }}</span>{{ '%+d'|format(agap) }}</b>
+          <span style="color:var(--mut)">({{ '%+.0f'|format(agap / atgt * 100) }}%)</span></div>
+      </div>
+      {% endif %}
+      {% endif %}
+    {% else %}
+      
+      {% set ov = (kpis.get('OVERALL') or {}).get('pct') %}
+      <div>
+        {% if ov is not none %}
+        <div class="big">{{ '%.3f'|format(ov) }}%</div>
+        {% else %}
+        <div class="big" style="color:var(--mut)">—</div>
+        {% endif %}
+        <div class="lbl">{% if ov is not none %}<span class="vdot" style="background:{{ 'var(--good)' if ov>=90 else ('var(--warn)' if ov>=70 else 'var(--bad)') }}" aria-hidden="true"></span>{% endif %}{{ t.qk_hero_overall }} · {{ qk_line_scope_text }}</div>
+      </div>
+      <div style="flex:1">
+        <div class="kchips">
+          {% for key, lbl in kpi_chips %}
+          {% set kv = (kpis.get(key) or {}).get('pct') %}
+          <div class="kchip"><span class="k">{{ lbl }}</span>
+            <span class="v">{% if kv is not none %}{{ '%.3f'|format(kv) }}%{% else %}<span style="color:var(--mut)">—</span>{% endif %}</span></div>
+          {% endfor %}
+        </div>
+      </div>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  
+  {% if axis=='yield' and qk_ok and absorbed_total %}
+  <details class="absorb">
+    <summary>⚠ {{ t.qk_absorb_line | replace('{n}', absorbed_total) }}<span class="hint">{{ t.qk_absorb_hint }}</span></summary>
+    <div style="margin-top:6px;color:var(--mut)">{{ t.qk_absorb_where }}</div>
+    <table>
+      {% for a in absorption %}
+      <tr>
+        <td title="{{ a.station }}"><b>{{ a.station }}</b></td>
+        <td style="color:var(--mut)">{{ a.mcl }}</td>
+        <td>{% if a.bucket=='invisible_station' %}{{ qk_bucket_invisible_text }}
+            {% elif a.bucket=='sorting_cut' %}{{ t.qk_bucket_sorting }}
+            {% elif a.bucket=='non_b' %}{{ t.qk_bucket_nonb }}
+            {% else %}{{ a.bucket }}{% endif %}</td>
+        <td class="num" style="text-align:right"><b>{{ a.n_lots }}</b> {{ t.qk_lots }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </details>
+  {% endif %}
+
+  {% if qk_ok %}
+  <h2 class="sec">{{ (t.yax_output_t if axis=='output' else t.yax_yield_t) }} · {{ qk_sec_text }}</h2>
+
+  {% if axis=='output' %}
+  
+  <table class="sb">
+    <thead><tr>
+      <th class="ord">{{ t.qk_ord }}</th>
+      <th>{{ t.sb_c_station }}（{{ t['qk_prod_' ~ product] }}）</th>
+      <th>{{ t.yc_att }}<span class="help" tabindex="0">?<span class="tip">{{ t.q_target }}</span></span></th>
+      <th class="num">{{ t.qk_col_total }}<span class="help" tabindex="0">?<span class="tip">{{ t.q_output }}</span></span></th>
+      <th class="num">{{ t.yc_target }} <span class="tag demo">{{ t.demo_tag }}</span></th>
+      <th class="num">{{ t.yc_gap }}<span class="help" tabindex="0">?<span class="tip r">{{ t.q_gap }}</span></span></th>
+      <th></th>
+    </tr></thead>
+    <tbody>
+    {% for s in rows %}
+    <tr class="active-row {{ 'cal' if s.cls==cal_cls }}"
+        hx-get="/yield/station/{{ s.cls }}?source={{ source }}&axis={{ axis }}&lang={{ lang }}{{ win_qs }}"
+        hx-target="#detail" hx-swap="innerHTML" hx-indicator="this">
+      <td class="ord">{{ s.ord }}</td>
+      <td class="st"{% if s.display_pending %} title="{{ t.qk_disp_pending }}">{{ s.cls }}{% else %} title="{{ s.cls }}{% if s.display_source == 'derived' %} · {{ t.qk_disp_derived }}{% endif %}">{{ s.display }}{% endif %}</td>
+      <td>{% if s.att is not none %}
+        <span class="obar" title="{{ t.yc_att }} {{ '%.0f'|format(s.att) }}%"><i style="width:{{ '%.1f'|format([s.att, 100]|min) }}%"></i></span>
+        {% else %}<span class="muted">—</span>{% endif %}</td>
+      <td class="num hi">{% if s.total %}{{ "{:,}".format(s.total) }}{% else %}<span class="muted" title="{{ t.qk_nodata }}">—</span>{% endif %}</td>
+      <td class="num">{% if s.target %}{{ "{:,}".format(s.target) }}{% else %}—{% endif %}</td>
+      <td class="num {{ 'pos' if s.gap is not none and s.gap>=0 else ('neg' if s.gap is not none) }}">{% if s.gap is not none %}<span class="vsym" aria-hidden="true">{{ '▲' if s.gap>=0 else '▼' }}</span>{{ '%+d'|format(s.gap) }} <span style="font-weight:400;color:var(--mut)">({{ '%+.0f'|format(s.gap_pct) }}%)</span>{% else %}—{% endif %}</td>
+      <td class="num"><span class="cta">{{ t.yc_drill }}</span></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  {% else %}
+  
+  <table class="sb">
+    <thead><tr>
+      <th class="ord">{{ t.qk_ord }}</th>
+      <th>{{ t.sb_c_station }}（{{ t['qk_prod_' ~ product] }}）</th>
+      <th class="num">{{ t.qk_col_total }}</th>
+      <th class="num">{{ t.qk_col_fpy }}</th>
+      <th class="num">{{ t.qk_col_pass }}</th>
+      <th class="num">{{ t.qk_col_fail }}</th>
+      <th class="num">{{ t.qk_col_final }}</th>
+      <th></th>
+    </tr></thead>
+    <tbody>
+    {% for s in rows %}
+    {% set fy = s.final_yield_pct %}
+    <tr class="active-row {{ 'cal' if s.cls==cal_cls }}"
+        hx-get="/yield/station/{{ s.cls }}?source={{ source }}&axis={{ axis }}&lang={{ lang }}{{ win_qs }}"
+        hx-target="#detail" hx-swap="innerHTML" hx-indicator="this">
+      <td class="ord">{{ s.ord }}</td>
+      <td class="st"{% if s.display_pending %} title="{{ t.qk_disp_pending }}">{{ s.cls }}{% else %} title="{{ s.cls }}{% if s.display_source == 'derived' %} · {{ t.qk_disp_derived }}{% endif %}">{{ s.display }}{% endif %}</td>
+      <td class="num">{% if s.total %}{{ "{:,}".format(s.total) }}{% else %}<span class="muted" title="{{ t.qk_nodata }}">—</span>{% endif %}</td>
+      <td class="num">{{ ('%.3f%%'|format(s.fpy_pct)) if s.fpy_pct is not none else '—' }}</td>
+      <td class="num">{% if s.total %}{{ "{:,}".format(s['pass']) }}{% else %}—{% endif %}</td>
+      <td class="num" style="color:{{ 'var(--fg)' if s.fail else 'var(--mut)' }}">{% if s.total %}{% if s.fail %}<span class="vdot" style="background:var(--bad)" aria-hidden="true"></span>{% endif %}{{ "{:,}".format(s.fail) }}{% if s.absorbed_elsewhere %} <span class="muted" style="font-weight:400" title="{{ t.qk_absorb_hint }}">(+{{ s.absorbed_elsewhere }})</span>{% endif %}{% else %}—{% endif %}</td>
+      <td class="num hi" style="color:{{ 'var(--fg)' if fy is not none else 'var(--mut)' }}">{% if fy is not none %}<span class="vdot" style="background:{{ 'var(--good)' if fy>=99 else ('var(--warn)' if fy>=95 else 'var(--bad)') }}" aria-hidden="true"></span>{% endif %}{{ ('%.3f%%'|format(fy)) if fy is not none else '—' }}</td>
+      <td class="num"><span class="cta">{{ t.yc_drill }}</span></td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+
+  <div id="detail"><div class="hint">{{ t.y_drill_hint }}</div></div>
+  {% endif %}
+
+  
+  {% if axis=='yield' %}
+  <details class="qk-note" id="caliber-note">
+    <summary>{{ t.qk_footer_t }}</summary>
+    {{ qk_note_text | safe }}
+    <div class="qk-meta">
+      {% if grid and grid.win_start %}{{ t.p_window }} {{ grid.win_start }} → {{ grid.win_end }} · {% endif %}
+      {% if grid and grid.cap %}{{ t.qk_asof }} {{ grid.cap }} · {% endif %}
+      <code>{{ grid.schema if grid else '—' }}</code>
+    </div>
+  </details>
+  {% endif %}
+{% endblock %}

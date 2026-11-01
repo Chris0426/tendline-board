@@ -1,0 +1,8 @@
+
+
+{% if current_id %}
+<div class="board-endbar">
+  <button type="button" hx-post="/assistant/{{ current_id }}/close?lang={{ lang }}"
+          hx-target="#assistant-panel" hx-swap="innerHTML">{{ t.as_end }}</button>
+</div>
+{% endif %}

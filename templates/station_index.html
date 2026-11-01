@@ -1,0 +1,98 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!doctype html>
+<html lang="{{ 'zh-Hant' if lang=='zh' else 'en' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tendline Board — {{ t.st_ix_title }}</title>
+<style>
+  :root{ color-scheme: light dark;
+    --bg:#f4f6fb; --panel:#ffffff; --panel2:#eef2f8; --line:#d8e0ec; --track:#e6ebf3;
+    --fg:#1b2433; --mut:#5c6b82; --hover:#b9c6db; --unk:#b07d12; --good:#1f9d57;
+    --warn:#b07d12; --bad:#c4504f; }
+  @media (prefers-color-scheme: dark){ :root{
+    --bg:#0b1220; --panel:#141d2e; --panel2:#1b2740; --line:#2a3852; --track:#0e1626;
+    --fg:#e6edf6; --mut:#8aa0bd; --hover:#3a5c86; --unk:#cbb26b; --good:#36c47f;
+    --warn:#cbb26b; --bad:#e0726f; } }
+  *{ box-sizing:border-box }
+  body{ margin:0; background:var(--bg); color:var(--fg);
+        font:14px/1.5 "Segoe UI",system-ui,"Microsoft JhengHei",sans-serif }
+  a{ color:inherit }
+  
+
+  main{ max-width:1080px; margin:0 auto; padding:20px 22px 40px }
+  .sx-title{ font-size:22px; font-weight:800; letter-spacing:.3px; margin:2px 0 2px }
+  .sx-spans{ margin:0 0 14px }
+  .sx-span{ color:var(--mut); font-size:12.5px; margin:0 }
+  .sx-guide{ color:var(--mut); font-size:12.5px; margin:0 }
+   
+  .sxt{ width:100%; border-collapse:collapse; font-size:13px; background:var(--panel);
+        border:1px solid var(--line); border-radius:11px; overflow:hidden }
+  .sxt thead th{ color:var(--mut); font-weight:600; text-align:left; white-space:nowrap;
+                 padding:8px 12px; border-bottom:1px solid var(--line); background:var(--panel2) }
+  .sxt th.n, .sxt td.n{ text-align:right; font-variant-numeric:tabular-nums }
+  .sxt td{ padding:6px 12px; border-bottom:1px dashed var(--line); white-space:nowrap }
+  .sxt tbody tr:last-child td{ border-bottom:none }
+  .sxt tbody tr:hover td{ background:var(--panel2) }
+  .sxt td.nm a{ text-decoration:none } .sxt td.nm a:hover{ text-decoration:underline }
+  
+
+  .sxt td.n .famlbl{ font-style:normal; font-weight:800; font-size:10px; letter-spacing:.4px;
+                     color:var(--mut) }
+  .why{ color:var(--mut); opacity:.9; font-style:italic; padding:14px 2px; font-size:13px }
+</style>
+</head>
+<body>
+{% import '_fam_cell.html' as fam %}
+{% set nav_active = '' %}
+{% include '_nav.html' %}
+<main>
+  <div class="sx-title" title="{{ t.st_ix_tip }}">{{ t.st_ix_title }}</div>
+  <div class="sx-guide">{{ t.st_ix_guide }}</div>
+  
+
+
+  {% if pane.span or pane.out_span %}
+  <div class="sx-spans">
+    {% if pane.span %}<div class="sx-span">{{ pane.span }}</div>{% endif %}
+    {% if pane.out_span %}<div class="sx-span">{{ pane.out_span }}</div>{% endif %}
+  </div>
+  {% endif %}
+  {% if not pane.stations %}
+  
+  <div class="why">{{ pane.why or t.ld_pn_none }}</div>
+  {% else %}
+  <table class="sxt"><thead><tr>
+    <th>{{ t.ld_pn_station }}</th>
+    <th class="n" title="{{ t.ld_pn_cap_tip }}">{{ t.ld_pn_a }}</th>
+    <th class="n" title="{{ t.ld_pn_cap_tip }}">{{ t.ld_pn_u }}</th>
+    <th class="n" title="{{ t.ld_pn_cap_tip }}">{{ t.ld_pn_q }}</th>
+    <th class="n" title="{{ t.ld_pn_cap_tip }}">{{ t.ld_pn_oee }}</th>
+    <th class="n" title="{% if pane.yday %}{{ t.ld_pn_yout_tip.format(d=pane.yday) }}{% endif %}">{{ t.ld_pn_yout }}</th>
+    <th class="n" title="{{ t.ld_pn_out_tip }}">{{ t.ld_pn_mout }}</th></tr></thead><tbody>
+    {% for s in pane.stations %}
+    <tr><td class="nm"><a href="/station/{{ s.cls }}?source={{ source }}&lang={{ lang }}">{{ pretty_station(s.cls) }}</a></td>
+      <td class="n">{% if s.a is not none %}{{ '%.1f'|format(s.a) }}%{% else %}{{ t.ld_dash }}{% endif %}</td>
+      <td class="n">{% if s.u is not none %}{{ '%.1f'|format(s.u) }}%{% else %}{{ t.ld_dash }}{% endif %}</td>
+      <td class="n">{% if s.q is not none %}{{ '%.1f'|format(s.q) }}%{% else %}{{ t.ld_dash }}{% endif %}</td>
+      <td class="n">{% if s.oee is not none %}{{ '%.1f'|format(s.oee) }}%{% else %}{{ t.ld_dash }}{% endif %}</td>
+      <td class="n">{{ fam.fam_cell(s.y_out, s.y_fam, pane.family_meta.names, t.ld_dash, t.ld_pn_fam_tip) }}</td>
+      <td class="n">{{ fam.fam_cell(s.m_out, s.m_fam, pane.family_meta.names, t.ld_dash, t.ld_pn_fam_tip) }}</td></tr>
+    {% endfor %}
+  </tbody></table>
+  {% endif %}
+</main>
+</body>
+</html>

@@ -1,0 +1,127 @@
+
+
+
+{% if err %}
+  <div class="ys"><div class="ys-head"><span class="eid">{{ pretty_station(cls) }}</span>
+    <span class="desc">{{ err }}</span></div></div>
+{% elif ys and ys.cls_mismatch %}
+  <div class="ys"><div class="ys-head"><span class="eid">{{ pretty_station(cls) }}</span></div>
+    <div class="ys-note">{{ t.ys_snap_mismatch | safe }}</div></div>
+{% elif not rec %}
+  
+  <div class="ys"><div class="ys-head"><span class="eid"{% if qrow and qrow.display_source == 'derived' %} title="{{ t.qk_disp_derived }}"{% endif %}>{{ qrow.display if qrow else pretty_station(cls) }}</span>
+    <span class="desc">{{ cls }}</span></div>
+    {% if qrow %}
+    <div class="ys-kv">{{ t.qk_col_total }} <b>{{ "{:,}".format(qrow.total) }}</b> ·
+      {{ t.qk_col_final }} <b>{{ ('%.3f%%'|format(qrow.final_yield_pct)) if qrow.final_yield_pct is not none else '—' }}</b> ·
+      {{ t.qk_col_fpy }} <b>{{ ('%.3f%%'|format(qrow.fpy_pct)) if qrow.fpy_pct is not none else '—' }}</b></div>
+    <div style="color:var(--mut);font-size:11.5px;margin-top:4px">{{ t.qk_caliber_short }} ·
+      {% if qk_win_start %}{{ clock(qk_win_start) }} → {{ clock(qk_win_end) }}{% else %}—{% endif %}</div>
+    {% endif %}
+    <div class="ys-note">{{ t.ys_not_found }}</div></div>
+{% else %}
+<style>
+  .ys{ background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:18px 20px }
+  .ys-head{ display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:6px }
+  .ys-head .eid{ font-size:17px; font-weight:700 }
+  .ys-head .desc{ color:var(--mut); font-size:12.5px }
+  .ys-raw{ font-size:10.5px; font-weight:700; letter-spacing:.5px; color:#fff; background:var(--unk);
+        border-radius:10px; padding:2px 9px }
+  .ys-fleet{ margin-left:auto; color:var(--mut); font-size:12px }
+  .ys-grid{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:12px 0 6px }
+  @media (max-width:720px){ .ys-grid{ grid-template-columns:1fr } }
+  .ys-card{ border:1px solid var(--line); border-radius:9px; padding:12px 14px; background:var(--panel2) }
+  .ys-card h4{ margin:0 0 8px; font-size:11px; color:var(--mut); font-weight:700;
+        text-transform:uppercase; letter-spacing:.5px }
+  .ys-big{ font-size:30px; font-weight:800; line-height:1; font-variant-numeric:tabular-nums }
+  .ys-kv{ font-size:12.5px; margin-top:7px; color:var(--fg); font-variant-numeric:tabular-nums }
+  .ys-kv b{ font-variant-numeric:tabular-nums }
+  .ys-warn{ color:var(--unk); font-size:11.5px; margin-top:6px }
+  .chip{ display:inline-block; font-size:11px; padding:1px 8px; margin:3px 5px 0 0; border-radius:9px;
+        background:var(--panel); border:1px solid var(--line); color:var(--fg); font-variant-numeric:tabular-nums }
+  table.ysm{ width:100%; border-collapse:collapse; font-size:12.5px; margin-top:4px }
+  table.ysm th,table.ysm td{ padding:6px 10px; border-bottom:1px solid var(--line); text-align:left }
+  table.ysm th{ color:var(--mut); font-weight:600; font-size:10.5px; text-transform:uppercase; letter-spacing:.4px }
+  table.ysm td.num,table.ysm th.num{ text-align:right; font-variant-numeric:tabular-nums }
+  table.ysm tr:last-child td{ border-bottom:none }
+  .ys-note{ color:var(--mut); font-size:11.5px; margin-top:9px }
+</style>
+<div class="ys">
+  <div class="ys-head">
+    <span class="eid"{% if qrow and qrow.display_source == 'derived' %} title="{{ t.qk_disp_derived }}"{% endif %}>{{ qrow.display if qrow else pretty_station(rec.cls) }}</span>
+    <span class="desc">{{ rec.cls }}</span>
+    {% if rec.fleet_size is not none %}<span class="ys-fleet">{{ rec.fleet_size }} {{ t.ys_fleet }}</span>{% endif %}
+  </div>
+
+  
+
+
+  <div class="ys-winrow" style="color:var(--mut);font-size:11.5px;margin:2px 0 8px">
+    {{ t.qk_col_total }}/{{ t.qk_col_final }}（{{ t.qk_caliber_short }}）·
+    {% if qk_win_start %}{{ clock(qk_win_start) }} → {{ clock(qk_win_end) }}{% else %}—{% endif %}
+  </div>
+  <div class="ys-grid">
+    
+    <div class="ys-card">
+      <h4>{{ t.qk_col_total }}</h4>
+      {% if qrow %}
+      <div class="ys-big">{{ "{:,}".format(qrow.total) }}</div>
+      <div class="ys-kv">{{ t.qk_col_pass }} <b>{{ "{:,}".format(qrow['pass']) }}</b> ·
+        {{ t.qk_col_fail }} <b>{{ "{:,}".format(qrow.fail) }}</b></div>
+      {% else %}
+      <div class="ys-big" style="color:var(--mut)">—</div>
+      <div class="ys-kv">{{ t.qk_unavail_short }}</div>
+      {% endif %}
+    </div>
+    
+    <div class="ys-card">
+      <h4>{{ t.qk_col_final }}</h4>
+      {% if qrow and qrow.final_yield_pct is not none %}
+      <div class="ys-big" style="color:{{ 'var(--good,#1f9d57)' if qrow.final_yield_pct>=99 else ('var(--warn,#b07d12)' if qrow.final_yield_pct>=95 else 'var(--bad,#c4504f)') }}">{{ '%.3f'|format(qrow.final_yield_pct) }}%</div>
+      {% else %}
+      <div class="ys-big" style="color:var(--mut)">—</div>
+      {% endif %}
+      <div class="ys-kv">{{ t.qk_col_fpy }}
+        <b>{{ ('%.3f%%'|format(qrow.fpy_pct)) if (qrow and qrow.fpy_pct is not none) else '—' }}</b></div>
+      {% if qrow and qrow.absorbed_elsewhere %}
+      <div class="ys-warn">⚠ +{{ qrow.absorbed_elsewhere }} {{ t.qk_lots }} · {{ t.qk_absorb_hint }}</div>
+      {% endif %}
+    </div>
+  </div>
+
+  
+  
+  <h4 style="font-size:11px; color:var(--mut); font-weight:700; text-transform:uppercase; letter-spacing:.5px; margin:14px 0 4px">{{ t.ys_machines_h }}
+    <span class="ys-raw" title="{{ rec.caliber }}">{{ t.raw_tag }}</span>
+    <span style="font-weight:600;text-transform:none;letter-spacing:0">· {{ t.p_window }} {{ y_days }}{{ t.p_days }}</span></h4>
+  <div class="ys-kv" style="color:var(--mut)">{{ t.ys_good }} <b>{{ "{:,}".format(rec.good_units) }}</b> ·
+    {{ t.segs }} {{ "{:,}".format(rec.n_seg) }} ·
+    {{ t.ys_fail_raw }} <b>{{ ('%.1f%%'|format(rec.fail_pct_raw)) if rec.fail_pct_raw is not none else '—' }}</b></div>
+  {% if rec.machines %}
+  <table class="ysm">
+    <thead><tr>
+      <th>{{ t.ys_m_eid }}</th><th></th>
+      <th class="num">{{ t.ys_m_output }}</th><th class="num">{{ t.ys_m_good }}</th>
+      <th class="num">{{ t.ys_m_seg }}</th><th class="num">{{ t.ys_m_fail }}</th>
+    </tr></thead>
+    <tbody>
+    {% for m in rec.machines | sort(attribute='output_units', reverse=true) %}
+    <tr>
+      <td style="font-weight:600">{{ m.eid }}</td>
+      <td class="num" style="color:var(--mut)">{{ m.desc or '—' }}</td>
+      <td class="num">{{ "{:,}".format(m.output_units) }}</td>
+      <td class="num">{{ "{:,}".format(m.good_units) }}</td>
+      <td class="num">{{ "{:,}".format(m.n_seg) }}</td>
+      <td class="num" style="color:{{ 'var(--bad,#c4504f)' if (m.fail_pct_raw or 0)>=10 else ('var(--warn,#b07d12)' if (m.fail_pct_raw or 0)>=3 else 'var(--mut)') }}">{{ ('%.1f%%'|format(m.fail_pct_raw)) if m.fail_pct_raw is not none else '—' }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% set summ = rec.machines | sum(attribute='output_units') %}
+  <div class="ys-note">{{ t.ys_nosum_pre }} <b>{{ "{:,}".format(rec.output_units) }}</b> {{ t.ys_nosum_mid }}
+    <b>{{ "{:,}".format(summ) }}</b> {{ t.ys_nosum_post }}.</div>
+  {% else %}
+  <div class="ys-note">{{ t.ys_no_machines }}</div>
+  {% endif %}
+</div>
+{% endif %}

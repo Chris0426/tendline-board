@@ -1,0 +1,111 @@
+{#
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+-#}
+{%- set SU = row.seat_unit -%}
+{%- set SEW = (row.erw.stop_h if row.erw else row.total_stop_h) or 0 %}
+  <tr class="eq-seatrow" data-seat="1" data-eid="{{ row.eid }}" style="opacity:.85">
+    <td class="eq-mname"><span style="color:var(--line)">└ </span>{{ row.name }} · {% if SU is string and SU.startswith('nest:') %}{{ t.eq_seat_row_nest.format(n=SU[5:]) }}{% else %}{{ t.eq_seat_row_child.format(id=SU) }}{% endif %}
+      <small>{{ row.eid }}</small></td>
+    
+
+    {% for d in cols %}
+    {% set c = row.cells.get(d.date_str) %}
+    {% set rd = (row.erw.days.get(d.date_str) if row.erw else None) %}
+    {% set cin = rd is not none and rd.stop_h >= 0.05 %}
+    <td class="eq-cellwrap{{ ' eq-off' if d.off }}">
+      {% if row.erw and rd is none and c and c.stop_h %}
+        
+
+
+
+
+        <a class="eq-cell eq-rwna" data-cellkey="{{ row.eid }}|{{ d.date_str }}"
+           title="{{ t.eq_cell_uncov.format(h='%.1f'|format(c.stop_h)) }}"
+           hx-get="/equipment/cell?eid={{ row.eid }}&date={{ d.date_str }}&source={{ source }}&days={{ days }}&stop_min={{ stop_min }}&lang={{ lang }}{% if tag_param %}&tag={{ tag_param }}{% endif %}"
+           hx-target="#drill-{{ row.eid }}" hx-swap="innerHTML"
+           hx-indicator="#drill-{{ row.eid }}">—</a>
+      {% elif cin or (rd is none and c and c.stop_h) %}
+        {% set mix = (rd.by_state if cin else c.by_state)|dictsort(by='value', reverse=true) %}
+        {% set upt = (c.by_uptime|dictsort(by='value', reverse=true)) if (c and c.by_uptime) else [] %}
+        {% set tot2 = (rd.by_state.values()|sum if cin else c.by_state.values()|sum) + (c.by_uptime.values()|sum if (c and c.by_uptime) else 0) %}
+        <a class="eq-cell" data-cellkey="{{ row.eid }}|{{ d.date_str }}"
+           style="background-color:{{ STC.get(mix[0][0], '#9ca3af') }};color:{{ STINK.get(mix[0][0], '#ffffff') }}"
+           title="{% for st, h in mix %}{{ SNAME.get(st, st) }} {{ '%.1f'|format(h) }}h{% if not loop.last %} · {% endif %}{% endfor %}{% for st, h in upt %} · {{ SNAME.get(st, st) }} {{ '%.1f'|format(h) }}h{{ t.eq_upt_sfx }}{% endfor %}{% if c and c.wo_nos %} · WO {{ c.wo_nos|join(', ') }}{% endif %}"
+           hx-get="/equipment/cell?eid={{ row.eid }}&date={{ d.date_str }}&source={{ source }}&days={{ days }}&stop_min={{ stop_min }}&lang={{ lang }}{% if tag_param %}&tag={{ tag_param }}{% endif %}"
+           hx-target="#drill-{{ row.eid }}" hx-swap="innerHTML"
+           hx-indicator="#drill-{{ row.eid }}">
+          {{ '%.1f'|format(rd.stop_h if cin else c.stop_h) }}{% if c and c.ongoing %}<span class="og">▲</span>{% endif %}
+          {% if cin and rd.equiv_ph %}<span class="cequiv" title="{{ t.eq_equiv_tip }}{% if row.get('rate_kind') == 'seat' %}{{ t.eq_rate_seat_tip }}{% elif row.get('rate_kind') == 'mh_blend' %}{{ t.eq_rate_mh_tip }}{% endif %}{{ t.eq_seat_row_equiv_tip }}">≈{{ rd.equiv_ph }}PH</span>{% endif %}
+          {% if mix|length > 1 or upt %}<span class="eq-mix">{% for st, h in mix %}<span style="flex:{{ '%.4f'|format(h / tot2) }};background-color:{{ STC.get(st, '#9ca3af') }}"></span>{% endfor %}{% for st, h in upt %}<span class="mix-stripe" style="flex:{{ '%.4f'|format(h / tot2) }};background-color:{{ STC.get(st, '#9ca3af') }}"></span>{% endfor %}</span>{% endif %}
+        </a>
+      {% elif c and c.by_uptime %}
+        
+
+        {% set upt = c.by_uptime|dictsort(by='value', reverse=true) %}
+        {% set utot = c.by_uptime.values()|sum %}
+        <a class="eq-cell eq-uptonly" data-cellkey="{{ row.eid }}|{{ d.date_str }}"
+           title="{% for st, h in upt %}{{ SNAME.get(st, st) }} {{ '%.1f'|format(h) }}h{{ t.eq_upt_sfx }}{% if not loop.last %} · {% endif %}{% endfor %}{% if c.wo_nos %} · WO {{ c.wo_nos|join(', ') }}{% endif %}"
+           hx-get="/equipment/cell?eid={{ row.eid }}&date={{ d.date_str }}&source={{ source }}&days={{ days }}&stop_min={{ stop_min }}&lang={{ lang }}{% if tag_param %}&tag={{ tag_param }}{% endif %}"
+           hx-target="#drill-{{ row.eid }}" hx-swap="innerHTML"
+           hx-indicator="#drill-{{ row.eid }}">
+          ·
+          <span class="eq-mix">{% for st, h in upt %}<span class="mix-stripe" style="flex:{{ '%.4f'|format(h / utot) }};background-color:{{ STC.get(st, '#9ca3af') }}"></span>{% endfor %}</span>
+        </a>
+      {% else %}
+        <span class="eq-blank">·</span>
+      {% endif %}
+    </td>
+    {% endfor %}
+    
+
+
+    <td class="eq-now">
+      {% if row.now and row.now.bucket == 'down' %}
+        <span class="vchip"><span class="d" style="background:var(--bad)"></span>{{ t.eq_now_down }}{% if row.now.state %}<small> · {{ SNAME.get(row.now.state, row.now.state) }}{% if row.now.wo_no %} · WO {{ row.now.wo_no }}{% endif %}</small>{% endif %}</span>
+      {% elif row.now and row.now.bucket == 'dormant' %}
+        <span class="vchip" style="color:var(--st-dormant)"
+              title="{{ t.eq_now_dormant_tip.format(d=(row.dormant or {}).get('since') or '?', r='—') }}"><span class="d" style="background:transparent;border:1.5px solid var(--st-dormant)"></span>{{ t.eq_now_dormant }}<small> · {{ (row.dormant or {}).get('since') or '?' }}</small></span>
+      {% else %}
+        <span class="eq-blank">·</span>
+      {% endif %}
+      
+
+
+
+
+      {% if row.now and row.now.mes_age_h is not none %}<small class="eq-now-age" title="{{ t.eq_now_age_tip }}">{% if row.now.mes_age_h >= 48 %}{{ t.eq_now_q_age_d.format(d='%.1f'|format(row.now.mes_age_h / 24)) }}{% else %}{{ t.eq_now_q_age.format(h='%.1f'|format(row.now.mes_age_h)) }}{% endif %}</small>{% endif %}
+    </td>
+    
+    <td class="eq-rowsum muted" title="{{ t.eq_seat_row_na_tip }}"><span class="eq-blank">—</span>
+      {% if SEW >= 0.05 %}<div class="eq-equiv" title="{{ t.eq_equiv_tip }}{% if row.get('rate_kind') == 'seat' %}{{ t.eq_rate_seat_tip }}{% elif row.get('rate_kind') == 'mh_blend' %}{{ t.eq_rate_mh_tip }}{% endif %}{{ t.eq_seat_row_equiv_tip }}">{{ '%.1f'|format(SEW) }}h{% if row.equiv_ph %} <span class="ph">≈{{ row.equiv_ph }}PH</span>{% endif %}</div>{% endif %}
+    </td>
+  </tr>
+  <tr class="eq-drillrow"><td colspan="{{ NCOL }}"><div class="eq-drillslot" id="drill-{{ row.eid }}"></div></td></tr>

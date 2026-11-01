@@ -1,0 +1,81 @@
+
+
+
+
+
+{% if degraded %}
+  <div class="deg">
+    {% if degraded == 'snapshot' %}{{ t.dt_snapshot_na }}
+    {% elif degraded == 'empty' or degraded == 'no_ledger' %}{{ t.dt_empty }}
+    {% else %}{{ t.dt_empty }} <span class="mut">({{ degraded }})</span>{% endif %}
+  </div>
+{% elif not sel %}
+  <div class="deg">{{ t.dt_none_selected }}</div>
+{% else %}
+{% set k = model.kpi %}
+<div class="kpis">
+  <div class="kpi" title="{{ t.dt_kpi_total_tip }}"><div class="k">{{ t.dt_kpi_total }}</div>
+    <div class="v">{{ hf(k.total_h) }}<small>h</small></div></div>
+  <div class="kpi" title="{{ t.dt_kpi_wo_tip }}"><div class="k">{{ t.dt_kpi_wo }}</div>
+    <div class="v">{{ k.n_wo }}</div></div>
+  <div class="kpi" title="{{ t.dt_kpi_eids_tip }}"><div class="k">{{ t.dt_kpi_eids }}</div>
+    <div class="v">{{ k.n_eids }}</div></div>
+  <div class="kpi" title="{{ kpi_avg_tip }}"><div class="k">{{ t.dt_kpi_avg }}</div>
+    <div class="v" data-roster="{{ k.roster_n }}">{{ hf(k.avg_per_machine_h) }}<small>h</small></div></div>
+  <div class="kpi" title="{{ t.dt_kpi_top5_tip }}"><div class="k">{{ t.dt_kpi_top5 }}</div>
+    <div class="v">{{ '—' if k.top5_share is none else ('%.0f' % k.top5_share) }}<small>%</small></div></div>
+  <div class="kpi" title="{{ kpi_delta_tip }}"><div class="k">{{ t.dt_kpi_delta }}</div>
+    <div class="v" data-delta="{{ 'cross' if k.delta_reason == 'cross_axis' else ('none' if not k.delta else 'value') }}">{{ kpi_delta_txt }}</div></div>
+</div>
+{% if k.mixed_axes %}<div class="mixed">{{ t.dt_mixed }}</div>{% endif %}
+
+<div class="card">
+<div class="chart">
+<svg id="dt-chart" viewBox="0 0 {{ geo.W }} {{ geo.H }}" role="img" aria-label="{{ t.dt_title }}">
+  {% for tk in geo.ticks %}
+  <line class="grid" x1="{{ geo.PADL }}" x2="{{ geo.PADL + geo.xw }}" y1="{{ tk.y }}" y2="{{ tk.y }}"></line>
+  <text class="axl" x="{{ geo.PADL - 6 }}" y="{{ tk.y + 3 }}" text-anchor="end">{{ '%.0f' % tk.v }}</text>
+  {% endfor %}
+  <text class="axl" x="{{ geo.PADL - 6 }}" y="{{ geo.PADT - 8 }}" text-anchor="end">h</text>
+  {% for b in geo.bars %}
+    {% for s in b.segs %}
+    <g class="sg" tabindex="0" role="button" aria-label="{{ s.tip }}"
+       hx-get="{{ s.panel_url }}" hx-target="#dt-panel" hx-swap="innerHTML" hx-trigger="click, keyup[key=='Enter']"
+       data-area="{{ s.area }}" data-month="{{ b.month }}">
+      <title>{{ s.tip }}</title>
+      <rect class="a-{{ s.area }}" x="{{ b.x }}" y="{{ s.y }}" width="{{ b.w }}" height="{{ s.h }}"></rect>
+      {% if s.h >= 14 %}<text class="sv t-{{ s.area }}" x="{{ b.cx }}" y="{{ s.y + s.h / 2 + 3 }}" text-anchor="middle">{{ '%.0f' % s.val }}</text>{% endif %}
+    </g>
+    {% endfor %}
+    {% if b.axis == '24h' and b.segs %}<g class="h24" data-h24="1" data-month="{{ b.month }}"></g>{% endif %}
+    <text class="xl" x="{{ b.cx }}" y="{{ geo.base_y + 15 }}" text-anchor="middle">{{ b.label }}</text>
+    {% if emaint_months.get(b.month) and typ == 'pm' %}<text class="xa" x="{{ b.cx }}" y="{{ geo.base_y + 29 }}" text-anchor="middle">{{ t.dt_emaint_month }}</text>{% endif %}
+  {% endfor %}
+  {% for x in geo.seps %}
+  <line class="sep" data-axis-sep="1" x1="{{ x }}" x2="{{ x }}" y1="{{ geo.PADT - 6 }}" y2="{{ geo.base_y + 34 }}"></line>
+  {% endfor %}
+  {% if geo.seps and sep_note %}<text class="sepn" x="{{ geo.PADL + geo.xw }}" y="{{ geo.H - 4 }}" text-anchor="end">{{ sep_note }}</text>{% endif %}
+</svg>
+</div>
+<div class="lgd"><span>{{ t.dt_legend }}</span>
+  {% for a, lab in areas %}<span><i class="a-{{ a }}"></i>{{ lab }}</span>{% endfor %}
+</div>
+<details class="twin"><summary>{{ t.dt_table_view }}</summary>
+<div class="tw"><table>
+  <thead><tr><th class="l">{{ t.dt_col_month }}</th>{% for a, lab in areas %}<th>{{ lab }} ({{ t.dt_h }})</th>{% endfor %}<th>Σ</th><th class="l">{{ t.dt_col_axis }}</th></tr></thead>
+  <tbody>
+  {% for x in model.months %}
+    <tr><td class="l">{{ x.month }}</td>{% for a, lab in areas %}<td class="num">{{ hf(x.areas[a]) }}</td>{% endfor %}
+      <td class="num">{{ hf(x.total_h) }}</td><td class="l">{{ t.dt_axis_24h if x.axis == '24h' else t.dt_axis_rw }}</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+</details>
+</div>
+
+<div class="card" id="dt-panel"><div class="hint">{{ t.dt_panel_hint }}</div></div>
+
+<div class="foot">
+  {% for line in footer_lines %}<div>{{ line }}</div>{% endfor %}
+</div>
+{% endif %}

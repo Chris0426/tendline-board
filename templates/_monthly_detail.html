@@ -1,0 +1,99 @@
+
+
+
+
+
+{% set peak = (days[0].peak if days else 0) %}
+<div style="display:flex; flex-wrap:wrap; gap:6px 14px; align-items:baseline">
+  <h3 style="margin:2px 0">{{ row.display }} · {{ month }}</h3>
+  <span class="mut" style="font-size:11.5px">{{ row.cls }}</span>
+  {% if row.rate_ph_per_h is not none %}
+  <span class="mut" style="font-size:11.5px">{{ t.mr_rate_tip.format(r=('%.2f'|format(row.rate_ph_per_h)), n=row.rate_days) }}</span>
+  {% else %}
+  <span class="mut" style="font-size:11.5px">{{ t.mr_norate }}</span>
+  {% endif %}
+</div>
+
+<h3>{{ t.mr_detail_days }}</h3>
+{% if not days %}
+  <div class="mut">{{ t.mr_empty }}</div>
+{% else %}
+<div class="strip">
+  {% for c in days %}
+  <div class="col" title="{{ c.day }}{% if not c.present %} · {{ t.mr_d_noday }}{% else %} · {{ t.mr_d_total }} {{ ph(c.total) }} · {{ t.mr_legend_down }} {{ ph(c.equiv) }} · {{ t.mr_legend_yield }} {{ ph(c.fail) }} · {{ t.mr_legend_rework }} {{ ph(c.rework) }}{% if c.total is none %} · {{ t.mr_d_unmeas }}{% endif %}{% endif %}">
+    {% if not c.present %}<em></em>
+    {% elif c.total is none %}<b class="u"></b>
+
+    {% elif not c.total %}<b class="z"></b>
+
+    {% else %}
+      {% if c.rework %}<b class="r" style="height:{{ '%.1f'|format(c.rework / peak * 84 if peak else 0) }}px"></b>{% endif %}
+      {% if c.fail %}<b class="y" style="height:{{ '%.1f'|format(c.fail / peak * 84 if peak else 0) }}px"></b>{% endif %}
+      {% if c.equiv %}<b class="d" style="height:{{ '%.1f'|format(c.equiv / peak * 84 if peak else 0) }}px"></b>{% endif %}
+    {% endif %}
+  </div>
+  {% endfor %}
+</div>
+<div class="xax">
+  {% for c in days %}<span>{% if loop.index0 % 5 == 0 %}{{ c.day[8:] }}{% endif %}</span>{% endfor %}
+</div>
+<div class="lgd">
+  <span><i class="d"></i>{{ t.mr_legend_down }}</span>
+  <span><i class="y"></i>{{ t.mr_legend_yield }}</span>
+  <span><i class="r"></i>{{ t.mr_legend_rework }}</span>
+</div>
+{% endif %}
+
+<h3>{{ t.mr_detail_states }}</h3>
+{% if row.down_by_state and row.down_h %}
+<div class="tw">
+  <table>
+    <thead><tr><th class="cls">{{ t.mr_d_state }}</th><th class="num">{{ t.mr_d_hours }}</th>
+      <th class="num">{{ t.mr_d_share }}</th></tr></thead>
+    <tbody>
+    {% for k, v in row.down_by_state.items() %}
+      <tr>
+        <td class="cls"><i style="display:inline-block; width:11px; height:8px; border-radius:2px;
+              background:{{ state_color(k) }}; margin-right:6px"></i>{{ state_label(k) }}</td>
+        <td class="num">{{ hf(v) }}</td>
+        <td class="num mut">{{ pctf(100 * v / row.down_h, 1) if v is not none else '—' }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="mut">{{ t.mr_d_nostates }}</div>
+{% endif %}
+
+<h3>{{ t.mr_detail_recent }}</h3>
+<div class="tw">
+  <table>
+    <thead><tr>
+      <th class="cls">{{ t.mr_d_month }}</th>
+      <th class="num">{{ t.mr_col_down_h }}</th>
+      <th class="num">{{ t.mr_col_equiv }}</th>
+      <th class="num">{{ t.mr_col_yield }}</th>
+      <th class="num">{{ t.mr_col_rework }}</th>
+      <th class="num">{{ t.mr_d_total }}</th>
+    </tr></thead>
+    <tbody>
+    {% for m in recent %}
+      <tr>
+        
+        <td class="cls">{{ m.month }}{% if m.partial %} <span class="cov">{{ t.mr_partial }}</span>{% endif %}{% if m.clipped %} <span class="cov zero">{{ t.mr_d_clipped }}</span>{% endif %}</td>
+        {% if m.row %}
+        <td class="num">{{ hf(m.row.down_h) }}</td>
+        <td class="num">{{ ph(m.row.down_equiv_ph) }}</td>
+        <td class="num">{{ ph(m.row.qlik_fail) }}</td>
+        <td class="num">{{ ph(m.row.rework_n) }}</td>
+        <td class="num">{{ ph(m.row.loss_total_ph) }}</td>
+        {% else %}
+        <td class="num mut">—</td><td class="num mut">—</td><td class="num mut">—</td>
+        <td class="num mut">—</td><td class="num mut">—</td>
+        {% endif %}
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>

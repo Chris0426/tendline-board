@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="{{ 'zh-Hant' if lang=='zh' else 'en' }}">
+
+
+
+
+
+
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tendline Board — {{ t.rw_title }}</title>
+<style>
+  :root{
+    color-scheme: light dark;
+    --bg:#f4f6fb; --panel:#ffffff; --panel2:#eef2f8; --line:#d8e0ec;
+    --fg:#1b2433; --mut:#5c6b82; --hover:#b9c6db;
+    --good:#1e7d4f; --warn:#b07d12; --bad:#b3423a;
+    --rw-seq:176,108,37;                  
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b1220; --panel:#141d2e; --panel2:#1b2740; --line:#2a3852;
+      --fg:#e6edf6; --mut:#8aa0bd; --hover:#3a5c86;
+      --good:#36c47f; --warn:#cbb26b; --bad:#e0726f;
+      --rw-seq:230,170,90;
+    }
+  }
+  *{ box-sizing:border-box }
+  body{ margin:0; background:var(--bg); color:var(--fg);
+        font:14px/1.5 "Segoe UI",system-ui,"Microsoft JhengHei",sans-serif }
+  main{ max-width:1240px; margin:0 auto; padding:18px 22px 40px }
+  h1{ font-size:19px; margin:6px 0 2px }
+  .sub{ color:var(--mut); font-size:12.5px }
+  .demotag{ font-size:10px; font-weight:800; letter-spacing:1px; color:var(--warn);
+            border:1px solid var(--warn); border-radius:8px; padding:1px 7px; margin-left:8px }
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:12px;
+         padding:12px 16px; margin:14px 0; overflow-x:auto }
+  table{ border-collapse:collapse; font-size:12.5px; width:100% }
+  th,td{ border-bottom:1px solid var(--line); padding:4px 10px; text-align:right }
+  th{ background:var(--panel2); font-weight:600; position:sticky; top:0 }
+  td.cls, th.cls{ text-align:left; white-space:nowrap }
+  td.cls small{ color:var(--mut) }
+  .mut{ color:var(--mut) }
+  .bar{ display:inline-block; height:8px; border-radius:4px; vertical-align:middle;
+        background:rgb(var(--rw-seq)); margin-right:6px }
+  .note{ background:var(--panel); border:1px solid var(--line); border-radius:10px;
+         padding:8px 14px; margin:10px 0; font-size:12.5px; color:var(--mut) }
+</style>
+</head>
+<body>
+{% set nav_active = 'rework' %}
+{% include "_nav.html" %}
+<main>
+  <h1>{{ t.rw_title }}{% if source == 'demo' %}<span class="demotag">DEMO</span>{% endif %}</h1>
+  <div class="sub">{{ t.rw_sub }}</div>
+
+  <div class="note">
+    {{ t.rw_caliber }}
+    {% if source != 'demo' %} · {{ t.rw_cov.format(n=cov_days, m=win_days) }}{% else %} · {{ t.rw_demo_note }}{% endif %}
+  </div>
+
+  <div class="card">
+    <table>
+      <tr>
+        <th class="cls">{{ t.rw_col_station }}</th>
+        <th>{{ t.rw_col_attempts }}</th>
+        <th>{{ t.rw_col_first }}</th>
+        <th>{{ t.rw_col_rework }}</th>
+        <th style="min-width:170px">{{ t.rw_col_rate }}</th>
+        {% if source != 'demo' %}<th>{{ t.rw_col_days }}</th>{% endif %}
+      </tr>
+      {% for r in rows %}
+      <tr>
+        <td class="cls">{{ r.display or r.cls }} <small>{{ r.cls }}</small></td>
+        {% if r.attempts is not none %}
+        <td>{{ r.attempts }}</td>
+        <td>{{ r.first }}</td>
+        <td>{{ r.rework }}</td>
+        <td>{% if r.rate is not none %}<span class="bar" style="width:{{ '%.0f'|format([r.rate, 100]|min) }}px"></span>{{ '%.1f'|format(r.rate) }}%{% else %}<span class="mut">—</span>{% endif %}</td>
+        {% if source != 'demo' %}<td class="mut">{{ r.n_days }}</td>{% endif %}
+        {% else %}
+        <td class="mut">—</td><td class="mut">—</td><td class="mut">—</td><td class="mut">—</td>
+        {% if source != 'demo' %}<td class="mut">0</td>{% endif %}
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% if source != 'demo' and not cov_days %}
+  <div class="note">{{ t.rw_empty }}</div>
+  {% endif %}
+</main>
+</body>
+</html>

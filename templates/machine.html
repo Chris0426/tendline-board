@@ -1,0 +1,115 @@
+
+
+
+
+
+
+
+
+<!doctype html>
+<html lang="{{ 'zh-Hant' if lang=='zh' else 'en' }}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tendline Board — {{ t.mc_title }} {{ eid }}</title>
+<style>
+  
+
+  :root{
+    color-scheme: light dark;
+    --bg:#f4f6fb; --panel:#ffffff; --panel2:#eef2f8; --line:#d8e0ec;
+    --track:#e6ebf3; --fg:#1b2433; --mut:#5c6b82; --hover:#b9c6db;
+    --unk:#b07d12; --good:#1f9d57; --warn:#b07d12; --bad:#c4504f;
+    --ptag:#536f99; --ptag-ink:#ffffff;
+    --rw-off:#cbd5e1;
+    --rw-on:#eef4fb;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#0b1220; --panel:#141d2e; --panel2:#1b2740; --line:#2a3852;
+      --track:#0e1626; --fg:#e6edf6; --mut:#8aa0bd; --hover:#3a5c86;
+      --unk:#cbb26b; --good:#36c47f; --warn:#cbb26b; --bad:#e0726f;
+      --ptag:#9bb7de; --ptag-ink:#0b1220;
+      --rw-off:#0a101c; --rw-on:#2a3b5c;       
+    }
+  }
+  *{ box-sizing:border-box }
+  body{ margin:0; background:var(--bg); color:var(--fg);
+        font:14px/1.5 "Segoe UI",system-ui,"Microsoft JhengHei",sans-serif }
+  a{ color:inherit }
+  header{ display:flex; align-items:baseline; gap:14px; padding:14px 22px;
+          border-bottom:1px solid var(--line); background:var(--panel) }
+  header h1{ font-size:17px; margin:0; letter-spacing:.5px }
+  header .sub{ color:var(--mut); font-size:12px }
+  header .right{ margin-left:auto; display:flex; align-items:center; gap:12px }
+  .toggle{ font-size:12px; padding:3px 11px; border-radius:13px; border:1px solid var(--line);
+           color:var(--fg); text-decoration:none; background:var(--panel2) }
+  .toggle:hover{ border-color:var(--hover) }
+  .badge{ font-size:11px; padding:2px 8px; border-radius:10px; border:1px solid var(--line); color:var(--mut) }
+  .badge.live{ color:var(--good); border-color:var(--good) }
+  .badge.demo{ color:var(--unk); border-color:var(--unk) }
+  .badge.snapshot{ color:#2f7fc4; border-color:#2f7fc4 }
+  main{ max-width:1080px; margin:0 auto; padding:20px 22px 40px }
+  .crumb{ font-size:12.5px; color:var(--mut); margin-bottom:6px }
+  .crumb a{ color:var(--good); text-decoration:none; font-weight:600 }
+  .mc-title{ font-size:22px; font-weight:800; letter-spacing:.3px; margin:2px 0 2px }
+  .mc-csub{ color:var(--mut); font-size:12px; font-family:ui-monospace,monospace }
+  
+
+  .mc-seat{ font-size:10.5px; font-weight:800; letter-spacing:.5px; padding:2px 7px;
+            border-radius:9px; border:1px solid var(--ptag); color:var(--ptag); margin-left:7px }
+  .mc-how{ color:var(--mut); font-size:11.5px; margin:6px 2px 14px }
+  .mc-how a{ color:var(--good); text-decoration:none }
+   
+  .mc-none{ background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--unk);
+            border-radius:10px; padding:14px 17px; margin:10px 0 }
+  .mc-none .k{ font-size:14px; font-weight:700; color:var(--unk) }
+  .mc-none .d{ color:var(--mut); font-size:12.5px; margin-top:5px }
+  .mc-none .d a{ color:var(--good); text-decoration:none; font-weight:600 }
+   
+  .err{ background:#fce9ee; border:1px solid #e7a9b8; color:#9b2741;
+        padding:12px 16px; border-radius:8px; margin-bottom:18px }
+  @media (prefers-color-scheme: dark){ .err{ background:#3a1620; border-color:#6f1f2f; color:#f0b6c2 } }
+</style>
+</head>
+<body>
+
+{% set nav_active = 'util' %}
+{% include '_nav.html' %}
+<main>
+  <div class="crumb"><a href="{{ eq_href }}">{{ t.mc_back }}</a></div>
+  <div class="mc-title">{{ t.mc_title }} {{ eid }}{% if seat_unit %}<span class="mc-seat">{{ t.mc_seat }} {{ seat_unit }}</span>{% endif %}</div>
+  <div class="mc-csub">
+    {{ (m.desc if m and m.desc else '—') }}
+    {% if cls %}· {{ pretty_station(cls) }} <span title="{{ cls }}">({{ cls }})</span>{% endif %}
+    
+    {% if parent_eid %}· → {{ parent_eid }}{% endif %}
+    · {% if start or end %}{{ start or '…' }} → {{ end or '…' }}{% else %}{{ t.p_window }} {{ days }}{{ t.p_days }}{% endif %}
+  </div>
+
+  {% if cls %}
+  
+  <div class="mc-how">
+    {{ t.mc_cls_how }}
+    {%- if cls_how == 'param' %} {{ t.mc_how_param }}
+    {%- elif cls_how == 'roster' %} {{ t.mc_how_roster }}
+    {%- else %} {{ t.mc_how_fleet }}{% endif %}
+    {% if cls_cands and cls_cands|length > 1 %}
+    · {{ t.mc_multi_cls.format(n=cls_cands|length, cls=pretty_station(cls)) }}
+      {% for c in cls_cands %}{% if c != cls %}<a href="/machine/{{ eid }}?{{ base_qs }}&lang={{ lang }}&cls={{ c }}">{{ pretty_station(c) }}</a>{% if not loop.last %} · {% endif %}{% endif %}{% endfor %}
+    {% endif %}
+  </div>
+  {% include '_timeline.html' %}
+  {% else %}
+  
+
+
+
+  <div class="mc-none">
+    <div class="k">{{ t.mc_no_cls }}</div>
+    <div class="d"><a href="{{ eq_href }}">{{ t.mc_back }}</a></div>
+  </div>
+  {% endif %}
+</main>
+</body>
+</html>

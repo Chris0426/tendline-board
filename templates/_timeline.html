@@ -1,0 +1,181 @@
+
+
+{% if not m and err %}
+  
+  <div class="err">⚠ {{ t.err_lead }}{{ source }}{{ t.err_tail }}：{{ err }}<br>
+    <span style="font-size:12px">{{ t.err_hint_html | safe }}</span></div>
+{% elif not m %}
+  <div class="tl"><div class="tl-head"><span class="eid">{{ eid }}</span>
+    <span class="desc">{{ t.not_found }}</span></div></div>
+{% else %}
+<style>
+  .tl{ background:var(--panel); border:1px solid var(--line); border-radius:11px; padding:18px 20px }
+  .tl-head{ display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; margin-bottom:14px }
+  .tl-head .eid{ font-size:17px; font-weight:700 }
+  .tl-head .desc{ color:var(--mut) }
+  .tl-head .util{ margin-left:auto; font-size:17px; font-weight:700 }
+  .tl-head .meta{ width:100%; color:var(--mut); font-size:12px }
+  .tl-bar{ display:flex; height:30px; border-radius:5px; overflow:hidden;
+           background:var(--track); border:1px solid var(--line) }
+  .tl-bar .seg{ height:100%; border-right:1px solid rgba(0,0,0,.18) }
+  .tl-bar .seg.low{ background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(0,0,0,.16) 4px,rgba(0,0,0,.16) 8px) }
+  
+
+  .tl-bar.rw{ display:block; position:relative; background:var(--rw-off, #cbd5e1) }
+  .tl-bar.rw .rwon{ position:absolute; top:0; height:100%; background:var(--rw-on, #eef4fb); z-index:0 }
+  .tl-bar.rw .rwunc{ position:absolute; top:0; height:100%; z-index:2; background-color:var(--panel);
+        background-image:repeating-linear-gradient(45deg, var(--line) 0 1px, transparent 1px 3px) }
+  .tl-bar.rw .seg{ position:absolute; top:0; border-right:0; z-index:1 }
+  .tl-bar.rw .seg.off{ opacity:.28 }
+  .tl-bar.rw .seg.rwoff{ background-color:var(--rw-off, #cbd5e1); opacity:1 }
+  .tl-bar.rw .rwtick{ position:absolute; top:0; height:100%; width:0;
+        border-left:1px dashed var(--mut); opacity:.75; z-index:3 }
+  .tl-rwline{ color:var(--mut); font-size:11.5px; margin-top:6px }
+  .tl-axis{ display:flex; justify-content:space-between; color:var(--mut); font-size:11px; margin-top:5px }
+  .tl-legend{ display:flex; gap:16px; margin:12px 0; font-size:12px; color:var(--fg) }
+  .tl-legend .sw{ display:inline-block; width:10px; height:10px; border-radius:2px; margin-right:6px }
+  
+
+
+
+  .tl-legend .sw.unc{ background-color:var(--panel); border:1px solid var(--line);
+        background-image:repeating-linear-gradient(45deg, var(--line) 0 1px, transparent 1px 3px) }
+  
+
+  .tl-legend .sw.on{ background-color:var(--rw-on,#eef4fb); border:1px solid var(--line) }
+   
+  .tl-legend .sw.low{ background-image:repeating-linear-gradient(45deg,transparent,transparent 3px,rgba(0,0,0,.16) 3px,rgba(0,0,0,.16) 6px) }
+  .tl-legend .sw.off{ opacity:.28 }
+  .stops{ margin-top:8px }
+  .stops h4{ font-size:12px; color:var(--mut); font-weight:600; margin:6px 0 8px;
+             text-transform:uppercase; letter-spacing:.5px }
+  .stop{ display:flex; align-items:center; gap:9px; padding:6px 10px; font-size:12.5px;
+         border:1px solid var(--line); border-radius:7px; margin-bottom:5px; background:var(--track) }
+  .stop .dot{ width:9px; height:9px; border-radius:50%; flex:0 0 auto }
+  .stop .dur{ margin-left:auto; color:var(--unk); font-variant-numeric:tabular-nums }
+  .stop .future{ color:var(--mut); font-size:11.5px }
+</style>
+<div class="tl">
+  <div class="tl-head">
+    <span class="eid">{{ m.eid }}</span>
+    <span class="desc">{{ m.desc or '—' }}</span>
+    
+
+    
+
+
+    
+
+    {% if dormant %}
+    <span class="util" style="color:var(--mut)" title="{{ (t.dl_dormant_tip_av if axis == 'avail' else t.dl_dormant_tip).format(d=dormant_since or '?', r=dormant_reason or '?') }}">
+      {{ t.av_center if axis == 'avail' else t.util }} —</span>
+    {% elif axis == 'avail' %}
+    {% if av_head and av_head.A is not none %}
+    <span class="util" style="color:{{ 'var(--good)' if av_head.A>=0.9 else ('var(--warn)' if av_head.A>=0.75 else 'var(--bad)') }}"
+          title="{% if av_head.rollup %}{{ (t.av_row_tip_roll if av_rw else t.av_row_tip_roll24).format(h='%.1f'|format(av_head.rw_sec/3600.0), n=av_head.rollup.n_active) }}{% else %}{{ (t.av_row_tip if av_rw else t.av_row_tip24).format(h='%.1f'|format(av_head.rw_sec/3600.0)) }}{% endif %}">
+      {{ t.av_center }} {{ '%.0f'|format(av_head.A*100) }}%</span>
+    {% else %}
+    <span class="util" style="color:var(--mut)" title="{{ t.av_row_zero_tip if av_head else t.av_row_na_tip }}">
+      {{ t.av_center }} —</span>
+    {% endif %}
+    {% elif rw %}
+    <span class="util" style="color:{{ 'var(--mut)' if rw_util is none else ('var(--good,#1f9d57)' if rw_util>=0.6 else ('var(--warn,#b07d12)' if rw_util>=0.4 else 'var(--bad,#c4504f)')) }}"{% if rw_util is none %} title="{{ t.u_rw_zero_tip }}"{% endif %}>
+      {{ t.util }} {{ ('%.0f'|format(rw_util*100) ~ '%') if rw_util is not none else '—' }}</span>
+    {% else %}
+    <span class="util" style="color:{{ 'var(--good,#1f9d57)' if m.agg.util>=0.6 else ('var(--warn,#b07d12)' if m.agg.util>=0.4 else 'var(--bad,#c4504f)') }}">
+      {{ t.util }} {{ '%.0f'|format(m.agg.util*100) }}%</span>
+    {% endif %}
+    {% if m.parent_eid %}<div class="meta" style="width:100%">{{ t.bay_of }} {{ m.parent_eid }}{% if m.cov_note %} · <span style="color:#b07d12">{{ t.cln_cov_note }}</span>{% endif %}</div>{% endif %}
+    <div class="meta">
+      {{ t.segs }} {{ m.n_seg if m.n_seg is not none else '—' }} ·
+      {{ t.observed }} {{ hms(m.agg.total_sec) }} · {{ t.producing }} {{ hms(m.agg.producing_sec) }} · {{ t.unknown }} {{ hms(m.agg.unknown_sec) }}
+      {% if m.micro_idle_sec %} · micro-idle {{ hms(m.micro_idle_sec) }} {{ t.micro_idle_suffix }}{% endif %}
+    </div>
+  </div>
+
+  {% if rw %}
+  <div class="tl-bar rw">
+    
+    {% if not dormant %}{% for l, w in rw.win %}<i class="rwon" style="left:{{ l }}%; width:{{ w }}%" title="{{ t.u_erw_hdr }}"></i>{% endfor %}{% endif %}
+    {% for s in rw_segs if (s.state or not dormant) %}
+    
+    <span class="seg{{ ' low' if s.conf=='low' }}{{ ' off' if (s.off and s.state) }}{{ ' rwoff' if (s.off and not s.state) }}"
+          style="left:{{ '%.3f'|format(s.left) }}%; width:{{ '%.3f'|format(s.width) }}%;{% if s.state %} background-color:{{ rw_color(s.state) }}{% endif %}"
+          title="{% if s.state %}{{ state_label(s.state) }}（{{ conf_label(s.conf) }}）{% else %}{{ t.u_rw_off }}{% endif %}　{{ clock(s.start) }} → {{ clock(s.end) }}　= {{ hms(s.sec) }}{% if s.note %} · {{ note_label(s.note) }}{% endif %}{% if s.off and s.state %}{{ t.u_rw_out_sfx }}{% elif s.off %} · {{ t.u_rw_off_tip }}{% endif %}"></span>
+    {% endfor %}
+    {% if not dormant %}{% for l, w in rw.uncov %}<i class="rwunc" style="left:{{ l }}%; width:{{ w }}%" title="{{ t.u_rw_uncov_tip }}"></i>{% endfor %}
+    {% for mk in rw.marks %}<i class="rwtick" style="left:{{ mk }}%" title="{{ t.u_rw_mark_tip }}"></i>{% endfor %}{% endif %}
+  </div>
+  <div class="tl-axis">
+    <span>{{ clock(win_start) }}</span>
+    <span>{{ t.now }} {{ clock(win_end) }}</span>
+  </div>
+  
+
+  <div class="tl-legend" style="flex-wrap:wrap; gap:10px 16px; font-size:11.5px; color:var(--mut)">
+    
+
+
+
+    <span><span class="sw" style="background:{{ rw_color('生產') }}"></span>{{ state_label('生產') }}</span>
+    <span title="{{ t.u_rw_down_tip }}"><span class="sw" style="background:{{ rw_color(RW_DOWN_STATE) }}"></span>{{ state_label(RW_DOWN_STATE) }}</span>
+    <span><span class="sw" style="background:{{ rw_color('該跑沒跑') }}"></span>{{ state_label('該跑沒跑') }}</span>
+    
+
+    <span title="{{ t.eq_lg_rwon_tip }}"><span class="sw on"></span>{{ t.u_erw_hdr }}</span>
+    <span title="{{ t.u_rw_off_tip }}"><span class="sw" style="background:var(--rw-off,#cbd5e1)"></span>{{ t.u_rw_off }}</span>
+    
+
+
+    <span title="{{ t.u_rw_uncov_tip }}"><span class="sw unc"></span>{{ t.u_rw_uncov }}</span>
+    <span title="{{ t.u_rw_mark_tip }}">┆ {{ t.u_rw_mark_tip }}</span>
+    
+
+    <span title="{{ t.legend_low_tip }}"><span class="sw low" style="background-color:{{ rw_color('該跑沒跑') }}"></span>{{ t.legend_low }}</span>
+    <span title="{{ t.legend_off_tip }}"><span class="sw off" style="background-color:{{ rw_color('生產') }}"></span>{{ t.legend_off }}</span>
+  </div>
+  <div class="tl-rwline">{{ t.u_erw_hdr }} {{ '%.1f'|format(rw.h) }}h · {{ t.producing }} {{ '%.1f'|format(rw_prod_h) }}h{% if m.roster_nosig %} · {{ t.u_roster_nosig }}{% endif %}</div>
+  {% else %}
+  <div class="tl-bar">
+    {% for r in m.records %}
+    <span class="seg {{ 'low' if r.conf=='low' }}"
+          style="width:{{ '%.3f'|format(r.sec / (m.agg.total_sec or 1) * 100) }}%; background-color:{{ state_color(r.state) }}"
+          title="{{ state_label(r.state) }}（{{ conf_label(r.conf) }}）　{{ clock(r.start) }} → {{ clock(r.end) }}　= {{ hms(r.sec) }}{% if r.note %} · {{ note_label(r.note) }}{% endif %}"></span>
+    {% endfor %}
+  </div>
+  <div class="tl-axis">
+    <span>{{ clock(m.records[0].start) if m.records else '' }}</span>
+    <span>{{ t.now }} {{ clock(data.mes_now) }}</span>
+  </div>
+
+  <div class="tl-legend">
+    
+
+    {% for st in m.records | map(attribute='state') | unique if st not in LEGACY_STATES %}
+    <span><span class="sw" style="background:{{ state_color(st) }}"></span>{% if st=='生產' %}{{ t.legend_prod }}{% elif st=='不明' %}{{ t.legend_unknown }}{% else %}{{ state_label(st) }}{% endif %}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <div class="stops">
+    <h4>{{ t.stops_hdr }}</h4>
+    {% set stops = m.records | rejectattr('state','equalto','生產') | list %}
+    {% if not stops %}
+      <div class="stop"><span class="dot" style="background:{{ state_color('生產') }}"></span>{{ t.no_stops }}</div>
+    {% else %}
+      
+
+      {% for r in stops | sort(attribute='sec', reverse=true) %}
+      <div class="stop">
+        <span class="dot" style="background:{{ rw_color(r.state, rw) }}"></span>
+        <b>{{ state_label(r.state) }}</b>
+        {{ clock(r.start) }} → {{ clock(r.end) }}
+        {% if r.work_order_no %}<span class="future">· WO {{ r.work_order_no }}</span>{% endif %}
+        {% if r.note %}<span class="future">· {{ note_label(r.note) }}</span>{% endif %}
+        <span class="dur">{{ hms(r.sec) }}</span>
+      </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+</div>
+{% endif %}

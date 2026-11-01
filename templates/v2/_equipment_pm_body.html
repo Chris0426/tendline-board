@@ -1,0 +1,548 @@
+
+
+
+{% import 'v2/_c_help.html' as HP %}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{% set un = board.unavailable if board else 'no_board' %}
+{% set sc = board.score if (board and not un) else None %}
+{% set bk = board.backlog if (board and not un) else None %}
+{% set ow = board.owners if (board and not un) else None %}
+{% set pp = board.persons if (board and not un) else None %}
+{% set fc = board.forecast if (board and not un) else None %}
+{% set tr = board.trend if (board and not un) else None %}
+{% set wo_ok = board.wo_ok if board else False %}
+
+
+{% set un_msg = ({'pm_live_gated': t.pm_gated, 'not_configured': t.pm_off,
+                  'snapshot_unsupported': t.pm_snap}).get(un, t.pm_unavail) if un else '' %}
+
+
+
+
+
+{% macro pts(seg, x0, xw, n, y0, yh) -%}
+{% for i, v in seg %}{{ '%.1f'|format(x0 + (i + 0.5) * (xw / n)) }},{{ '%.1f'|format(y0 + (1 - [0, [1, v]|min]|max) * yh) }} {% endfor %}
+{%- endmacro %}
+
+
+{% if err %}
+  <div class="pm-unavail">{{ t.sx_err_lead }}</div>
+  <div class="pm-unavail-hint">{{ err }}</div>
+{% elif un %}
+  <div class="pm-off">{{ un_msg }}</div>
+  {% if un_msg == t.pm_unavail %}<div class="pm-unavail-hint">{{ un }}</div>{% endif %}
+{% elif board and board.mode == 'demo' %}
+  <div class="pm-srcbanner"><span class="pin">⚠ {{ t.eq_demo_all }}</span><span>{{ t.eq_demo_all_why }}</span></div>
+{% elif board and board.mode == 'snapshot' %}
+  <div class="pm-srcbanner"><span class="pin">{{ t.eq_snap_banner }}</span></div>
+{% endif %}
+
+{% if board and not un and board.truncated %}
+  <div class="pm-off">{{ t.pm_truncated }}</div>
+{% endif %}
+
+
+
+
+<div class="pm-zbar">
+  <span class="zn">{{ t.pm_z1_name }}</span>
+  <span class="zc">{{ t.pm_z1_chip }}</span>
+</div>
+
+
+<div class="pm-sec">
+  <h2>{{ t.pm_tr_hdr }}
+    {{ HP.help(t.pm_tr_q) }}
+  </h2>
+  
+
+  {% if tr and not wo_ok %}
+    <div class="pm-off">{{ t.pm_wo_off }}</div>
+  {% elif tr and tr.insufficient %}
+    <div class="pm-none">{{ t.pm_tr_warming }}</div>
+  {% elif tr and tr.months %}
+    {% set W = 820 %}{% set H = 248 %}
+    {% set PADL = 36 %}{% set PADR = 52 %}{% set PADT = 26 %}{% set PADB = 54 %}
+    {% set n = tr.months|length %}
+    {% set xw = W - PADL - PADR %}{% set yh = H - PADT - PADB %}
+    {% set col = xw / n %}
+    {% set maxh = tr.max_std_h if tr.max_std_h else 0 %}
+    <div class="pm-trwrap">
+      <svg class="pm-tr" viewBox="0 0 {{ W }} {{ H }}" role="img"
+           aria-label="{{ t.pm_tr_hdr }}">
+        
+        {% for f in [0, 0.5, 1.0] %}
+        <line class="grid" x1="{{ PADL }}" x2="{{ PADL + xw }}"
+              y1="{{ '%.1f'|format(PADT + f * yh) }}" y2="{{ '%.1f'|format(PADT + f * yh) }}"></line>
+        <text class="axl" x="2" y="{{ '%.1f'|format(PADT + f * yh + 3) }}">{{ '%d'|format((1 - f) * 100) }}%</text>
+        {% endfor %}
+        
+
+
+
+        {% if maxh > 0 %}
+          {% for m in tr.months %}
+            {% set bx = PADL + loop.index0 * col + col * 0.24 %}
+            {% set bw = col * 0.52 %}
+            {% if m.std_h %}
+            {% set fr = [0, [1, m.std_h / maxh]|min]|max %}
+            <rect class="pm-trbar" x="{{ '%.1f'|format(bx) }}"
+                  y="{{ '%.1f'|format(PADT + (1 - fr) * yh) }}"
+                  width="{{ '%.1f'|format(bw) }}"
+                  height="{{ '%.1f'|format(fr * yh) }}"></rect>
+            {% if m.done_h %}
+            
+
+
+            {% set fd = [0, [fr, m.done_h / maxh]|min]|max %}
+            <rect class="pm-trbar2" x="{{ '%.1f'|format(bx + bw * 0.18) }}"
+                  y="{{ '%.1f'|format(PADT + (1 - fd) * yh) }}"
+                  width="{{ '%.1f'|format(bw * 0.64) }}"
+                  height="{{ '%.1f'|format(fd * yh) }}"></rect>
+            {% endif %}
+            <text class="pm-trlbl" x="{{ '%.1f'|format(bx + bw / 2) }}"
+                  y="{{ '%.1f'|format(PADT + (1 - fr) * yh - 4) }}"
+                  text-anchor="middle">{{ pm_h(m.std_h) }}</text>
+            {% endif %}
+          {% endfor %}
+          <text class="axl" x="{{ W - PADR + 4 }}" y="{{ PADT + 4 }}">{{ pm_h(tr.max_std_h) }}h</text>
+          <text class="axl" x="{{ W - PADR + 4 }}" y="{{ PADT + yh + 3 }}">0h</text>
+        {% endif %}
+        
+
+        {% for seg in tr.comp_segs %}
+          {% if seg|length > 1 %}<polyline points="{{ pts(seg, PADL, xw, n, PADT, yh) }}" fill="none" stroke="var(--pm-line1)" stroke-width="2"></polyline>
+          {% else %}<circle class="pm-dot" cx="{{ '%.1f'|format(PADL + (seg[0][0] + 0.5) * col) }}" cy="{{ '%.1f'|format(PADT + (1 - [0, [1, seg[0][1]]|min]|max) * yh) }}" r="2.5" fill="var(--pm-line1)"></circle>{% endif %}
+        {% endfor %}
+        {% for seg in tr.punc_segs %}
+          {% if seg|length > 1 %}<polyline points="{{ pts(seg, PADL, xw, n, PADT, yh) }}" fill="none" stroke="var(--pm-line2)" stroke-width="2" stroke-dasharray="5 3"></polyline>
+          {% else %}<circle class="pm-dot" cx="{{ '%.1f'|format(PADL + (seg[0][0] + 0.5) * col) }}" cy="{{ '%.1f'|format(PADT + (1 - [0, [1, seg[0][1]]|min]|max) * yh) }}" r="2.5" fill="var(--pm-line2)"></circle>{% endif %}
+        {% endfor %}
+        
+
+        {% for m in tr.months %}
+        <text class="axl mo" x="{{ '%.1f'|format(PADL + (loop.index0 + 0.5) * col) }}"
+              y="{{ H - 36 }}" text-anchor="middle">{{ m.start.strftime('%m') if m.start else '' }}</text>
+        <text class="axl n" x="{{ '%.1f'|format(PADL + (loop.index0 + 0.5) * col) }}"
+              y="{{ H - 22 }}" text-anchor="middle">{{ m.n_scored if m.n_scored is not none else '—' }}</text>
+        {% endfor %}
+        <text class="axl n" x="2" y="{{ H - 22 }}">{{ t.pm_tr_n_lbl }}</text>
+        <text class="axl" x="{{ PADL }}" y="{{ H - 4 }}">{{ tr.months[0].start }}</text>
+        <text class="axl" x="{{ PADL + xw }}" y="{{ H - 4 }}" text-anchor="end">{{ tr.months[-1].start }}</text>
+        
+
+        {% for m in tr.months %}
+        <rect class="pm-trhit" x="{{ '%.1f'|format(PADL + loop.index0 * col) }}" y="{{ PADT }}"
+              width="{{ '%.1f'|format(col) }}" height="{{ '%.1f'|format(yh) }}"><title>{{
+          t.pm_tr_pt.format(m=m.start, nd=(m.n_due if m.n_due is not none else '—'),
+                            ns=(m.n_scored if m.n_scored is not none else '—'),
+                            c=pm_pct(m.completeness), p=pm_pct(m.punctuality),
+                            dh=pm_h(m.std_h), ch=pm_h(m.done_h))
+        }}{% if m.nostd_n %} · {{ t.pm_own_nostd.format(n=m.nostd_n) }}{% endif %}</title></rect>
+        {% endfor %}
+      </svg>
+    </div>
+    <div class="pm-ownlegend">
+      <span class="li"><span class="d" style="background:var(--pm-line1)"></span>{{ t.pm_hero_comp }}</span>
+      <span class="li"><span class="d" style="background:var(--pm-line2)"></span>{{ t.pm_hero_punc }}</span>
+      <span class="li"><span class="d pm-barswatch"></span>{{ t.pm_tr_bars }}</span>
+      <span class="li"><span class="d pm-barswatch2"></span>{{ t.pm_tr_bars_done }}</span>
+      <span class="li">{{ HP.help(t.pm_tr_gap_q) }}</span>
+    </div>
+    <div class="pm-secnote" style="margin:8px 0 0">{{ t.pm_tr_cov.format(c=tr.covered_n, t=tr.total_n) }}</div>
+  {% else %}
+    <div class="pm-none">{{ un_msg or t.pm_tr_none }}</div>
+  {% endif %}
+
+  
+
+
+
+
+
+
+
+
+
+  <div class="pm-sub-h">{{ t.pm_sm_hdr }}
+    {{ HP.help(t.pm_pp_spark_q, r=True) }}
+  </div>
+  {% if pp and pp.rows %}
+  {% set smrows = pp.rows|selectattr('owner')|selectattr('spark_months_n')|list %}
+  {% if smrows %}
+  <div class="pm-secnote" style="margin:0">{{ t.pm_sm_note }}</div>
+  <div class="pm-sm-grid">
+    {% for r in smrows %}
+    {% set SW = 160 %}{% set SH = 46 %}{% set SP = 5 %}
+    {% set sn = r.spark|length %}{% set sh = SH - 2 * SP %}
+    <div class="pm-smcell">
+      <div class="who" title="{{ r.owner }}">{{ r.owner }}</div>
+      <svg class="pm-smchart" viewBox="0 0 {{ SW }} {{ SH }}" role="img"
+           aria-label="{{ t.pm_pp_th_spark }} — {{ r.owner }}">
+        {% for f in [0, 1.0] %}
+        <line class="grid" x1="0" x2="{{ SW }}"
+              y1="{{ '%.1f'|format(SP + f * sh) }}" y2="{{ '%.1f'|format(SP + f * sh) }}"></line>
+        {% endfor %}
+        
+        {% for seg in r.spark_comp_segs %}
+          {% if seg|length > 1 %}<polyline points="{{ pts(seg, 0, SW, sn, SP, sh) }}" fill="none" stroke="var(--pm-line1)" stroke-width="1" opacity=".5"></polyline>
+          {% else %}<circle cx="{{ '%.1f'|format((seg[0][0] + 0.5) * (SW / sn)) }}" cy="{{ '%.1f'|format(SP + (1 - [0, [1, seg[0][1]]|min]|max) * sh) }}" r="1.4" fill="var(--pm-line1)" opacity=".5"></circle>{% endif %}
+        {% endfor %}
+        {% for seg in r.spark_segs %}
+          {% if seg|length > 1 %}<polyline points="{{ pts(seg, 0, SW, sn, SP, sh) }}" fill="none" stroke="var(--pm-line2)" stroke-width="1.6" stroke-dasharray="4 2.5"></polyline>
+          {% else %}<circle cx="{{ '%.1f'|format((seg[0][0] + 0.5) * (SW / sn)) }}" cy="{{ '%.1f'|format(SP + (1 - [0, [1, seg[0][1]]|min]|max) * sh) }}" r="1.8" fill="var(--pm-line2)"></circle>{% endif %}
+        {% endfor %}
+        {% for m in pp.months %}
+        <rect class="pm-smhit" x="{{ '%.1f'|format(loop.index0 * (SW / sn)) }}" y="0"
+              width="{{ '%.1f'|format(SW / sn) }}" height="{{ SH }}"><title>{{
+          t.pm_sm_pt.format(m=m, n=r.spark_n[loop.index0],
+                            p=pm_pct(r.spark[loop.index0]),
+                            c=pm_pct(r.spark_comp[loop.index0])) }}</title></rect>
+        {% endfor %}
+      </svg>
+      <div class="sm-note">{{ t.pm_sm_sample.format(m=r.spark_months_n, n=r.spark_scored_n) }}</div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    <div class="pm-none">{{ t.pm_sm_none }}</div>
+  {% endif %}
+  {% else %}
+    <div class="pm-none">{{ un_msg or (t.pm_wo_off if not wo_ok else t.pm_sm_none) }}</div>
+  {% endif %}
+</div>
+
+
+
+
+
+
+
+<div class="pm-zbar">
+  <span class="zn">{{ t.pm_z2_name }}</span>
+  <span class="zc">{{ t.pm_z2_chip }}</span>
+  <span class="zctl">
+    {% for k, label in [('wk', t.pm_win_wk), ('mo', t.pm_win_mo), ('qr', t.pm_win_qr),
+                        ('yr', t.pm_win_yr)] %}
+    <a class="pm-wchip {{ 'on' if win == k }}" aria-pressed="{{ 'true' if win == k else 'false' }}"
+       href="/equipment/pm?source={{ source }}&win={{ k }}&lang={{ lang }}">{{ label }}</a>
+    {% endfor %}
+    {{ HP.help(t.pm_win_yr_q, r=True) }}
+  </span>
+</div>
+
+
+<div class="pm-sec">
+  <h2>{{ t.pm_hero_hdr }}
+    {{ HP.help(t.pm_q_comp) }}
+  </h2>
+  {% if sc and not wo_ok %}
+    
+    <div class="pm-off">{{ t.pm_wo_off }}</div>
+  {% elif sc %}
+    <div class="pm-hero">
+      <div class="kpi">
+        <span class="big">{{ pm_pct(sc.completeness) }}</span>
+        <span class="lbl">{{ t.pm_hero_comp }}</span>
+      </div>
+      <div class="kpi">
+        <span class="big">{{ pm_pct(sc.punctuality) }}</span>
+        <span class="lbl">{{ t.pm_hero_punc }}
+          {{ HP.help(t.pm_q_punc) }}
+        </span>
+      </div>
+    </div>
+    {% if sc.completeness is none %}
+      <div class="pm-line">{{ t.pm_hero_nodenom }}</div>
+    {% endif %}
+    
+    <div class="pm-due">
+      <span class="st">{{ t.pm_hero_due.format(n=sc.n_due) }}</span>
+      <span><span class="n">{{ sc.n_on_time }}</span> <span class="st">{{ t.pm_st_on_time }}</span>
+        {{ HP.help(t.pm_q_on_time) }}</span>
+      <span class="st">｜</span>
+      <span><span class="n">{{ sc.n_late }}</span> <span class="st">{{ t.pm_st_late }}</span>
+        {{ HP.help(t.pm_q_late) }}</span>
+      <span class="st">｜</span>
+      <span><span class="n">{{ sc.n_overdue }}</span> <span class="st">{{ t.pm_st_overdue }}</span>
+        {{ HP.help(t.pm_q_overdue) }}</span>
+      <span class="st">｜</span>
+      <span><span class="n">{{ sc.n_pending }}</span> <span class="st">{{ t.pm_st_pending }}</span>
+        {{ HP.help(t.pm_q_pending) }}</span>
+    </div>
+    <div class="pm-line">{{ t.pm_hero_pending.format(n=sc.n_pending, h=pm_h(sc.pending_std_h)) }}
+      {%- if sc.pending_nostd_n %} · {{ t.pm_own_nostd.format(n=sc.pending_nostd_n) }}{% endif %}</div>
+    
+
+    {% if sc.n_cancelled %}<div class="pm-line">{{ t.pm_hero_cancel.format(n=sc.n_cancelled) }}</div>{% endif %}
+    {% if sc.n_done_unmeasured %}<div class="pm-line">{{ t.pm_hero_doneunmeas.format(n=sc.n_done_unmeasured) }}</div>{% endif %}
+    {% if sc.n_no_due %}<div class="pm-line">{{ t.pm_hero_nodue.format(n=sc.n_no_due) }}</div>{% endif %}
+  {% else %}
+    <div class="pm-none">{{ un_msg or t.pm_wo_off }}</div>
+  {% endif %}
+
+  
+  {% if bk %}
+  <div class="pm-alert">
+    <span class="bk">⚠ {{ t.pm_bk_total.format(n=bk.n_total, m=bk.n_outside_window if bk.n_outside_window is not none else '—') }}</span>
+    <span class="pm-buckets">
+      <span class="pm-bkchip">{{ t.pm_bk_b1 }} × {{ bk.buckets[1] }}</span>
+      <span class="pm-bkchip">{{ t.pm_bk_b2 }} × {{ bk.buckets[2] }}</span>
+      <span class="pm-bkchip">{{ t.pm_bk_b3 }} × {{ bk.buckets[3] }}</span>
+      <span class="pm-bkchip">{{ t.pm_bk_b4 }} × {{ bk.buckets[4] }}</span>
+      {% if bk.n_zombie %}<span class="pm-bkchip">{{ t.pm_zombie }} × {{ bk.n_zombie }}</span>{% endif %}
+    </span>
+  </div>
+  {% endif %}
+</div>
+
+
+
+
+
+
+
+
+
+<div class="pm-sec">
+  <h2>{{ t.pm_pp_hdr }}
+    {{ HP.help(t.pm_pp_q, r=True) }}
+  </h2>
+  <div class="pm-secnote">{{ t.pm_pp_note }}</div>
+  {% if pp and pp.rows %}
+  <div class="pm-tblwrap">
+    <table class="pm-tbl pm-pptbl">
+      <thead><tr>
+        <th>{{ t.pm_pp_th_owner }}</th><th>{{ t.pm_pp_th_comp }}</th><th>{{ t.pm_pp_th_punc }}</th>
+        <th>{{ t.pm_pp_th_sample }}</th><th>{{ t.pm_pp_th_out }}</th>
+      </tr></thead>
+      <tbody>
+      {% for r in pp.rows %}
+      <tr class="{{ 'unassigned' if not r.owner }}">
+        <td>{{ r.owner or t.pm_owner_unassigned }}</td>
+        <td>{{ pm_pct(r.completeness) }}</td>
+        <td>{{ pm_pct(r.punctuality) }}</td>
+        <td class="mut">{% if r.n_scored %}{{ t.pm_pp_sample.format(n=r.n_scored, h=pm_h(r.done_h)) }}
+          {%- else %}{{ t.pm_pp_nosample }}{% endif %}</td>
+        <td class="mut">{{ t.pm_pp_out.format(n=r.out_n, h=pm_h(r.out_h)) }}</td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+    <div class="pm-none">{{ un_msg or (t.pm_wo_off if not wo_ok else t.pm_pp_none) }}</div>
+  {% endif %}
+</div>
+
+
+
+
+
+<div class="pm-zbar">
+  <span class="zn">{{ t.pm_z3_name }}</span>
+  <span class="zc">{{ t.pm_z3_chip }}</span>
+</div>
+
+
+<div class="pm-sec">
+  <h2>{{ t.pm_bk_hdr }}<span class="pm-tchip">{{ t.pm_tc_bk }}</span>
+    {{ HP.help(t.pm_q_zombie) }}
+  </h2>
+  <div class="pm-secnote">{{ t.pm_bk_reach }}</div>
+  {% if bk and bk.rows %}
+  <div class="pm-tblwrap">
+    <table class="pm-tbl">
+      <thead><tr>
+        <th>{{ t.pm_th_pm }}</th><th>{{ t.pm_th_asset }}</th><th>{{ t.pm_th_owner }}</th>
+        <th>{{ t.pm_th_std }}</th><th>{{ t.pm_th_due }}</th><th>{{ t.pm_th_over }}</th><th></th>
+      </tr></thead>
+      <tbody>
+      {% for r in bk.rows %}
+      
+
+
+      <tr class="pm-row"
+          hx-get="/equipment/pm/item?source={{ source }}&lang={{ lang }}&pm_id={{ r.pm_id|urlencode }}"
+          hx-target="#pmi-{{ loop.index }}" hx-swap="innerHTML">
+        
+
+
+
+        <td>{% if r.task_name %}<span class="pm-nm">{{ r.task_name }}</span>
+          <span class="mut pm-code">{{ r.pm_id }}{% if r.task_id %} · {{ r.task_id }}{% endif %}</span>
+          {%- else %}{{ r.pm_id }}{% if r.task_id %} <span class="mut">· {{ r.task_id }}</span>{% endif %}{% endif %}</td>
+        
+
+
+        <td>{{ r.asset_name or r.asset_id }}
+          {%- if r.area_label %}<span class="pm-areachip pm-a-{{ r.area }}">{{ r.area_label }}</span>
+          {%- else %}<span class="pm-areachip">{{ t.pm_area_none }}</span>{% endif %}</td>
+        <td>{% if r.owner %}{{ r.owner }}{% else %}<span class="mut">{{ t.pm_owner_unassigned }}</span>{% endif %}</td>
+        <td class="{{ 'mut' if r.std_h is none }}">{{ pm_h(r.std_h) }}</td>
+        <td class="mut">{{ r.next_due }}</td>
+        <td class="pm-age{{ r.bucket }}">{{ t.pm_over_d.format(n=r.overdue_d) }}</td>
+        <td>{% if r.zombie %}<span class="pm-zchip" title="{{ t.pm_q_zombie }}">{{ t.pm_zombie }}</span>{% endif %}</td>
+      </tr>
+      <tr class="pm-drillrow"><td colspan="7"><div class="pm-drillslot" id="pmi-{{ loop.index }}"></div></td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% elif bk %}
+    <div class="pm-none">{{ t.pm_bk_none }}</div>
+  {% else %}
+    <div class="pm-none">{{ un_msg or t.pm_unavail }}</div>
+  {% endif %}
+  
+  {% if bk %}
+    
+
+
+
+    {% if bk.n_supp_manual %}<div class="pm-secnote" style="margin:10px 0 0">{{ t.pm_bk_suppressed.format(n=bk.n_supp_manual) }}</div>{% endif %}
+    {% if bk.n_supp_dormant %}<div class="pm-secnote" style="margin:4px 0 0">{{ t.pm_bk_supp_dormant.format(n=bk.n_supp_dormant) }}</div>{% endif %}
+    
+    {% if bk.n_supp_fallback %}<div class="pm-secnote" style="margin:4px 0 0">{{ t.pm_bk_supp_fallback.format(n=bk.n_supp_fallback) }}</div>{% endif %}
+    {% if bk.n_no_due_sched %}<div class="pm-secnote" style="margin:4px 0 0">{{ t.pm_bk_nodue.format(n=bk.n_no_due_sched) }}</div>{% endif %}
+    {% if bk.asset_flag_unavailable %}<div class="pm-secnote" style="margin:4px 0 0">{{ t.pm_bk_assetflag }}</div>{% endif %}
+    
+
+
+    {% set dg = board.diag or {} %}
+    {% if dg.task_name_status and dg.task_name_status not in ('ok', 'demo') %}
+      <div class="pm-secnote" style="margin:4px 0 0">{{ t.pm_bk_names_off.format(r=dg.task_name_status) }}</div>
+    {% elif dg.task_name_miss_n %}
+      <div class="pm-secnote" style="margin:4px 0 0">{{ t.pm_bk_names_miss.format(n=dg.task_name_miss_n) }}</div>
+    {% endif %}
+  {% endif %}
+</div>
+
+
+<div class="pm-sec">
+  <h2>{{ t.pm_own_hdr }}<span class="pm-tchip">{{ t.pm_tc_own }}</span>
+    {{ HP.help(t.pm_q_owner, r=True) }}
+  </h2>
+  {% if ow and ow.rows %}
+  
+
+  {% set ot = ow.totals or {} %}
+  <div class="pm-owntotal">{{ t.pm_own_total }}:
+    <b>{{ t.pm_own_total_line.format(n=ot.over_n if ot.over_n is not none else '—', h=pm_h(ot.over_h)) }}</b>
+    {%- if ot.nostd_n %} · {{ t.pm_own_nostd.format(n=ot.nostd_n) }}{% endif %}</div>
+  <div class="pm-own">
+    {% for r in ow.rows %}
+    
+
+    {% set d = r.done_h or 0 %}{% set o = r.over_h or 0 %}{% set p = r.pend_h or 0 %}
+    {% set tot = d + o + p %}
+    <div class="pm-ownrow {{ 'unassigned' if not r.owner }}">
+      <span class="who" title="{{ r.owner or t.pm_owner_unassigned }}">{{ r.owner or t.pm_owner_unassigned }}</span>
+      {% if tot > 0 %}
+      <span class="pm-bar" title="{{ t.pm_own_done }} {{ pm_hu(r.done_h) }} · {{ t.pm_own_over }} {{ pm_hu(r.over_h) }} · {{ t.pm_own_pend }} {{ pm_hu(r.pend_h) }}">
+        {% if d %}<span class="s1" style="flex:{{ '%.4f'|format(d / tot) }}">{{ pm_h(r.done_h) }}</span>{% endif %}
+        {% if o %}<span class="s2" style="flex:{{ '%.4f'|format(o / tot) }}">{{ pm_h(r.over_h) }}</span>{% endif %}
+        {% if p %}<span class="s3" style="flex:{{ '%.4f'|format(p / tot) }}">{{ pm_h(r.pend_h) }}</span>{% endif %}
+      </span>
+      {% else %}
+      <span class="pm-bar" title="{{ t.pm_own_over }} —"></span>
+      {% endif %}
+      <span class="side">
+        {% if r.over_n %}{{ t.pm_own_chip_over.format(n=r.over_n) }}{% endif %}
+        {%- if r.nostd_n %} · {{ t.pm_own_nostd.format(n=r.nostd_n) }}{% endif %}
+      </span>
+    </div>
+    {% endfor %}
+  </div>
+  <div class="pm-ownlegend">
+    <span class="li"><span class="d" style="background:var(--pm-seg1)"></span>{{ t.pm_own_done }}</span>
+    <span class="li"><span class="d" style="background:var(--pm-seg2)"></span>{{ t.pm_own_over }}</span>
+    <span class="li"><span class="d" style="background:var(--pm-seg3)"></span>{{ t.pm_own_pend }}</span>
+  </div>
+  {% if ow.n_hours_diff %}<div class="pm-secnote" style="margin:8px 0 0">{{ t.pm_own_hoursdiff.format(n=ow.n_hours_diff) }}</div>{% endif %}
+  {% else %}
+    <div class="pm-none">{{ un_msg or t.pm_own_none }}</div>
+  {% endif %}
+</div>
+
+
+<div class="pm-sec">
+  <h2>{{ t.pm_fc_hdr }}<span class="pm-tchip">{{ t.pm_tc_fc }}</span>
+    {{ HP.help(t.pm_fc_caveat, r=True) }}
+  </h2>
+  {% if fc %}
+  
+
+  {% if fc.today and fc.today.n %}
+  <div class="pm-secnote" style="margin:0 0 10px">{{ t.pm_fc_today.format(n=fc.today.n, h=pm_h(fc.today.std_h)) }}</div>
+  {% endif %}
+  <div class="pm-fc">
+    {% for key, label in [('d7', t.pm_fc_7), ('d14', t.pm_fc_14)] %}
+    {% set w = fc[key] %}
+    <div class="pm-fccard">
+      <div class="hd">{{ label }}</div>
+      {% if w.n %}
+        <div class="big">{{ t.pm_fc_line.format(n=w.n, h=pm_h(w.std_h)) }}</div>
+        {% if w.nostd_n %}<div class="ow">{{ t.pm_own_nostd.format(n=w.nostd_n) }}</div>{% endif %}
+        <div class="ow">
+          {% for o, n, h in w.by_owner %}{{ o or t.pm_owner_unassigned }} · {{ n }} · {{ pm_h(h) }}h<br>{% endfor %}
+        </div>
+      {% else %}
+        <div class="ow">{{ t.pm_fc_none }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    <div class="pm-none">{{ un_msg or t.pm_fc_none }}</div>
+  {% endif %}
+</div>
+
+<div class="pm-foot">{{ t.pm_foot }}</div>

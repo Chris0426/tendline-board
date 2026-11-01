@@ -1,0 +1,15 @@
+
+
+
+
+
+
+{% macro group(title, count=None, tip='', cls='', gid='') -%}
+<section class="board-ag {{ cls }}"{% if gid %} id="{{ gid }}"{% endif %}>
+  <h3 class="board-ag-h"{% if tip %} title="{{ tip }}"{% endif %}>{{ title }}{% if count is not none %} <span class="board-ag-n num">{{ count }}</span>{% endif %}</h3>
+  <ul class="board-al">{{ caller() }}</ul>
+</section>
+{%- endmacro %}
+{% macro lamp(text, color='', tok='') -%}
+<span class="board-lamp">{% if color %}<i class="board-lsw" style="background:{{ color }}"></i>{% elif tok %}<i class="board-lsw t-{{ tok }}"></i>{% else %}<i class="board-lsw hollow"></i>{% endif %}<span class="board-lt">{{ text }}</span></span>
+{%- endmacro %}

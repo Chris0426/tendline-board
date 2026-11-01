@@ -1,0 +1,32 @@
+{% extends 'v2/_base.html' %}
+
+
+
+{% block page %}pm{% endblock %}
+{% block title %}Tendline Board — {{ t.pm_title }}{% endblock %}
+{% block nav %}
+{% set nav_active = 'pm' %}
+{% include 'v2/_nav.html' %}
+{% endblock %}
+{% block main %}
+{% set nav_active = 'pm' %}
+  <div class="pm-head">
+    <h1>{{ t.pm_title }}</h1>
+    <span class="sub">{{ t.pm_sub }}</span>
+  </div>
+
+  
+
+
+
+  <div class="pm-ctl">
+    <a class="pm-back" href="/equipment?source={{ source }}&lang={{ lang }}">{{ t.pm_back }}</a>
+  </div>
+
+  
+  <div id="pm-body"
+       hx-get="/equipment/pm/body?{{ frag_qs }}"
+       hx-trigger="load" hx-swap="innerHTML">
+    <div class="loading"><span class="spin"></span>{{ t.pm_loading }}</div>
+  </div>
+{% endblock %}

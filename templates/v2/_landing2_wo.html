@@ -1,0 +1,35 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+{% if why %}<div class="wox why">{{ t['ld_wo_x_' ~ why] }}</div>
+{% elif not card or not (card.brief or card.notes or card.worklog or card.closeout) %}
+<div class="wox why">{{ t.ld_wo_x_empty }}</div>
+{% else %}
+<div class="wox">
+  {% if card.brief %}<div class="l1">{{ card.brief }}</div>{% endif %}
+  {% if card.notes %}
+    {% for nl in card.notes %}
+    <div class="l2 nt"><span class="ntm">{{ nl.tm }} · {{ nl.label }}:</span> {{ nl.body_full or nl.body }}</div>
+    {% endfor %}
+    {% if card.notes_more %}<div class="l2 more">{{ card.notes_more }}</div>{% endif %}
+  {% elif card.worklog %}<div class="l2">{{ t.eq_emaint_diag }} {{ card.worklog }}</div>{% endif %}
+  {% if card.closeout %}<div class="l2 closeout">{{ t.eq_closeout }} {{ card.closeout }}</div>{% endif %}
+</div>
+{% endif %}

@@ -1,0 +1,67 @@
+{% extends 'v2/_base.html' %}
+
+
+
+{% import 'v2/_c_icon.html' as ic %}
+{% block page %}monthly{% endblock %}
+{% block title %}Tendline Board — {{ t.mr_title }}{% endblock %}
+{% block nav %}
+{% set nav_active = 'monthly' %}
+{% include 'v2/_nav.html' %}
+{% endblock %}
+{% block main %}
+{% set nav_active = 'monthly' %}
+  <h1>{{ t.mr_title }}{% if source == 'demo' %}<span class="demotag">DEMO</span>{% endif %}{% if partial %}<span class="parttag">{{ t.mr_partial }}</span>{% endif %}</h1>
+  <div class="sub">{{ t.mr_sub }}</div>
+
+  
+
+  <div class="head">
+    <span class="noprint">{{ t.mr_month }}</span>
+    <span class="seg">
+      {% for o in month_opts %}
+      <a href="{{ o.href }}" class="{{ 'on' if o.on }}"{% if o.on %} aria-current="true"{% endif %}>{{ o.label }}</a>
+      {% endfor %}
+    </span>
+    
+    {% if through %}<span>{{ t.mr_asof.format(d=through) }}</span>{% endif %}
+    {% if frozen_at %}<span>{{ t.mr_frozen.format(d=frozen_at) }}</span>{% endif %}
+    
+
+    <a class="noprint pbtn" href="{{ csv_url }}"
+       title="{{ t.mr_csv_tip }}">{{ t.mr_csv }}</a>
+    <a class="noprint pbtn" href="#" role="button"
+       onclick="window.print();return false">{{ t.mr_print }}</a>
+  </div>
+
+  
+
+
+  <div class="head noprint" title="{{ t.qk_prod_tip }}">
+    {% for key, label, href, current in product_links %}
+      {% if current %}<b>{{ label }}</b>{% else %}<a href="{{ href }}">{{ label }}</a>{% endif %}{% if not loop.last %}<span style="color:var(--mut)">|</span>{% endif %}
+    {% endfor %}
+    {% if product != 'plover' %}<span style="color:var(--mut);font-size:11.5px">{{ t.mr_prod_notime.format(p=t['qk_prod_' ~ product]) }}</span>{% endif %}
+  </div>
+
+  <div class="tabs noprint">
+    <a href="{{ tab_loss }}" title="{{ t.mr_tab_loss_tip }}"
+       class="{{ 'on' if tab == 'loss' }}"{% if tab == 'loss' %} aria-current="true"{% endif %}>{{ t.mr_tab_loss }}</a>
+    
+
+    {% if product == 'plover' %}<a href="{{ tab_oee }}" title="{{ t.mr_tab_oee_tip }}"
+       class="{{ 'on' if tab == 'oee' }}"{% if tab == 'oee' %} aria-current="true"{% endif %}>{{ t.mr_tab_oee }}</a>{% endif %}
+    <a href="{{ tab_notes }}" title="{{ t.mr_tab_notes_tip }}"
+       class="{{ 'on' if tab == 'notes' }}"{% if tab == 'notes' %} aria-current="true"{% endif %}>{{ t.mr_tab_notes }}</a>
+  </div>
+
+  {% if source == 'demo' %}<div class="note">{{ t.mr_demo_note }}</div>{% endif %}
+
+  
+  <div id="mr-body" hx-get="{{ body_url }}" hx-trigger="load" hx-swap="innerHTML">
+    <div class="loading"><span class="spin"></span>{{ t.mr_loading }}</div>
+  </div>
+
+  
+  <div class="foot">{% for s in assumptions %}{{ s }}{% if not loop.last %} {% endif %}{% endfor %}</div>
+{% endblock %}

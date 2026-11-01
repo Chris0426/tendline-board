@@ -1,0 +1,261 @@
+{% extends 'v2/_base.html' %}
+
+
+
+{% import 'v2/_c_icon.html' as ic %}
+{% block page %}equipment{% endblock %}
+{% block title %}Tendline Board — {{ t.eq_title }}{% endblock %}
+{% block nav %}
+{% set nav_active = 'eqmt' %}
+{% include 'v2/_nav.html' %}
+{% endblock %}
+{% block main %}
+{% set nav_active = 'eqmt' %}
+  <div class="eq-head">
+    <h1>{{ t.eq_title }}</h1>
+    <span class="sub">{{ t.eq_sub }}</span>
+  </div>
+
+  <div class="eq-ctl">
+    
+    <div class="eq-wins">
+      <a class="eq-chip {{ 'on' if days == 7 }}"  href="/equipment?days=7&source={{ source }}&lang={{ lang }}{% if tag_param %}&tag={{ tag_param }}{% endif %}">{{ t.eq_win7 }}</a>
+      <a class="eq-chip {{ 'on' if days == 14 }}" href="/equipment?days=14&source={{ source }}&lang={{ lang }}{% if tag_param %}&tag={{ tag_param }}{% endif %}">{{ t.eq_win14 }}</a>
+      <a class="eq-chip {{ 'on' if days == 30 }}" href="/equipment?days=30&source={{ source }}&lang={{ lang }}{% if tag_param %}&tag={{ tag_param }}{% endif %}">{{ t.eq_win30 }}</a>
+      {% if days not in (7, 14, 30) %}<span class="eq-chip on">{{ days }}d</span>{% endif %}
+    </div>
+    <div class="tag-toggle" aria-label="{{ t.tag_toggle_aria }}">
+      {% for x in tag_controls %}<a class="{{ 'on' if x.active }}" href="{{ x.href }}" title="{{ x.family }}">{{ x.letter }}</a>{% endfor %}
+    </div>
+
+    
+    <a class="eq-chip eq-btn"
+       href="/equipment/export.csv?days={{ days }}&source={{ source }}&lang={{ lang }}">{{ ic.download() }}{{ t.dl_csv }}</a>
+
+    
+
+
+    {% if hermes_hint %}
+    <button class="eq-chip eq-btn" type="button" id="eq-trall-btn" title="{{ t.eq_trall_tip }}"
+            hx-post="/equipment/translate/all?source={{ source }}&days={{ days }}&stop_min={{ stop_min }}&lang={{ lang }}{% if tag_param %}&tag={{ tag_param }}{% endif %}"
+            hx-target="#eq-trall-status" hx-swap="innerHTML" hx-indicator="#eq-trall-ind">
+      {{ ic.globe() }}<span id="eq-trall-lbl">{{ t.eq_trall_btn }}</span><span id="eq-trall-ind"
+            class="htmx-indicator" style="color:var(--mut)"> · {{ t.eq_trall_busy }}</span>
+    </button>
+    
+    <span id="eq-trall-status" style="display:none"></span>
+    {% endif %}
+
+    
+    <span class="eq-howbtn" tabindex="0"><span class="q">?</span>{{ t.eq_how }}
+      <div class="eq-howpanel">
+        <div class="def">{{ t.eq_how_def }}</div>
+        <h4>{{ t.eq_rules_t }}</h4>
+        <div class="eq-rule"><span class="n">1</span><span>{{ t.eq_rule1 }}</span></div>
+        <div class="eq-rule"><span class="n">2</span><span>{{ t.eq_rule2 }}</span></div>
+        <div class="eq-rule"><span class="n">3</span><span>{{ t.eq_rule3 }}</span></div>
+        <div class="eq-rule"><span class="n">⚠</span><span>{{ t.eq_rule4.format(d=quiet_days|default(7)) }}</span></div>
+        
+
+        <div class="eq-rule"><span class="n">◌</span><span>{{ t.eq_rule5 }}</span></div>
+        
+
+
+        <div class="eq-rule"><span class="n">⊂</span><span>{{ t.eq_rule_inherit }}</span></div>
+        <h4 style="margin-top:14px">{{ t.eq_src_t }}</h4>
+        <table class="eq-srctbl">
+          
+          <tr><td>{{ t.eq_src_wo }}</td><td>{% if wo_live_hint %}<span class="eq-stag live">{{ t.eq_st_synth if is_synth else t.eq_st_live }}</span>{% else %}<span class="eq-stag">{{ t.eq_st_pend }}</span>{% endif %}</td></tr>
+          
+          <tr><td>{{ t.eq_src_mes }}</td><td>{% if mes_live_hint %}<span class="eq-stag live">{{ t.eq_st_synth if is_synth else t.eq_st_live }}</span>{% else %}<span class="eq-stag">{{ t.eq_st_pend }}</span>{% endif %}</td></tr>
+          
+          <tr><td>{{ t.eq_dx_srcrow }}</td><td>{% if diag_live_hint %}<span class="eq-stag live">{{ t.eq_st_synth if is_synth else t.eq_st_live }}</span>{% else %}<span class="eq-stag">{{ t.eq_st_pend }}</span>{% endif %}</td></tr>
+        </table>
+        <div class="eq-gapbox"><b>{{ t.eq_gap_t }}</b><br>{{ t.eq_gap_note }}</div>
+      </div>
+    </span>
+
+    
+    <a class="eq-chip eq-btn"
+       href="/equipment/health?source={{ source }}&lang={{ lang }}">{{ t.mh_tab }}{{ ic.arrow() }}</a>
+  </div>
+
+  {#
+
+-#}
+  <div id="eqm-body"
+       
+
+
+       hx-get="/equipment/body?source={{ source }}&days={{ days }}&stop_min={{ stop_min }}&lang={{ lang }}{% if eq_all %}&all=1{% endif %}{% if tag_param %}&tag={{ tag_param }}{% endif %}"
+       hx-trigger="load, every 600s [eqBodyCanRefresh()]" hx-swap="innerHTML">
+    <div class="loading"><span class="spin"></span>{{ t.eq_loading }}</div>
+  </div>
+
+  
+  
+{% endblock %}
+{% block foot %}
+<script>
+
+
+window.eqToggleDown = function(a){
+  var w = document.querySelector('.eq-tblwrap');
+  if (w){ a.classList.toggle('on', w.classList.toggle('eq-focus-down')); }
+  return false;
+};
+
+
+
+window.eqBodyCanRefresh = function(){
+  var slots = document.querySelectorAll('.eq-drillslot');
+  for (var i = 0; i < slots.length; i++){
+    if (slots[i].childElementCount > 0 || slots[i].classList.contains('htmx-request')) return false;
+  }
+  return true;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+(function(){
+  document.body.addEventListener('htmx:beforeRequest', function(ev){
+    try{
+      var el = ev.detail.elt;
+      if (!el || !el.classList || !el.classList.contains('eq-cell')) return;
+      var key = el.getAttribute('data-cellkey');
+      if (!key) return;
+      var slot = el.closest('tr').nextElementSibling;       
+      slot = slot && slot.querySelector('.eq-drillslot');
+      if (!slot) return;
+      var open = slot.querySelector('.eq-drill[data-cellkey]');
+      if (open && open.getAttribute('data-cellkey') === key){
+        ev.preventDefault();                                 
+        slot.innerHTML = '';
+      }
+    }catch(e){}
+  });
+})();
+
+
+
+
+
+
+
+window.decorateEidJumps = function(){
+  var root = document.getElementById('eqm-body');
+  if (!root) return;
+  var strips = root.querySelectorAll('[class*="eq-strip-"]');
+  for (var i = 0; i < strips.length; i++){
+    var tw = document.createTreeWalker(strips[i], NodeFilter.SHOW_TEXT), tn, batch = [];
+    while ((tn = tw.nextNode())){
+      if (/EID-\d+/.test(tn.nodeValue)) batch.push(tn);
+    }
+    batch.forEach(function(node){
+      if (node.parentElement && node.parentElement.closest('.eq-eidjump')) return;   
+      var txt = node.nodeValue, re = /EID-\d+/g, m, last = 0, frag = null;
+      while ((m = re.exec(txt))){
+        if (!root.querySelector('tr[data-eid="' + m[0] + '"]')) continue;            
+        if (!frag) frag = document.createDocumentFragment();
+        frag.appendChild(document.createTextNode(txt.slice(last, m.index)));
+        var s = document.createElement('span');
+        s.className = 'eq-eidjump';
+        s.textContent = m[0];
+        frag.appendChild(s);
+        last = m.index + m[0].length;
+      }
+      if (frag){
+        frag.appendChild(document.createTextNode(txt.slice(last)));
+        node.parentNode.replaceChild(frag, node);
+      }
+    });
+  }
+};
+ 
+document.addEventListener('click', function(ev){
+  var j = ev.target && ev.target.closest && ev.target.closest('.eq-eidjump');
+  if (!j) return;
+  var row = document.querySelector('tr[data-eid="' + j.textContent + '"]');
+  if (!row) return;
+  row.scrollIntoView({ behavior:'smooth', block:'center' });
+  row.classList.remove('eq-rowflash');    
+  void row.offsetWidth;                   
+  row.classList.add('eq-rowflash');
+  row.addEventListener('animationend', function(){ row.classList.remove('eq-rowflash'); }, { once:true });
+});
+
+
+
+document.body.addEventListener('htmx:afterSwap', function(ev){
+  try{
+    if (ev.detail.target && ev.detail.target.id === 'eqm-body') window.decorateEidJumps();
+  }catch(e){}
+});
+
+
+
+
+
+
+
+
+
+(function(){
+  var P = 'eqtr|';
+  document.body.addEventListener('htmx:configRequest', function(ev){
+    try{
+      var path = ev.detail.path || '';
+      if (ev.detail.verb !== 'get' || path.indexOf('/equipment/cell?') !== 0) return;
+      var sp = new URLSearchParams(path.split('?')[1]);
+      if (sp.has('tr')) return;                        
+      var k = P + [sp.get('eid'), sp.get('date'), sp.get('source'),
+                   sp.get('days'), sp.get('stop_min'), sp.get('lang')].join('|');
+      if (sessionStorage.getItem(k)) ev.detail.path = path + '&tr=1';
+    }catch(e){}
+  });
+  document.body.addEventListener('htmx:afterSwap', function(ev){
+    try{
+      var el = ev.detail.target;
+      if (!el) return;
+      if (el.id && el.id.indexOf('drill-') === 0){
+        var d = el.querySelector('.eq-drill[data-trkey]');
+        if (d){
+          var k = P + d.getAttribute('data-trkey');
+          if (d.getAttribute('data-translated') === '1') sessionStorage.setItem(k, '1');
+          else sessionStorage.removeItem(k);
+        }
+      } else if (el.id === 'eq-trall-status'){
+        var s = el.querySelector('[data-trall-keys]');
+        if (s){
+          (s.getAttribute('data-trall-keys') || '').split(';').forEach(function(k){
+            if (k) sessionStorage.setItem(P + k, '1');
+          });
+           
+          var done = +s.getAttribute('data-done') || 0,
+              left = (+s.getAttribute('data-fail') || 0) + (+s.getAttribute('data-skip') || 0),
+              msg = (s.textContent || '').trim(),
+              btn = document.getElementById('eq-trall-btn'),
+              lbl = document.getElementById('eq-trall-lbl');
+          if (btn && msg) btn.title = msg;
+          if (lbl && (done || left)){
+            lbl.textContent = done ? ('✓' + done + (left ? ' · ' + left + '⟳' : ''))
+                                   : ('⚠' + left);
+          }
+          if (msg) console.log('[equipment translate-all] ' + msg);
+        }
+      }
+    }catch(e){}
+  });
+})();
+</script>
+{% endblock %}

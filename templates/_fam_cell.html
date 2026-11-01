@@ -1,0 +1,18 @@
+
+
+
+
+
+
+
+
+
+
+
+{% macro fam_cell(v, cells, names, dash, tip) -%}
+{%- if v is none -%}{{ dash }}
+{%- elif cells -%}
+<span class="famcell" title="{{ tip.format(n=v) }}">{% for c, n in cells %}{% if not loop.first %} · {% endif %}<i class="famlbl" title="{{ names.get(c, c) }}">{{ c }}</i> {{ '{:,}'.format(n) }}{% endfor %}</span>
+{%- else -%}{{ '{:,}'.format(v) }}
+{%- endif -%}
+{%- endmacro %}

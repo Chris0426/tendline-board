@@ -1,0 +1,48 @@
+{% extends 'v2/_base.html' %}
+
+
+
+{% block page %}downtime{% endblock %}
+{% block title %}Tendline Board — {{ t.dt_title }}{% endblock %}
+{% block nav %}
+{% set nav_active = 'downtime' %}
+{% include 'v2/_nav.html' %}
+{% endblock %}
+{% block main %}
+{% set nav_active = 'downtime' %}
+  <h1>{{ t.dt_title }}{% if source == 'demo' %}<span class="demotag">DEMO</span>{% endif %}</h1>
+  <div class="sub">{{ t.dt_sub }}</div>
+  {% if not degraded %}
+  
+
+
+  <form class="head" method="get" action="{{ dt_base }}">
+    <span class="chips">
+      {% for o in type_opts %}<a href="{{ o.href }}" class="{{ 'on' if o.on }}" aria-pressed="{{ 'true' if o.on else 'false' }}">{{ o.label }}</a>{% endfor %}
+    </span>
+    <span class="rng">
+      <label for="dt-from">{{ t.dt_from }}</label>
+      <select id="dt-from" name="from" onchange="this.form.submit()">
+        {% for o in month_opts %}<option value="{{ o.m }}"{{ ' selected' if o.m == sel_from }}>{{ o.label }}</option>{% endfor %}
+      </select>
+      <label for="dt-to">{{ t.dt_to }}</label>
+      <select id="dt-to" name="to" onchange="this.form.submit()">
+        {% for o in month_opts %}<option value="{{ o.m }}"{{ ' selected' if o.m == sel_to }}>{{ o.label }}</option>{% endfor %}
+      </select>
+      {% if cap_note %}<span class="capn" data-cap="1">{{ cap_note }}</span>{% endif %}
+    </span>
+    <input type="hidden" name="source" value="{{ source }}">
+    <input type="hidden" name="lang" value="{{ lang }}">
+    {% if typ != 'all' %}<input type="hidden" name="type" value="{{ typ }}">{% endif %}
+    <noscript><button type="submit">OK</button></noscript>
+  </form>
+  {% endif %}
+  {% if source == 'demo' %}<div class="note">{{ t.dt_demo_note }}</div>{% endif %}
+  {% if degraded %}
+    {% include "v2/_downtime_body.html" %}
+  {% else %}
+  <div id="dt-body" hx-get="{{ body_url }}" hx-trigger="load" hx-swap="innerHTML">
+    <div class="loading"><span class="spin"></span>{{ t.dt_loading }}</div>
+  </div>
+  {% endif %}
+{% endblock %}

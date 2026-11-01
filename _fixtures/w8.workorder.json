@@ -1,0 +1,94 @@
+{
+  "schema_id": "w8.workorder.v0-unpinned",
+  "_status": "W8 契約設計面 CLOSED 雙邊（2026-06-29，CONCEPT §19.3 A8/W8）；cmms WO 讀取 API 建未上線、Tendline Board 消費端零碼（GOVERNANCE §3.3 高風險→Consumer-stub-first）",
+  "_provider": "tendline-work WO 讀取 API（list/get/status-history/rollup）——只吐 raw WO 事實、不持排班、不主張停機",
+  "_consumer": "Tendline Board：WO 區段疊 MES 停機區段分類（work_type→§23 態貼標）、活躍窗 overlap、（待 G1 排班）schedule-adjusted",
+  "_work_type_mapping": {
+    "PM": "計畫保養",
+    "REACTIVE": "維修",
+    "CONVERSION": "調機",
+    "PART REQUEST / ON HALT / DELAY / CORRECTIVE / PROACTIVE (長尾)": "其他維護(子類待定) 暫桶——待 cmms W4 重分類 push"
+  },
+  "_status_enum": ["OPEN", "IN_PROGRESS", "ON_HOLD", "COMPLETED", "CLOSED", "CANCELLED", "VOIDED"],
+  "_active_window_rule": "open → COMPLETED；無 COMPLETED → 首個終態(CLOSED/CANCELLED/VOIDED)；★歷史 caveat：大量遷移 WO 無 status_history 中間轉移 → 回退 opened_at→closed_at",
+  "provenance": [
+    {"field": "status_history 條目形狀", "source": "cmms src/cmms/domain/work_order/schemas.py:42-49 WorkOrderStatusHistoryRead（2026-07-04 峰會 CM-1 當場關）＝{from_status,to_status,hold_reason,changed_at,source_actor}；Board 消費對映 to_status→status/changed_at→at、hold_reason 保留（未知=「不知道」）、source_actor 治理丟棄"},
+    {"field": "hold_reason 詞彙", "source": "cmms 0019 governed 詞彙（DOWNSTREAM-CONSUMERS NOTE-6 ②）：WAITING_MACHINE_TIME=等機台空檔（機台仍生產、非停機）/TEST_RUN=試跑；admin 可 governed 新增＝additive"},
+    {"field": "work_order_no", "source": "CONCEPT §19.3 W8 契約（BigInt PK）"},
+    {"field": "asset_id", "source": "CONCEPT §19.3 W8（=EID=MES-EID；P-1 同名同物、§14.4 鍵直 join；雙級 rollup＝站級 rollup_asset_work_orders(self+contains_module 後代、shared 不捲) / 模組級直讀）"},
+    {"field": "work_type", "source": "CONCEPT §19.3 W8（PM/REACTIVE(佔絕大多數)/CONVERSION/長尾；只貼標、不主張停機長度——稼動分母＝SALTMARSH 排班非 WO）"},
+    {"field": "status_history", "source": "CONCEPT §19.3 W8（7 態 status→WO 活躍窗；OPEN/IN_PROGRESS/ON_HOLD/COMPLETED 非終態、CLOSED/CANCELLED/VOIDED 終態；元素形狀＝Tendline Board 假設 {status,at}＝沉默點）"},
+    {"field": "opened_at / closed_at", "source": "CONCEPT §19.3 W8 歷史 caveat（遷移 WO 只有 OPEN/CLOSED+opened_at/closed_at → overlap 回退規則）"}
+  ],
+  "golden": [
+    {
+      "_note": "現代 WO（完整 status_history）：活躍窗＝open→COMPLETED（08:35→11:40），CLOSED 只是行政收尾、不入窗",
+      "_active_window_expected": {"start": "2026-06-22 08:35:00", "end": "2026-06-22 11:40:00", "rule": "open→COMPLETED"},
+      "work_order_no": 100234,
+      "asset_id": "EID-17431",
+      "work_type": "REACTIVE",
+      "status_history": [
+        {"from_status": null, "to_status": "OPEN", "hold_reason": null, "changed_at": "2026-06-22 08:35:00", "source_actor": "human:tech042"},
+        {"from_status": "OPEN", "to_status": "IN_PROGRESS", "hold_reason": null, "changed_at": "2026-06-22 09:10:00", "source_actor": "human:tech042"},
+        {"from_status": "IN_PROGRESS", "to_status": "COMPLETED", "hold_reason": null, "changed_at": "2026-06-22 11:40:00", "source_actor": "human:tech042"},
+        {"from_status": "COMPLETED", "to_status": "CLOSED", "hold_reason": null, "changed_at": "2026-06-23 08:00:00", "source_actor": "human:admin01"}
+      ],
+      "opened_at": "2026-06-22 08:35:00",
+      "closed_at": "2026-06-23 08:00:00"
+    },
+    {
+      "_note": "★遷移 WO golden（歷史 caveat 本體）：status_history 空 → 活躍窗回退 opened_at→closed_at；大量筆為此形",
+      "_active_window_expected": {"start": "2025-11-03 07:00:00", "end": "2025-11-03 09:30:00", "rule": "status_history 空 → 回退 opened_at→closed_at"},
+      "work_order_no": 28704,
+      "asset_id": "EID-00884",
+      "work_type": "PM",
+      "status_history": [],
+      "opened_at": "2025-11-03 07:00:00",
+      "closed_at": "2025-11-03 09:30:00"
+    },
+    {
+      "_note": "長尾 work_type（PART REQUEST）→『其他維護(子類待定)』暫桶、待 W4 重分類；仍 OPEN 未完（closed_at=null）＝活躍窗開放端（end 未定＝沉默點③）",
+      "_active_window_expected": {"start": "2026-06-28 14:00:00", "end": null, "rule": "無 COMPLETED/終態 → 窗開放（end 讀法未凍、見 _note③）"},
+      "work_order_no": 100501,
+      "asset_id": "EID-24742",
+      "work_type": "PART REQUEST",
+      "status_history": [
+        {"from_status": null, "to_status": "OPEN", "hold_reason": null, "changed_at": "2026-06-28 14:00:00", "source_actor": "human:tech099"},
+        {"from_status": "OPEN", "to_status": "ON_HOLD", "hold_reason": "WAITING_MACHINE_TIME", "changed_at": "2026-06-28 16:20:00", "source_actor": "human:tech099"}
+      ],
+      "opened_at": "2026-06-28 14:00:00",
+      "closed_at": null
+    }
+  ],
+  "invalid": [
+    {
+      "case": "status='PENDING' 非 7 態 enum",
+      "reject_by": "consumer",
+      "record": {"work_order_no": 100999, "asset_id": "EID-17431", "work_type": "REACTIVE", "status_history": [{"from_status": null, "to_status": "PENDING", "hold_reason": null, "changed_at": "2026-06-22 08:35:00", "source_actor": "human:tech042"}], "opened_at": "2026-06-22 08:35:00", "closed_at": null}
+    },
+    {
+      "case": "缺 asset_id（W8 鍵＝EID 直 join；缺它無法疊 MES 停機區段）",
+      "reject_by": "consumer",
+      "record": {"work_order_no": 101000, "work_type": "PM", "status_history": [], "opened_at": "2026-06-22 08:00:00", "closed_at": "2026-06-22 10:00:00"}
+    },
+    {
+      "case": "status_history 空且缺 opened_at/closed_at → 回退規則也無從算＝無活躍窗、必丟",
+      "reject_by": "consumer",
+      "record": {"work_order_no": 101001, "asset_id": "EID-00884", "work_type": "REACTIVE", "status_history": []}
+    },
+    {
+      "case": "帶 downtime_minutes 當停機主張（W8 明訂 cmms 不主張停機——舊 downtime_minutes 已降級為『WO 活動時長』維護 KPI；Tendline Board 不得當停機長度消費。provider 若吐此欄，consumer 白名單須剝除、絕不進稼動分母）",
+      "reject_by": "provider_governance",
+      "record": {"work_order_no": 101002, "asset_id": "EID-17431", "work_type": "REACTIVE", "status_history": [{"from_status": null, "to_status": "OPEN", "hold_reason": null, "changed_at": "2026-06-22 08:35:00", "source_actor": "human:tech042"}, {"from_status": "OPEN", "to_status": "COMPLETED", "hold_reason": null, "changed_at": "2026-06-22 11:40:00", "source_actor": "human:tech042"}], "opened_at": "2026-06-22 08:35:00", "closed_at": "2026-06-22 12:00:00", "downtime_minutes": 185}
+    }
+  ],
+  "_note": [
+    "★ 2026-07-04 峰會裁決：沉默點② CLOSED（cmms 真形狀已採、見 provenance 首列）；追認類（多WO重疊/open時刻/髒資料/dup/掏空拒收）照 Board 自選過；ON_HOLD 窗語意（沉默點⑥）登記 SME。cmms 將交付 golden fixture tests/fixtures/contract_wo_detail.v1.json → 收進 board_w8 selftest。cmms 讀 API 將加 static bearer token（CM-3 破壞性變更預告；Board 憑證 Fly secret 經 Chris relay）。",
+    "沉默點①（schema_id）：**CLOSED（2026-07-05 A3 對版 relay v2）**＝contract_wo_active_in.v1（LIST）/ contract_wo_detail.v1（detail）；契約級識別、**非 in-band**（真回應 body 無 schema_id 欄）；形狀 pin＝cmms golden fixture＋其契約測試（形變即紅＝機械 push）。本 fixture 的 'w8.workorder.v0-unpinned' 佔位僅供 Board 自製 golden 內部用、不上 wire。",
+    "沉默點②：**CLOSED（2026-07-04 CM-1）**＝{from_status,to_status,hold_reason,changed_at,source_actor}，Board 邊界對映（見 provenance）。",
+    "沉默點③（仍 OPEN 的 WO 窗端）：『open→COMPLETED（無 COMPLETED→首個終態）』對『尚無任何終態』的進行中 WO 未定 end——讀到 now？截到查詢窗端？本 fixture golden 3 以 end=null 存證、不猜死；接通前必對版。",
+    "沉默點④（時戳時鐘）：**2026-07-05 真 golden 實證解答＝UTC ISO-8601 `...T..Z`**（cmms tests/fixtures/contract_wo_detail.v1.json：opened_at=2026-07-01T09:12:00Z 等）。Board 消費端只吃 naive 台北牆鐘 → 真 WO 被整筆丟棄（隔離證實唯一病因＝時區格式；換 naive 後全對）。MES 區段＝台北本地 naive（§21.1）→ 不轉時區直接疊＝錯位 8h。**CLOSED（2026-07-05 A3 對版 relay v2 §0）**：LIST/detail 全 datetime＝UTC ISO-8601 'Z'（同一條 pydantic 序列化路徑、prod 實證；微秒有則保留整秒則無＝兩種都容納）；Board 已落地 `_parse_dt`/`guard_ts` UTC→台北(+8)轉 naive（S10 CLOSED）、真 golden ×2 收進 board_w8 selftest QG-3.7 節全鏈 PASS。QG-3.6 時間對齊聲明已填（§14.2）。",
+    "沉默點⑤（work_type 值域開放）：長尾『其餘』是開放集（待 W4 重分類）——consumer 對未知 work_type 應落『其他維護(子類待定)』暫桶而非丟棄（與 enum 站態不同：這裡未知＝合法暫桶）。fixture invalid 未收未知 work_type case＝刻意。",
+    "沉默點⑥（ON_HOLD 語意）：ON_HOLD 期間算不算活躍窗內（等料中 WO 掛著、機台可能已修好在跑）？契約只給 open→COMPLETED 粗窗；ON_HOLD 扣除與否＝分類精度問題、未凍——先照粗窗、§26.5/SME 校準時再議。"
+  ]
+}
